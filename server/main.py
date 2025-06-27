@@ -4,6 +4,9 @@ import uvicorn
 import PIL
 from PIL import Image
 import io
+import asyncio
+import base64
+
 
 app = FastAPI()
 
@@ -12,6 +15,9 @@ gpu_queue = asyncio.Queue()
 
 model = YOLO("yolov8n-pose.pt").to("cuda:0")
 model.eval()
+
+MAX_GPU_MEMRY_GB = 24.0
+
 
 @app.on_event("startup")
 async def init_queue():
@@ -29,7 +35,9 @@ async def use_gpu(client_id: int, request: Request):
     
     async with gpu_lock:
         print(f"Client {client_id} is using the GPU ...")
-        image_byte = request.get('image')
+        data = await request.json()
+        image_base64 = data.get("image")
+        image_byte = base64.b64decode(image_base64)
         predictions = AI.predict(model, image_byte)
         
         ### Process the predictions as needed
@@ -38,7 +46,6 @@ async def use_gpu(client_id: int, request: Request):
 
 @app.post("/predict")
 async def predict(request: Request):
-    
     # Make sure only one request is able to use the GPU at a time
     client_id = id(request)
     ticket = await gpu_queue.get()
@@ -46,7 +53,7 @@ async def predict(request: Request):
         await use_gpu(client_id, request)
         return {"client_id": client_id, "ticket": ticket}
     finally:
-        awai gpu_queue.put(ticket)
+        await gpu_queue.put(ticket)
         
     
     return {"message" : "GOOD!"}
