@@ -6,8 +6,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # set default build arguments
 # https://developer.android.com/studio#command-tools
-#ARG SDK_VERSION=commandlinetools-linux-11076708_latest.zip
-aRG SDK_VERSION=android-ndk-r20-linux-x86_64.zip
+ARG SDK_VERSION=commandlinetools-linux-11076708_latest.zip
 ARG ANDROID_BUILD_VERSION=35
 ARG ANDROID_TOOLS_VERSION=35.0.0
 ARG NDK_VERSION=26.1.10909125
@@ -70,11 +69,12 @@ RUN curl -L https://raw.githubusercontent.com/tj/n/master/bin/n -o n \
 
 # Full reference at https://dl.google.com/android/repository/repository2-1.xml
 # download and unpack android
-RUN curl -sS https://dl.google.com/android/repository/${SDK_VERSION} -o /tmp/sdk.zip \
-    && mkdir -p ${ANDROID_HOME}/cmdline-tools \
-    && unzip -q -d ${ANDROID_HOME}/cmdline-tools /tmp/sdk.zip \
-    && mv ${ANDROID_HOME}/cmdline-tools/cmdline-tools ${ANDROID_HOME}/cmdline-tools/latest \
-    && rm /tmp/sdk.zip \
+RUN mkdir -p ${ANDROID_HOME}/cmdline-tools && \
+    curl -sS https://dl.google.com/android/repository/${SDK_VERSION} -o /tmp/sdk.zip && \
+    unzip -q /tmp/sdk.zip -d /tmp && \
+    mv /tmp/cmdline-tools ${ANDROID_HOME}/cmdline-tools/latest
+    
+RUN rm /tmp/sdk.zip \
     && yes | sdkmanager --licenses \
     && yes | sdkmanager "platform-tools" \
         "platforms;android-$ANDROID_BUILD_VERSION" \
