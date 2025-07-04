@@ -21,7 +21,7 @@ yarn start
 ## Step 3: Build and run your app
 
 With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
-Android
+### Android
 ```
 # Using npx
 npx react-native run-android
@@ -29,18 +29,18 @@ npx react-native run-android
 # OR using Yarn
 yarn android
 ```
-iOS
+### iOS
 
 For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
 
 The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
-
+```
 bundle install
 
 Then, and every time you update your native dependencies, run:
 
 bundle exec pod install
-
+```
 For more information, please visit CocoaPods Getting Started guide.
 ```
 # Using npm
