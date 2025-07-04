@@ -174,3 +174,12 @@ dependencies {
         implementation jscFlavor
     }
 }
+
+afterEvaluate {
+    def vectorIconTask = tasks.findByName("copyReactNativeVectorIconFonts")
+    if (vectorIconTask != null) {
+        tasks.matching { it.name.toLowerCase().contains("lint") }.all {
+            it.dependsOn(vectorIconTask)
+        }
+    }
+}
