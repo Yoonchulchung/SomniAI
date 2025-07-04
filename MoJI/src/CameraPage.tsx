@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native'
 import { Camera, useCameraDevice } from 'react-native-vision-camera'
 import { useIsFocused} from '@react-navigation/core'
 
-export default function CameraPage(): React.ReactElement {
+export function CameraPage(): React.ReactElement {
 
     const device = useCameraDevice('back')
     const camera = useRef<Camera>(null)
