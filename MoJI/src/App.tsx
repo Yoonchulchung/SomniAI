@@ -1,9 +1,11 @@
+import 'react-native-gesture-handler';
 import { NavigationContainer } from '@react-navigation/native'
 import React from 'react'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import { CameraPage } from './CameraPage'
 import { Camera } from 'react-native-vision-camera'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
+import { StyleSheet } from 'react-native'
 import type { Routes } from './Routes'
 
 const Stack = createNativeStackNavigator<Routes>()
@@ -12,7 +14,7 @@ export function App(): React.ReactElement | null {
    const cameraPermission = Camera.getCameraPermissionStatus()
    const microphonePermission = Camera.getMicrophonePermissionStatus()
    
-   console.log(`Camera: ${cameraPermission} | Microphone : ${microphonePermission}')
+   console.log(`Camera: ${cameraPermission} | Microphone : ${microphonePermission}`)
 
 
    return(
@@ -25,9 +27,13 @@ export function App(): React.ReactElement | null {
 					animationTypeForReplace: 'push'}}
 					initialRouteName='CameraPage'>
 					<Stack.Screen name="CameraPage" component={CameraPage} />
-				<\Stack.Navigator>
+				</Stack.Navigator>
 			</GestureHandlerRootView>
-		</NavigationContinaer>
+		</NavigationContainer>
 	)
-
 }
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
+})
