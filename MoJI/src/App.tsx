@@ -25,8 +25,8 @@ export function App(): React.ReactElement | null {
 					headerShown: false,
 					statusBarStyle: 'dark',
 					animationTypeForReplace: 'push'}}
-					initialRouteName='CameraPage'>
-					<Stack.Screen name="CameraPage" component={CameraPage} />
+          			initialRouteName={'CameraPage'}>
+								<Stack.Screen name="CameraPage" component={CameraPage} />
 				</Stack.Navigator>
 			</GestureHandlerRootView>
 		</NavigationContainer>
