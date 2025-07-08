@@ -27,7 +27,7 @@
     "react-native-vector-icons": "^10.2.0",
     "react-native-video": "^6.6.4",
     "react-native-vision-camera": "4.6.4",
-    "react-native-worklets-core": "1.5.0"
+    "react-native-worklets-core": "1.6.0"
   },
   "devDependencies": {
     "@babel/core": "^7.24.7",
