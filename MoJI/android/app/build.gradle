@@ -4,7 +4,7 @@ apply plugin: "com.facebook.react"
 apply plugin: "kotlin-android"
 
 import com.android.build.OutputFile
-
+logger.warn("[MOJI] Applying MoJI Android build configuration")
 /**
  * This is the configuration block to customize your React Native Android app.
  * By default you don't need to apply any configuration, just uncomment the lines you need.
@@ -99,6 +99,34 @@ def reactNativeArchitectures() {
     return value ? value.split(",") : ["armeabi-v7a", "x86", "x86_64", "arm64-v8a"]
 }
 
+
+/* =========== ADDED ============== */
+import java.nio.file.Paths
+static def findNodeModules(baseDir) {
+  def basePath = baseDir.toPath().normalize()
+  // Node's module resolution algorithm searches up to the root directory,
+  // after which the base path will be null
+  while (basePath) {
+    def nodeModulesPath = Paths.get(basePath.toString(), "node_modules")
+    def reactNativePath = Paths.get(nodeModulesPath.toString(), "react-native")
+    if (nodeModulesPath.toFile().exists() && reactNativePath.toFile().exists()) {
+      return nodeModulesPath.toString()
+    }
+    basePath = basePath.getParent()
+  }
+  throw new GradleException("react-native-fast-tflite: Failed to find node_modules/ path!")
+}
+
+def nodeModules = findNodeModules(projectDir)
+logger.warn("[MOJI] Found Node_Module directoriy : $nodeModules")
+/* ===================================*/
+
+logger.warn("[MOJI] ndkVersion: ${rootProject.ext.ndkVersion}")
+logger.warn("[MOJI] buildToolsVersion: ${rootProject.ext.buildToolsVersion}")
+logger.warn("[MOJI] compileSdkVersion: ${rootProject.ext.compileSdkVersion}")
+logger.warn("[MOJI] minSdkVersion: ${rootProject.ext.minSdkVersion}")
+logger.warn("[MOJI] targetSdkVersion: ${rootProject.ext.targetSdkVersion}")
+
 android {
     ndkVersion rootProject.ext.ndkVersion
     buildToolsVersion rootProject.ext.buildToolsVersion
@@ -109,12 +137,25 @@ android {
         javaMaxHeapSize "4g"
     }
 
+    buildFeatures {
+        prefab true
+    }
+
     defaultConfig {
         applicationId "com.moji"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
+
+        externalNativeBuild {
+            cmake {
+                cppFlags "-O2 -frtti -fexceptions -Wall -Wno-unused-variable -fstack-protector-all"
+                arguments "-DANDROID_STL=c++_shared",
+                  "-DNODE_MODULES_DIR=${nodeModules}"
+                abiFilters (*reactNativeArchitectures())
+                }
+        }
     }
     splits {
         abi {
@@ -157,6 +198,12 @@ android {
 
         }
     }
+    externalNativeBuild {
+        cmake {
+            path "src/main/cpp/CMakeLists.txt"
+        }
+    }
+
     packagingOptions {
         pickFirst '**/*.so'
     }
