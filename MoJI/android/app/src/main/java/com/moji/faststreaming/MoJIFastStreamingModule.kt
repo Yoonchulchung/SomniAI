@@ -1,10 +1,10 @@
-package com.moji
+package com.moji.faststreaming
 
 import android.util.Log
+import com.facebook.react.bridge.Promise    
 import com.facebook.react.bridge.ReactApplicationContext
-import com.facebook.react.brdige.ReactContext.ReactContextBaseJavaModule
+import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
-import com.facebook.react.turbomodule.core.interfaces.CallInvokerHolder
 
 class MoJIFastStreamingModule(ctx: ReactApplicationContext) : ReactContextBaseJavaModule(ctx) {
     override fun getName(): String {
@@ -19,31 +19,21 @@ class MoJIFastStreamingModule(ctx: ReactApplicationContext) : ReactContextBaseJa
         }
     }
 
-    private external fun nativeInstall(jsiRuntimeRef: Long, jsCallInvokerHolder?)
-
-    @ReactMethod(isBlockingSynchronousMethod = true)
-    ovveride fun install(): Boolean {
-        val jsiRuntimeRef = reactApplicationContext.jsCallInvokerHolder.jsCallInvokerHolder
+    @ReactMethod
+    fun install(promise:Promise): Boolean {
 
         try {
+            val ok = nativeInstall()
 
-            if (jsiRuntimeRef == null) {
-                Log.e(NAME, "JSI Runtime reference is null")
-                return false
-            }
-
-            val jsiRuntimeRef = jsContext!!.get()
-            val jsCallInvokerHolder = reactApplicationContext.jsCallInvokerHolder
-
-            nativeInstall(jsiRuntimeRef, jsCallInvokerHolder)
-
-            return true
-        }
-        catch (e: Exception) {
-            Log.e(NAME, "Error during nativeInstall: ${e.message}")
+            promise.resolve(ok)
+        } catch (e: Exception) {
+            Log.e(NAME, "Error during installation", e)
+            promise.reject("INSTALL_ERROR", "Failed to install MoJIFastStreaming", e)
             return false
         }
 
         return false
     }
+
+    private external fun nativeInstall(): Boolean
 }

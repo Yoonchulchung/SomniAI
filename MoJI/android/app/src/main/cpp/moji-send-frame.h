@@ -6,6 +6,7 @@
 #ifdef __cplusplus
 
 #endif
+using namespace facebook;
 
 class MoJISend {
 

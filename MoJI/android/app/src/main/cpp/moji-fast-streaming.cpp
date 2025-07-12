@@ -1,7 +1,6 @@
 #include <iostream>
 
 #include "moji-fast-streaming.h"
-#include "jsi/Promise.h"
 
 
 void MoJIPlugin::installMoJI(jsi::Runtime& runtime, std::shared_ptr<react::CallInvoker> callInvoker) {
@@ -16,7 +15,7 @@ void MoJIPlugin::installMoJI(jsi::Runtime& runtime, std::shared_ptr<react::CallI
                     return result;
                 };
 
-    auto jsiFunc = jsi::Function::createFromHostObject(runtime,
+    auto jsiFunc = jsi::Function::createFromHostFunction(runtime,
         jsi::PropNameID::forUtf8(runtime, "__FastStream"),
     1,
     func);
@@ -25,13 +24,14 @@ void MoJIPlugin::installMoJI(jsi::Runtime& runtime, std::shared_ptr<react::CallI
 
 }
 
-jsi::Value MoJIPlugin::get(jis::Runtime& runtime, const jsi::PropNameID& propNameID) {
-    auto propName = propNameId.utf8(runtime);
+jsi::Value MoJIPlugin::get(jsi::Runtime& runtime, const jsi::PropNameID& propNameID) {
+    auto propName = propNameID.utf8(runtime);
 
     if (propName == "sendFrame") {
-        "MoJIPlugin.sendFrame(frame_in_bufferarray, ip_addr_in_string)"
-        
-        return jsi::Function:createFromHostObject(
+        /*  usage:
+            MoJIPlugin.sendFrame(frame_in_bufferarray, ip_addr_in_string)"
+        */
+        return jsi::Function::createFromHostFunction(
             runtime, jsi::PropNameID::forAscii(runtime, "sendFrame"), 2, MoJISend::MoJISendFrame);
     }
 }

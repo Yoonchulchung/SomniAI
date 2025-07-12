@@ -1,7 +1,6 @@
 #ifndef MOJI_H
 #define MOJI_H
 
-#include <jsi/jslib.h>
 #include <jsi/jsi.h>
 
 #include "moji-send-frame.h"
