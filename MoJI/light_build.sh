@@ -1,6 +1,6 @@
 sudo rm -rf node_modules
 npm install
 
-cd android && ./gradlew clean
+cd android && ./gradlew clean && ./gradlew build   
 
-npx react-native run-android
+
