@@ -60,6 +60,16 @@ RUN apt update -qq && apt install -qq -y --no-install-recommends \
     && gem install bundler \
     && rm -rf /var/lib/apt/lists/*;
 
+# install watchman
+RUN apt update && apt-get install -y watchman
+# RUN apt-get update \
+#  && apt-get install -y wget ca-certificates \
+#  && wget -q https://github.com/facebook/watchman/releases/download/v2023.10.09.00/watchman_ubuntu22.04_v2023.10.09.00.deb \
+#  && dpkg -i watchman_ubuntu22.04_v2023.10.09.00.deb || true \ 
+#  && apt-get install -fy \                                    
+#  && rm watchman_ubuntu22.04_v2023.10.09.00.deb \
+#  && watchman --version
+
 # install nodejs using n
 RUN curl -L https://raw.githubusercontent.com/tj/n/master/bin/n -o n \
     && bash n $NODE_VERSION \
@@ -86,3 +96,10 @@ RUN rm /tmp/sdk.zip \
 
 # Disable git safe directory check as this is causing GHA to fail on GH Runners
 RUN git config --global --add safe.directory '*'
+
+
+RUN mkdir -p /usr/local/var/run/watchman && \
+    chown -R root:root /usr/local/var/run/watchman
+
+# launch the daemon in the foreground so Docker keeps it alive
+CMD ["watchman", "-f", "--sockname=/usr/local/var/run/watchman/sock", "--logfile=/tmp/watchman.log", "--statefile=/tmp/watchman.state", "--pidfile=/tmp/watchman.pid", "--no-pretty", "--timeout=120", "--allow-root"]
