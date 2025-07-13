@@ -3,7 +3,7 @@ project(MoJIFastStreaming LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_VERBOSE_MAKEFILE ON)
-set(PACKAGE_NAME "MoJI")
+set(PACKAGE_NAME "moji-fast-streaming")
 
 
 file(TO_CMAKE_PATH "${NODE_MODULES_DIR}" NODE_MODULES_DIR)
