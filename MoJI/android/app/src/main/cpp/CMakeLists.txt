@@ -12,6 +12,17 @@ find_package(ReactAndroid REQUIRED CONFIG )
 find_package(fbjni        REQUIRED CONFIG)
 find_library(LOG_LIB log)
 
+include_directories(
+          ../cpp
+          ../cpp/jsi
+          "${NODE_MODULES_DIR}/react-native/React"
+          "${NODE_MODULES_DIR}/react-native/React/Base"
+          "${NODE_MODULES_DIR}/react-native/ReactCommon"
+          "${NODE_MODULES_DIR}/react-native/ReactCommon/jsi"
+          "${NODE_MODULES_DIR}/react-native/ReactCommon/callinvoker"
+          "${NODE_MODULES_DIR}/react-native/ReactAndroid/src/main/jni/react/turbomodule"
+)
+
 add_library(${PACKAGE_NAME} SHARED
   moji-fast-streaming.cpp
   moji-fast-streaming.h
