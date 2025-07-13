@@ -24,6 +24,8 @@ void MoJIPlugin::installMoJI(jsi::Runtime& runtime, std::shared_ptr<react::CallI
 
 }
 
+MoJIPlugin::MoJIPlugin(std::shared_ptr<react::CallInvoker> callInvoker) : _callInvoker (callInvoker) {}
+
 jsi::Value MoJIPlugin::get(jsi::Runtime& runtime, const jsi::PropNameID& propNameID) {
     auto propName = propNameID.utf8(runtime);
 
@@ -34,4 +36,12 @@ jsi::Value MoJIPlugin::get(jsi::Runtime& runtime, const jsi::PropNameID& propNam
         return jsi::Function::createFromHostFunction(
             runtime, jsi::PropNameID::forAscii(runtime, "sendFrame"), 2, MoJISend::MoJISendFrame);
     }
+
+    return jsi::Value::undefined();
+}
+
+std::vector<jsi::PropNameID> MoJIPlugin::getPropertyNames(jsi::Runtime& runtime) {
+    std::vector<jsi::PropNameID> props;
+    props.push_back(jsi::PropNameID::forUtf8(runtime, "sendFrame"));
+    return props;
 }

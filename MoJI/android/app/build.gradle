@@ -137,6 +137,7 @@ android {
         javaMaxHeapSize "4g"
     }
 
+    /* == In order to link React Android in CMake, prefab true is required == */
     buildFeatures {
         prefab true
     }

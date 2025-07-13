@@ -14,7 +14,9 @@ find_library(LOG_LIB log)
 
 add_library(${PACKAGE_NAME} SHARED
   moji-fast-streaming.cpp
+  moji-fast-streaming.h
   moji-send-frame.cpp
+  moji-send-frame.h
   cpp-installer.cpp
 )
 
@@ -29,7 +31,8 @@ target_link_libraries(
     ReactAndroid::jsi               # RN: JSI
     ReactAndroid::reactnativejni    # RN: JNI Utils (e.g. CallInvoker)
     fbjni::fbjni                    # fbjni
-    folly_json
+    ReactAndroid::folly_runtime
+    #folly_json
     log
     android                         # Android JNI core
 )
