@@ -1,7 +1,6 @@
 package com.moji.faststreaming
 
 import android.util.Log
-import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
@@ -23,7 +22,7 @@ class MoJIFastStreamingModule(ctx: ReactApplicationContext) : ReactContextBaseJa
 
 
     @ReactMethod(isBlockingSynchronousMethod = true)
-    fun install(promise: Promise): Boolean {
+    fun install(): Boolean {
         val jsContext = reactApplicationContext.javaScriptContextHolder
 
         if (jsContext == null) {
