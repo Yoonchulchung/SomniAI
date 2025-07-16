@@ -5,6 +5,7 @@ import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
+import com.facebook.react.turbomodule.core.interfaces.CallInvokerHolder
 
 class MoJIFastStreamingModule(ctx: ReactApplicationContext) : ReactContextBaseJavaModule(ctx) {
     override fun getName(): String {
@@ -18,22 +19,29 @@ class MoJIFastStreamingModule(ctx: ReactApplicationContext) : ReactContextBaseJa
             System.loadLibrary("moji-fast-streaming")
         }
     }
+    private external fun nativeInstall(jsiRuntimeRef: Long, jsCallInvokerHolder: CallInvokerHolder?)
 
-    @ReactMethod
+
+    @ReactMethod(isBlockingSynchronousMethod = true)
     fun install(promise: Promise): Boolean {
+        val jsContext = reactApplicationContext.javaScriptContextHolder
+
+        if (jsContext == null) {
+            Log.e(NAME, "React Application Context was null!")
+            return false
+          }
 
         try {
-            val ok = nativeInstall()
+            val jsiRuntimeRef = jsContext!!.get()
+            val jsCallInvokerHolder = reactApplicationContext.catalystInstance.jsCallInvokerHolder
+            nativeInstall(jsiRuntimeRef, jsCallInvokerHolder)
 
-            promise.resolve(ok)
+            return true
         } catch (e: Exception) {
             Log.e(NAME, "Error during installation", e)
-            promise.reject("INSTALL_ERROR", "Failed to install MoJIFastStreaming", e)
-            return false
         }
-
+        
         return false
     }
 
-    private external fun nativeInstall(): Boolean
 }
