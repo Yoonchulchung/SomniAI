@@ -2,6 +2,26 @@ import React, {useEffect, useRef, useState } from 'react'
 import { StyleSheet, View, Text } from 'react-native'
 import { Camera, runAtTargetFps, useCameraDevice, useFrameProcessor } from 'react-native-vision-camera'
 import { useIsFocused } from '@react-navigation/core'
+import { NativeModules, Platform } from 'react-native'
+
+declare global {
+  var __FastStream: () => {
+    sendFrame: (buffer: ArrayBuffer, ip: string) => void
+  }
+}
+
+const mojiNativeModule = NativeModules.MoJIFastStreaming
+if (Platform.OS === 'android') {
+
+  if (mojiNativeModule && typeof mojiNativeModule.install === 'function') {
+     var result = mojiNativeModule.install()
+     if (result){
+         console.log("Succeed to Install Moji Native Module")
+      }
+      else{
+         console.log("Failed to Install Moji Native Module")
+      }
+}
 
 export function CameraPage(): React.ReactElement {
 
