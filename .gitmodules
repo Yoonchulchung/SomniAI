@@ -1,0 +1,3 @@
+[submodule "MoJI/curl/curl"]
+	path = MoJI/curl/curl
+	url = https://github.com/curl/curl.git

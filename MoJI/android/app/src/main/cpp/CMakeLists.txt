@@ -8,8 +8,9 @@ set(PACKAGE_NAME "moji-fast-streaming")
 
 file(TO_CMAKE_PATH "${NODE_MODULES_DIR}" NODE_MODULES_DIR)
 
-find_package(ReactAndroid REQUIRED CONFIG )
+find_package(ReactAndroid REQUIRED CONFIG)
 find_package(fbjni        REQUIRED CONFIG)
+find_package(CURL REQUIRED)
 find_library(LOG_LIB log)
 
 include_directories(
@@ -35,6 +36,7 @@ target_include_directories(${PACKAGE_NAME}
   PRIVATE
     "${NODE_MODULES_DIR}/react-native/ReactCommon/callinvoker"
     "${NODE_MODULES_DIR}/react-native/ReactCommon" 
+    ${CURL_INCLUDE_DIR}
 )
 
 target_link_libraries(
@@ -44,6 +46,8 @@ target_link_libraries(
     fbjni::fbjni                    # fbjni
     ReactAndroid::folly_runtime
     #folly_json
+    CURL_LIBRARIES
     log
     android                         # Android JNI core
 )
+
