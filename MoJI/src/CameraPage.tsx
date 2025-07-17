@@ -21,7 +21,10 @@ if (Platform.OS === 'android') {
       else{
          console.log("Failed to Install Moji Native Module")
       }
+    }
 }
+
+const moji = global.__FastStream()
 
 export function CameraPage(): React.ReactElement {
 
@@ -43,7 +46,7 @@ export function CameraPage(): React.ReactElement {
 
             const buffer = frame.toArrayBuffer()
             // Send Data to Server through Native Language
-
+            moji.sendFrame(buffer, '192.168.0.1')
         }
     })
     }, [])
