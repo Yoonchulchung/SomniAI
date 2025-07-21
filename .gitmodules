@@ -1,3 +1,6 @@
 [submodule "MoJI/curl/curl"]
 	path = MoJI/curl/curl
 	url = https://github.com/curl/curl.git
+[submodule "MoJI/curl/openssl"]
+	path = MoJI/curl/openssl
+	url = https://github.com/openssl/openssl.git
