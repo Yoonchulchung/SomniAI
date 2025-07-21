@@ -1,5 +1,16 @@
+<div align="center">
+<h1>MoJI Application</h1>
+</div>
+
 This React Native app, developed for the Smart Pillow Project, captures a person's presence and transmits the data to an AI server for analysis.
+
+
+
 # Getting Started
+React Native : 0.75.4  
+react-native-vision-camera : 4.6.4  
+react-native-worklets-core : 1.6.0  
+
 ## Step 1: Install Dependecies
 
 Due to GitHub's upload size limitations, the dependencies for this project ahve been removed. Please make sure to install them before running the project.
