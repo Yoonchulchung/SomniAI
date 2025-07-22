@@ -25,8 +25,9 @@ async def init_queue():
         await gpu_queue.put(i)
         
         
-@app.get("/")
+@app.post("/")
 def main():
+    print("GOO")
     return {"message": "Hello, World!"}
 
 import AI
@@ -59,4 +60,4 @@ async def predict(request: Request):
     return {"message" : "GOOD!"}
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="localhost", port=8000, reload=False)    
+    uvicorn.run(app, host="0.0.0.0", port=8000, reload=False) 
