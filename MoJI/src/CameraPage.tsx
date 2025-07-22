@@ -46,7 +46,7 @@ export function CameraPage(): React.ReactElement {
 
             const buffer = frame.toArrayBuffer()
             // Send Data to Server through Native Language
-            moji.sendFrame(buffer, '192.168.0.1')
+            moji.sendFrame(buffer, 'http://192.168.0.69:8000/')
         }
     })
     }, [])

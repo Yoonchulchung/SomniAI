@@ -10,13 +10,17 @@ jsi::Value MoJISend::MoJISendFrame(jsi::Runtime& runtime, const jsi::Value& this
 
                 std::string ip = arguments[1].asString(runtime).utf8(runtime);
 
-                uint16_t port = static_cast<uint16_t>(arguments[2].asNumber());
                 /* ================================ */
 
                 //MoJISend::sendBufferOverHTTP(bufferData, bufferSize, ip, port);
 
-                MoJISend::sendBufferOverHTTP(bufferData, bufferSize, ip);
+                std::vector<uint8_t> copiedBuffer(bufferData, bufferData + bufferSize);
+                std::string copiedIp = ip;
 
+                std::thread([copiedBuffer = std::move(copiedBuffer), copiedIp]() {
+                    MoJISend::sendBufferOverHTTP(copiedBuffer.data(), copiedBuffer.size(), copiedIp);
+                }).detach();
+                
                 /* ================================ */
                 jsi::Object result = jsi::Object(runtime);
                 result.setProperty(runtime, "ok", true);
@@ -36,6 +40,9 @@ bool MoJISend::sendBufferOverHTTP(const uint8_t* bufferData, size_t bufferSize,
                     curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, bufferSize);
 
                     res = curl_easy_perform(curl);
+                    // LOGI("Send Data to : %s", url.c_str());
+                    // LOGI("curl_easy_perform returned: %d", res);
+
                     curl_easy_cleanup(curl);
 
                     return (res == CURLE_OK);
