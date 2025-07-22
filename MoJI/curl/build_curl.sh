@@ -25,6 +25,6 @@ ninja -C ./build
 
 echo "\n\n====== Ninja Build is Completed! ==== \n\n"
 
-sudo cmake --install ./build
+sudo cmake --install ./build --prefix "$(pwd)/curl_output"
 
 echo "\n\n====== Finished Installing! ======== \n\n"

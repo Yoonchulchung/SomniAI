@@ -23,7 +23,7 @@ jsi::Value MoJISend::MoJISendFrame(jsi::Runtime& runtime, const jsi::Value& this
                 return result;
 }
 
-bool MoJISend::sendBufferOverHTTP((const uint8_t* bufferData, size_t bufferSize, 
+bool MoJISend::sendBufferOverHTTP(const uint8_t* bufferData, size_t bufferSize, 
                 const std::string& url) {
                     CURL* curl = curl_easy_init();
                     if (!curl) return false;
