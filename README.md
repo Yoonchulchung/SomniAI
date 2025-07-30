@@ -22,7 +22,7 @@ kaggle datasets download awsaf49/ieee-vip-cup-2021-train-val-dataset
 ```
 Or use our Python script:
 ```bash
-python tester/data/download_data.py
+python data/download_data.py --path /path/to/dataset
 ```
 
 __2. Install Dependency__   
