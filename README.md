@@ -9,11 +9,46 @@ MoJI is an application that captures your sleep posture through a camera and sen
 
 For deeper description how we made MoJI app, please read [MoJI Documents](./MoJI/README.md).
 
+## System Architecture
+[Mobile App (MoJI)] ---> [FastAPI Server] ---> [AI Model] ---> [Sleep Feedback (HW)]
 
+## Installation
+In order to use SomniAI, Please follow below instruction to install.    
 
+__1. Download Dataset (Optional)__   
+In oder to test SomniAI, you can download dataset via [kaggle - IEE VIP CUP 2021 Dataset](https://www.kaggle.com/datasets/awsaf49/ieee-vip-cup-2021-train-val-dataset) or below bash api.
+```bash
+kaggle datasets download awsaf49/ieee-vip-cup-2021-train-val-dataset
+```
+Or use our Python script:
+```bash
+python tester/data/download_data.py
+```
 
+__2. Install Dependency__   
+please install dependency using below command:
+``` bash
+pip install -r requirements
+```
+
+__3. Run FastAPI Server__
+``` bash
+uvicorn main:app --reload
+```
+
+## Usage
+You can test the server with sample data using:
+```bash
+python tester/test.py 
+```
 
 ## Contribution
 **Hardware Software** : 고민준, 이찬희  
 **Hardware Design** : 김도훈, 조형진  
 **Software**  :  예성호, 정윤철
+
+## License
+MIT License
+
+## Contact
+Yoonchul005@gmail.com
