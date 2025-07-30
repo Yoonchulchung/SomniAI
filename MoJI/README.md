@@ -2,7 +2,16 @@
 <h1>MoJI Application</h1>
 </div>
 
-This React Native app, developed for the Smart Pillow Project, captures a person's presence and transmits the data to an AI server for analysis.
+<div style="display: flex; align-items: center;">
+  <div style="flex: 1; padding-right: 20px;">
+    <p>
+      This React Native app, developed for the Smart Pillow Project, captures a person's presence and transmits the data to an AI server for analysis.
+    </p>
+  </div>
+  <div style="flex: 1;">
+    <img src="./MoJI.png" alt="sleep pose" style="max-width: 80%; height: auto; border-radius: 10px;">
+  </div>
+</div>
 
 
 
