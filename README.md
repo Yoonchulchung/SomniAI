@@ -1,29 +1,19 @@
-# 스마트 베개 프로젝트
+# SomniAI
 
-**2025년 단국대학교 종합설계 프로젝트**  
-스마트 베개를 통한 수면 모니터링 및 AI 기반 피드백 시스템 구축
+SomniAI helps improve your sleep quality by analyzing your sleep posture and movements, delivering personalized feedback that helps you wake up refreshed and ready to take on the day.
+With higher-quality sleep, you can wake up feeling refreshed and energized to start your day.
+Camera data collected through the mobile app is transmitted to a FastAPI server, where an AI model processes and analyzes the information in real time.
 
-## 📅 프로젝트 기간  
-**2025년 3월 ~ 2025년 11월**
+## MoJI
+MoJI is an application that captures your sleep posture through a camera and sends the data to a server for movement analysis, helping guide you toward better sleep posture. 
 
-## 👥 팀 구성  
-프로젝트는 세 개의 하위 팀으로 구성되어 있으며, 각 팀이 독립적으로 모듈을 개발하고 협업합니다.
+For deeper description how we made MoJI app, please read [MoJI Documents](./MoJI/README.md).
 
-|    팀                  |        담당 영역           |     팀원     |
-|:---------------------:|:--------------------------|:------------|
-| **Hardware Software** | 임베디드 펌웨어 및 하드웨어 연동 | 고민준, 이찬희 |
-| **Hardware Design**   | 센서 및 물리적 베개 설계       | 김도훈, 조형진 |
-|     **Software**      | 서버 구축 및 모바일 앱 개발     | 예성호, 정윤철 |
 
-## 주요 기술 스택
 
-- **서버**: Python, FastAPI  
-  → AI 모델 추론 및 데이터 처리 서버 구축  
-- **앱**: React Native  
-  → 스마트폰 카메라 데이터를 수집하여 서버로 전송
 
-## 개요
 
-이 프로젝트는 **AI 기반의 스마트 베개 시스템**을 구축하는 것을 목표로 합니다.  
-사용자의 수면 중 자세, 움직임 등을 분석하여 **수면 질 개선에 도움을 줄 수 있는 피드백**을 제공합니다.  
-앱을 통해 수집된 카메라 데이터를 FastAPI 서버로 전송하며, 서버는 AI 모델을 통해 이를 실시간으로 분석합니다.
+## Contribution
+**Hardware Software** : 고민준, 이찬희  
+**Hardware Design** : 김도훈, 조형진  
+**Software**  :  예성호, 정윤철
