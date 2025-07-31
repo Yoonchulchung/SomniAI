@@ -1,0 +1,31 @@
+services:
+  LAB-414-Detection:
+    image: somniai:1.0
+    container_name: somniai_pose
+    build:
+      context: .
+      dockerfile: pose/Dockerfile
+    volumes:  
+      - /home/:/home/
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - MASTER_ADDR=training_master
+      - MASTER_PORT=23456
+      - WORLD_SIZE=2
+      - RANK=0
+      - PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+    shm_size: '24g'
+    tty: true
+    stdin_open: true
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              capabilities: [gpu]
+    networks:
+      - ai_network
+
+networks:
+  ai_network:
+    driver: bridge
