@@ -9,12 +9,12 @@ from mmengine.dataset import BaseDataset, force_full_init
 from mmengine.fileio import exists, get_local_path, load
 from mmengine.logging import MessageHub
 from mmengine.utils import is_list_of
-from xtcocotools.coco import COCO
 
 from mmpose.registry import DATASETS
 from mmpose.structures.bbox import bbox_xywh2xyxy
 from .utils import parse_pose_metainfo
 
+import json
 
 @DATASETS.register_module()
 class BaseIEEE2021Dataset(BaseDataset):
@@ -22,11 +22,6 @@ class BaseIEEE2021Dataset(BaseDataset):
 
     Args:
         ann_file (str): Annotation file path. Default: ''.
-        bbox_file (str, optional): Detection result file path. If
-            ``bbox_file`` is set, detected bboxes loaded from this file will
-            be used instead of ground-truth bboxes. This setting is only for
-            evaluation, i.e., ignored when ``test_mode`` is ``False``.
-            Default: ``None``.
         data_mode (str): Specifies the mode of data samples: ``'topdown'`` or
             ``'bottomup'``. In ``'topdown'`` mode, each data sample contains
             one instance; while in ``'bottomup'`` mode, each data sample
@@ -64,8 +59,7 @@ class BaseIEEE2021Dataset(BaseDataset):
 
     def __init__(self,
                  ann_file: str = '',
-                 bbox_file: Optional[str] = None,
-                 data_mode: str = 'topdown',
+                 data_mode: str = None,
                  metainfo: Optional[dict] = None,
                  data_root: Optional[str] = None,
                  data_prefix: dict = dict(img=''),
@@ -78,25 +72,11 @@ class BaseIEEE2021Dataset(BaseDataset):
                  max_refetch: int = 1000,
                  sample_interval: int = 1):
 
-        if data_mode not in {'topdown', 'bottomup'}:
-            raise ValueError(
-                f'{self.__class__.__name__} got invalid data_mode: '
-                f'{data_mode}. Should be "topdown" or "bottomup".')
+        if data_mode != "topdown":
+            raise ValueError('data_mode must be "topdown" for this dataset.')
+        
         self.data_mode = data_mode
 
-        if bbox_file:
-            if self.data_mode != 'topdown':
-                raise ValueError(
-                    f'{self.__class__.__name__} is set to {self.data_mode}: '
-                    'mode, while "bbox_file" is only '
-                    'supported in topdown mode.')
-
-            if not test_mode:
-                raise ValueError(
-                    f'{self.__class__.__name__} has `test_mode==False` '
-                    'while "bbox_file" is only '
-                    'supported when `test_mode==True`.')
-        self.bbox_file = bbox_file
         self.sample_interval = sample_interval
 
         super().__init__(
@@ -144,17 +124,9 @@ class BaseIEEE2021Dataset(BaseDataset):
 
     @force_full_init
     def prepare_data(self, idx) -> Any:
-        """Get data processed by ``self.pipeline``.
-
-        :class:`BaseCocoStyleDataset` overrides this method from
-        :class:`mmengine.dataset.BaseDataset` to add the metainfo into
-        the ``data_info`` before it is passed to the pipeline.
-
-        Args:
-            idx (int): The index of ``data_info``.
-
-        Returns:
-            Any: Depends on ``self.pipeline``.
+        """
+        Force full initialization of the dataset and prepare data 
+        for the given index(image ID).
         """
         data_info = self.get_data_info(idx)
 
@@ -169,13 +141,8 @@ class BaseIEEE2021Dataset(BaseDataset):
         return self.pipeline(data_info)
 
     def get_data_info(self, idx: int) -> dict:
-        """Get data info by index.
-
-        Args:
-            idx (int): Index of data info.
-
-        Returns:
-            dict: Data info.
+        """
+        Get meta information of the data sample at the given index(image ID).
         """
         data_info = super().get_data_info(idx)
 
@@ -198,61 +165,65 @@ class BaseIEEE2021Dataset(BaseDataset):
         """Load data list from COCO annotation file or person detection result
         file."""
 
-        if self.bbox_file:
-            data_list = self._load_detection_results()
-        else:
-            instance_list, image_list = self._load_annotations()
+        instance_list, image_list = self._load_annotations()
+        data_list = self._get_topdown_data_infos(instance_list)
 
-            if self.data_mode == 'topdown':
-                data_list = self._get_topdown_data_infos(instance_list)
-            else:
-                data_list = self._get_bottomup_data_infos(
-                    instance_list, image_list)
-
-        if hasattr(self, 'coco'):
-            del self.coco
         return data_list
 
     def _load_annotations(self) -> Tuple[List[dict], List[dict]]:
-        """Load data from annotations in COCO format."""
-
+        '''
+        Load annotations from the given annotation file.
+        '''
+        
         assert exists(self.ann_file), (
             f'Annotation file `{self.ann_file}`does not exist')
 
         with get_local_path(self.ann_file) as local_path:
-            self.coco = COCO(local_path)
-        # set the metainfo about categories, which is a list of dict
-        # and each dict contains the 'id', 'name', etc. about this category
-        if 'categories' in self.coco.dataset:
-            self._metainfo['CLASSES'] = self.coco.loadCats(
-                self.coco.getCatIds())
+            with open(local_path, 'r') as f:
+                self.anno_file = json.load(f)
+
+        print("\n\n\n ============= Loading annotations =============\n\n\n")
+        # ['images', 'annotations', 'categories'] is expected 
+        # in the annotation file
+        
+        if 'categories' in self.anno_file:
+            self._metainfo['CLASSES'] = self.anno_file['categories']
+        else:
+            raise ValueError(
+                f'Annotation file {self.ann_file} does not contain  \
+                "categories" key.')
+        
+        images = self.anno_file['images']
+        annotations = self.anno_file['annotations']
+
+        image_id_to_ann = {}
+        for ann in annotations:
+            image_id_to_ann.setdefault(ann['id'], []).append(ann)
 
         instance_list = []
         image_list = []
 
-        for img_id in self.coco.getImgIds():
+        for img in images:
+            img_id = img['id']
             if img_id % self.sample_interval != 0:
                 continue
-            img = self.coco.loadImgs(img_id)[0]
+
             img.update({
-                'img_id':
-                img_id,
-                'img_path':
-                osp.join(self.data_prefix['img'], img['file_name']),
+                'img_id': img_id,
+                'img_path': osp.join(self.data_prefix['img'], img['file_name']),
             })
             image_list.append(img)
 
-            ann_ids = self.coco.getAnnIds(imgIds=img_id)
-            for ann in self.coco.loadAnns(ann_ids):
-
+            anns = image_id_to_ann.get(img_id, [])
+            for ann in anns:
                 instance_info = self.parse_data_info(
                     dict(raw_ann_info=ann, raw_img_info=img))
 
-                # skip invalid instance annotation.
                 if not instance_info:
                     continue
 
                 instance_list.append(instance_info)
+
         return instance_list, image_list
 
     def parse_data_info(self, raw_data_info: dict) -> Optional[dict]:
@@ -416,62 +387,6 @@ class BaseIEEE2021Dataset(BaseDataset):
                     data_list_bu.append(data_info_bu)
 
         return data_list_bu
-
-    def _load_detection_results(self) -> List[dict]:
-        """Load data from detection results with dummy keypoint annotations."""
-
-        assert exists(self.ann_file), (
-            f'Annotation file `{self.ann_file}` does not exist')
-        assert exists(
-            self.bbox_file), (f'Bbox file `{self.bbox_file}` does not exist')
-        # load detection results
-        det_results = load(self.bbox_file)
-        assert is_list_of(
-            det_results,
-            dict), (f'BBox file `{self.bbox_file}` should be a list of dict, '
-                    f'but got {type(det_results)}')
-
-        # load coco annotations to build image id-to-name index
-        with get_local_path(self.ann_file) as local_path:
-            self.coco = COCO(local_path)
-        # set the metainfo about categories, which is a list of dict
-        # and each dict contains the 'id', 'name', etc. about this category
-        self._metainfo['CLASSES'] = self.coco.loadCats(self.coco.getCatIds())
-
-        num_keypoints = self.metainfo['num_keypoints']
-        data_list = []
-        id_ = 0
-        for det in det_results:
-            # remove non-human instances
-            if det['category_id'] != 1:
-                continue
-
-            img = self.coco.loadImgs(det['image_id'])[0]
-
-            img_path = osp.join(self.data_prefix['img'], img['file_name'])
-            bbox_xywh = np.array(
-                det['bbox'][:4], dtype=np.float32).reshape(1, 4)
-            bbox = bbox_xywh2xyxy(bbox_xywh)
-            bbox_score = np.array(det['score'], dtype=np.float32).reshape(1)
-
-            # use dummy keypoint location and visibility
-            keypoints = np.zeros((1, num_keypoints, 2), dtype=np.float32)
-            keypoints_visible = np.ones((1, num_keypoints), dtype=np.float32)
-
-            data_list.append({
-                'img_id': det['image_id'],
-                'img_path': img_path,
-                'img_shape': (img['height'], img['width']),
-                'bbox': bbox,
-                'bbox_score': bbox_score,
-                'keypoints': keypoints,
-                'keypoints_visible': keypoints_visible,
-                'id': id_,
-            })
-
-            id_ += 1
-
-        return data_list
 
     def filter_data(self) -> List[dict]:
         """Filter annotations according to filter_cfg. Defaults return full
