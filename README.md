@@ -39,7 +39,7 @@ uvicorn main:app --reload
 ## Usage
 You can test the server with sample data using:
 ```bash
-python tester/test.py 
+python tests/test.py 
 ```
 
 ## Contribution
@@ -52,3 +52,11 @@ MIT License
 
 ## Contact
 Yoonchul005@gmail.com
+
+Our implemnation is mainly based on the following codebases. We gratefully thank the authors for their wonderfull works.  
+
+[MMPose](https://github.com/open-mmlab/mmpose)   
+[ViTPose](https://github.com/ViTAE-Transformer/ViTPose/tree/main)       
+[react-native-vision-camera](https://github.com/mrousavy/react-native-vision-camera)        
+[react-native-fast-opencv](https://github.com/lukaszkurantdev/react-native-fast-opencv)     
+[docker-android](https://github.com/react-native-community/docker-android)      
