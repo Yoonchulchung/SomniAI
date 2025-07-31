@@ -1,4 +1,3 @@
-# Copyright (c) OpenMMLab. All rights reserved.
 import copy
 import os.path as osp
 from copy import deepcopy
@@ -14,11 +13,11 @@ from xtcocotools.coco import COCO
 
 from mmpose.registry import DATASETS
 from mmpose.structures.bbox import bbox_xywh2xyxy
-from ..utils import parse_pose_metainfo
+from .utils import parse_pose_metainfo
 
 
 @DATASETS.register_module()
-class BaseCocoStyleDataset(BaseDataset):
+class BaseIEEE2021Dataset(BaseDataset):
     """Base class for COCO-style datasets.
 
     Args:
