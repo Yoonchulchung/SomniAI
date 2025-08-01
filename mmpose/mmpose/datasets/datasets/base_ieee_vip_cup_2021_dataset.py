@@ -182,7 +182,6 @@ class BaseIEEE2021Dataset(BaseDataset):
             with open(local_path, 'r') as f:
                 self.anno_file = json.load(f)
 
-        print("\n\n\n ============= Loading annotations =============\n\n\n")
         # ['images', 'annotations', 'categories'] is expected 
         # in the annotation file
         

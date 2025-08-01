@@ -81,10 +81,11 @@ class TopdownAffine(BaseTransform):
         Returns:
             dict: The result dict.
         """
-
         w, h = self.input_size
         warp_size = (int(w), int(h))
-
+        
+        results['bbox_center'], results['bbox_scale'] = compute_bbox_center_scale(results)
+        
         # reshape bbox to fixed aspect ratio
         results['bbox_scale'] = self._fix_aspect_ratio(
             results['bbox_scale'], aspect_ratio=w / h)
@@ -146,3 +147,18 @@ class TopdownAffine(BaseTransform):
         repr_str += f'(input_size={self.input_size}, '
         repr_str += f'use_udp={self.use_udp})'
         return repr_str
+    
+    
+# =========================================================================
+#               Additonal Transforms for IEEE VIP Cup 2021
+# =========================================================================
+import numpy as np
+def compute_bbox_center_scale(results):
+    
+    x, y, w, h = results['bbox'][0]
+        
+    scale = np.array([[w, h]], dtype=np.float32)
+    center = np.array([[x + w / 2, y + h / 2]], dtype=np.float32)
+
+    return center, scale
+
