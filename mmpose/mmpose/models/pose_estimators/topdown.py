@@ -65,13 +65,14 @@ class TopdownPoseEstimator(BasePoseEstimator):
         Returns:
             dict: A dictionary of losses.
         """
+        
         feats = self.extract_feat(inputs)
 
         losses = dict()
 
-        if self.with_head:
+        if self.with_head:            
             losses.update(
-                self.head.loss(feats, data_samples, train_cfg=self.train_cfg))
+                self.head.loss(feats, data_samples))
 
         return losses
 
