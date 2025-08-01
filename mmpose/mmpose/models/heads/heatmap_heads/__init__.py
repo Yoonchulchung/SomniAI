@@ -7,7 +7,10 @@ from .internet_head import InternetHead
 from .mspn_head import MSPNHead
 from .vipnas_head import ViPNASHead
 
+from .topdown_heatmap_simple_head import TopdownHeatmapSimpleHead
 __all__ = [
     'HeatmapHead', 'CPMHead', 'MSPNHead', 'ViPNASHead',
-    'AssociativeEmbeddingHead', 'CIDHead', 'InternetHead'
+    'AssociativeEmbeddingHead', 'CIDHead', 'InternetHead',
+    
+    'TopdownHeatmapSimpleHead'
 ]
