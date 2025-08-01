@@ -197,6 +197,8 @@ class HybridEmbed(nn.Module):
         x = self.proj(x)
         return x
 
+import torchvision.models as models
+from torchvision.models import ViT_B_16_Weights
 
 @MODELS.register_module()
 class ViT(BaseBackbone):
@@ -207,6 +209,7 @@ class ViT(BaseBackbone):
                  drop_path_rate=0., hybrid_backbone=None, norm_layer=None, use_checkpoint=False, 
                  frozen_stages=-1, ratio=1, last_norm=True,
                  patch_padding='pad', freeze_attn=False, freeze_ffn=False,
+                 pretrained=True,
                  ):
         # Protect mutable default arguments
         super(ViT, self).__init__()
@@ -219,7 +222,11 @@ class ViT(BaseBackbone):
         self.freeze_attn = freeze_attn
         self.freeze_ffn = freeze_ffn
         self.depth = depth
+        
+        self.img_size = img_size
+        self.patch_size = patch_size
 
+        self.pretrained = pretrained
         if hybrid_backbone is not None:
             self.patch_embed = HybridEmbed(
                 hybrid_backbone, img_size=img_size, in_chans=in_chans, embed_dim=embed_dim)
@@ -303,6 +310,21 @@ class ViT(BaseBackbone):
                     nn.init.constant_(m.weight, 1.0)
 
             self.apply(_init_weights)
+            
+        if self.pretrained:
+            print("========= Loading ImageNet1k pretrained ViT B =========")
+            url = "https://download.pytorch.org/models/vit_b_16-c867db91.pth"
+            state = torch.hub.load_state_dict_from_url(url, progress=True)
+
+            state = interpolate_positional_embeddings(
+                state_dict=state, 
+                new_height=self.img_size[0], 
+                new_width=self.img_size[1],
+                patch_size=self.patch_size, 
+                interpolation_mode='bicubic'
+            )
+            self.load_state_dict(state, strict=False)
+            print("============= Pretrained is loaded =============")
 
     def get_num_layers(self):
         return len(self.blocks)
@@ -340,3 +362,39 @@ class ViT(BaseBackbone):
         """Convert the model into training mode."""
         super().train(mode)
         self._freeze_stages()
+        
+
+def interpolate_positional_embeddings(state_dict, new_height, new_width, patch_size=16, interpolation_mode='bicubic'):
+    """Interpolate ViT positional embeddings to new size (H, W)."""
+    
+    pos_embed = state_dict['encoder.pos_embedding']  # (1, num_tokens, dim)
+    num_tokens = pos_embed.shape[1]
+    embedding_dim = pos_embed.shape[2]
+
+    # Separate cls token and patch tokens
+    cls_token = pos_embed[:, :1, :]
+    patch_tokens = pos_embed[:, 1:, :]  # (1, N, dim)
+    
+    num_patch = patch_tokens.shape[1]
+    orig_size = int(num_patch ** 0.5)
+    assert orig_size * orig_size == num_patch, "Original patch count is not square."
+
+    # Reshape to (1, dim, H, W)
+    patch_tokens = patch_tokens.reshape(1, orig_size, orig_size, embedding_dim).permute(0, 3, 1, 2)
+
+    # New grid size
+    new_grid_h = new_height // patch_size
+    new_grid_w = new_width // patch_size
+
+    # Interpolate
+    interpolated = F.interpolate(
+        patch_tokens, size=(new_grid_h, new_grid_w),
+        mode=interpolation_mode, align_corners=False
+    )
+
+    # Flatten and concatenate back cls token
+    interpolated = interpolated.permute(0, 2, 3, 1).reshape(1, new_grid_h * new_grid_w, embedding_dim)
+    new_pos_embed = torch.cat((cls_token, interpolated), dim=1)
+    
+    state_dict['encoder.pos_embedding'] = new_pos_embed
+    return state_dict
