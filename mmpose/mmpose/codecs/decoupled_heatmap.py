@@ -175,6 +175,18 @@ class DecoupledHeatmap(BaseKeypointCodec):
 
         # keypoint coordinates in heatmap
         _keypoints = keypoints / self.scale_factor
+
+        # ========== Updated bbox for MMPose Training ==========
+        if bbox.shape[1] == 4:
+            # convert bbox to 4 corners
+            x, y, w, h = bbox[0][0], bbox[0][1], bbox[0][2], bbox[0][3]
+            bbox = np.stack([
+                x, y,  # top-left
+                x + w, y,  # top-right
+                x + w, y + h,  # bottom-right
+                x, y + h  # bottom-left
+            ], axis=-1)
+            
         _bbox = bbox.reshape(-1, 4, 2) / self.scale_factor
 
         # compute the root and scale of each instance
