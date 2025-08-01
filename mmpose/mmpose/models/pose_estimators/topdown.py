@@ -54,6 +54,7 @@ class TopdownPoseEstimator(BasePoseEstimator):
             init_cfg=init_cfg,
             metainfo=metainfo)
 
+    # ============ This is the Core Function ============
     def loss(self, inputs: Tensor, data_samples: SampleList) -> dict:
         """Calculate losses from a batch of inputs and data samples.
 
@@ -66,16 +67,18 @@ class TopdownPoseEstimator(BasePoseEstimator):
             dict: A dictionary of losses.
         """
         
-        feats = self.extract_feat(inputs)
-
+        feats = self._forward(inputs)   # [B, K, H, W]
+        gt_heatmaps = extract_data_samples(data_samples)  # [B, K, H, W]
+        
         losses = dict()
 
         if self.with_head:            
             losses.update(
-                self.head.loss(feats, data_samples))
+                self.head.loss(feats, gt_heatmaps))
 
         return losses
-
+    # ===============================================================
+    
     def predict(self, inputs: Tensor, data_samples: SampleList) -> SampleList:
         """Predict results from a batch of inputs and data samples with post-
         processing.
@@ -185,3 +188,16 @@ class TopdownPoseEstimator(BasePoseEstimator):
                 data_sample.pred_fields = pred_fields
 
         return batch_data_samples
+
+import torch
+def extract_data_samples(data_samples):
+    
+    heatmap_list = []
+    for sample in data_samples:
+        gt_fields = sample.gt_fields
+        
+        heatmaps = gt_fields.heatmaps
+
+        heatmap_list.append(heatmaps.unsqueeze(0))
+    result = torch.cat(heatmap_list, dim=0)
+    return result

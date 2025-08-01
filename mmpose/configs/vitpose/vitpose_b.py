@@ -30,7 +30,7 @@ default_hooks = dict(checkpoint=dict(save_best='coco/AP', rule='greater'))
 
 # codec settings
 codec = dict(
-    type='DecoupledHeatmap', input_size=data_img_size, heatmap_size=(128, 128))
+    type='UDPHeatmap', input_size=data_img_size, heatmap_size=(144, 256))
 
 lr_config = dict(
     policy='step',
@@ -78,7 +78,7 @@ model = dict(
         num_deconv_kernels=(4, 4),
         extra=dict(final_conv_kernel=1, ),
         out_channels=channel_cfg['num_output_channels'],
-        loss_keypoint=dict(type='JointsMSELoss', use_target_weight=True)),
+        loss_keypoint=dict(type='JointsMSELoss', use_target_weight=False)),
     test_cfg=dict(
         flip_test=True,
         post_process='default',

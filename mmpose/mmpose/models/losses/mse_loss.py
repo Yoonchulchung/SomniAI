@@ -4,6 +4,8 @@ import torch.nn as nn
 
 from mmpose.registry import MODELS
 
+import numpy as np
+
 
 @MODELS.register_module()
 class JointsMSELoss(nn.Module):
@@ -23,11 +25,13 @@ class JointsMSELoss(nn.Module):
 
     def forward(self, output, target, target_weight=None):
         """Forward function."""
+        
         batch_size = output.size(0)
         num_joints = output.size(1)
 
         heatmaps_pred = output.reshape(
             (batch_size, num_joints, -1)).split(1, 1)
+
         heatmaps_gt = target.reshape((batch_size, num_joints, -1)).split(1, 1)
 
         loss = 0.
@@ -40,8 +44,10 @@ class JointsMSELoss(nn.Module):
                                        heatmap_gt * target_weight[:, idx])
             else:
                 loss += self.criterion(heatmap_pred, heatmap_gt)
-
-        return loss / num_joints * self.loss_weight
+        
+        final_loss = loss / num_joints * self.loss_weight
+        return {'loss_heatmap': final_loss}
+        
 
 
 # @MODELS.register_module()
