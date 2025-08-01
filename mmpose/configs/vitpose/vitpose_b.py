@@ -8,19 +8,32 @@ train_cfg = dict(max_epochs=210, val_interval=10)
 
 data_img_size = (1024, 576)  # (height, width)
 
-optim_wrapper = dict(optimizer=dict(
-    type='Adam',
-    lr=1e-3,
-))
+max_epochs = 210
+stage2_num_epochs = 30
+base_lr = 4e-3
+
+optim_wrapper = dict(
+    type='AmpOptimWrapper',
+    optimizer=dict(type='AdamW', lr=base_lr, weight_decay=0.05),
+    paramwise_cfg=dict(
+        norm_decay_mult=0, bias_decay_mult=0, bypass_duplicate=True))
 
 param_scheduler = [
     dict(
-        type='MultiStepLR',
+        type='LinearLR',
+        start_factor=1.0e-5,
+        by_epoch=False,
         begin=0,
-        end=140,
-        milestones=[90, 120],
-        gamma=0.1,
-        by_epoch=True)
+        end=1000),
+    dict(
+        # use cosine lr from 105 to 210 epoch
+        type='CosineAnnealingLR',
+        eta_min=base_lr * 0.05,
+        begin=max_epochs // 2,
+        end=max_epochs,
+        T_max=max_epochs // 2,
+        by_epoch=True,
+        convert_to_iter_based=True),
 ]
 
 auto_scale_lr = dict(base_batch_size=160)
@@ -130,8 +143,8 @@ dataset_type = 'IEEEVIPCup2021Dataset'
 
 
 train_dataloader = dict(
-    batch_size=2,
-    num_workers=2,
+    batch_size=3,
+    num_workers=3,
     persistent_workers=True,
     sampler=dict(type='DefaultSampler', shuffle=True),
     dataset=dict(
