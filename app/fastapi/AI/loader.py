@@ -1,16 +1,9 @@
 import torch
 from ultralytics import YOLO
-from utils.print import SomniAI_log
+from utils.log import SomniAI_log
 
 
-def get_device():
-    device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
-    SomniAI_log(f'[{device}] is used for AI')
-    
-    return device
-
-
-def load_model(model_name):
+def load_model(model_name, gpu_id):
     available_models = ['YOLO_V8', 'YOLO_V11']
     
     if model_name not in available_models:
@@ -22,4 +15,15 @@ def load_model(model_name):
         model = YOLO("yolo11n-pose.pt")
 
     SomniAI_log(f"{model_name} is loaded!")
-    return model.to(get_device()).eval()
+    return model.to(get_device(gpu_id)).eval()
+
+
+def get_device(gpu_id):
+    
+    assert gpu_id in list(range(torch.cuda.device_count())), \
+       f"gpu_id should be between 0 and {torch.cuda.device_count() - 1}"
+       
+    device = f'cuda:{gpu_id}' if torch.cuda.is_available() else 'cpu'
+    SomniAI_log(f'[{device}] is used for AI')
+    
+    return device
