@@ -1,13 +1,11 @@
-from fastapi import FastAPI, Request, File, UploadFile
+from fastapi import FastAPI, Request, HTTPException
 import uvicorn
 import asyncio
-from typing import Optional
 
-import utils
+from utils import SomniAI_log
 import AI
 
 import torch
-
 ########################################################################
 #        Init
 ########################################################################
@@ -17,53 +15,102 @@ request_queue = asyncio.Queue()
 from contextlib import asynccontextmanager
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    asyncio.create_task(batch_schdeuler())
-    asyncio.create_task(process_data())
+    SomniAI_log("=" * 10, " SomniAI FastAPI Server ", "=" * 10)
     
-    gpu_available.put(list(range(torch.cuda.device_count())))
+    for i in range(torch.cuda.device_count()):
+        model = AI.load_model('YOLO_V8', gpu_id=i)
+        models.append(model)
+        
+    asyncio.create_task(micro_batch_schdeuler())
+    for id in range(torch.cuda.device_count()):
+        await gpu_available.put(id)    
     yield
     
-    utils.SomniAI_log("Bye!")
+    SomniAI_log("Bye!")
 
 app = FastAPI(lifespan=lifespan)
 
 ########################################################################
 #        Upload
 ########################################################################
-@app.post("/upload")
-async def upload(request : Request, file: Optional[UploadFile] = File(...)):
+from io import BytesIO
+
+@app.post("/upload/octet-stream")
+async def upload_octet_stream(request: Request):
+    '''
+    Only Content-Type : application/octet-stream is available
+    '''
+    content_type = request.headers.get('content-type', '').lower()
     
-    cl_img = await file.read() if file else (await request.json()).get("image")
-    utils.SomniAI_log("[Warning] Please send multipart/form-data") \
-                                    if file is None else None
+    if not content_type.startswith('application/octet-stream'):
+            SomniAI_log('[Warning] Invalid Content-Type:', content_type)
+            raise HTTPException(status_code=415, detail="Only application/octet-stream is supported.")
+
+    try:
+        body = await request.body()
+    except Exception as e:
+        SomniAI_log('[Error] Failed to parse data from body:', str(e))
+        raise HTTPException(status_code=400, detail="Invalid tensor data.")
     
-    await request_queue.put(cl_img)
-    return {'msg' : 'succeed to send data'}
+    # ================================================
+    dataset = torch.load(BytesIO(body))
+    
+    if dataset.ndim == 4:
+        for img in dataset:          # shape: [N, C, H, W]
+            await request_queue.put(img)
+    elif dataset.ndim == 3:
+        await request_queue.put(dataset)  # single image
+    else:
+        raise HTTPException(status_code=400, detail="Invalid tensor shape")
+
+    return {"msg": "succeed to send data"}
+        
+@app.post("/upload/json")
+async def upload_base64():
+    ...
+# FastAPI is the best choice?
 
 ########################################################################
-#        Process
+#        Inference
 ########################################################################
 models = []
+BATCH_TIMEOUT = 1.0 # 1sec
+BATCH_THRESHOLD = 256
 
-for i in range(torch.cuda.device_count()):
-    model = AI.load_model('YOLO_V8', gpu_id=i)
-    models.append(models)
 
-max_concurrent_gpus = 2
-MAX_GPU_MEMRY_GB = 24.0 
-BATCH_THRESHOLD = 30
-
-async def batch_schdeuler():
+async def micro_batch_schdeuler():
+    '''
+    Make Batch until GPU is available.
+    '''
+    batch = []
+    
     while True:
-        batch = []
-        first_item = await request_queue.get()
-        batch.append(first_item)
-        
-        # try:
-        #     for _ in range()
+        try:
+            if len(batch) < BATCH_THRESHOLD :
 
-async def process_data():
-    ...
+                img = await asyncio.wait_for(request_queue.get(), timeout=BATCH_TIMEOUT)
+                batch.append(img)
+
+        except asyncio.TimeoutError:
+            pass
+        
+        if batch and gpu_available.qsize() > 0:
+            batch_tensor = torch.stack(batch, dim=0)
+            batch_tensor = AI.preprocess(batch_tensor)
+            batch = []
+
+            gpu_id = await gpu_available.get()
+            asyncio.create_task(run_inference(models, batch_tensor, gpu_id))
+                
+            
+import time
+async def run_inference(model, batch, gpu_id):
+    
+    start_time = time.time()
+    loop = asyncio.get_event_loop()
+    result = await loop.run_in_executor(None, AI.predict, model, batch, gpu_id)
+    await gpu_available.put(gpu_id)
+    
 
 import requests
 async def send_result():

@@ -2,6 +2,8 @@ import torch
 from ultralytics import YOLO
 from utils.log import SomniAI_log
 
+MAX_GPU_MEMRY_GB = 24.0 
+BATCH_THRESHOLD = 30
 
 def load_model(model_name, gpu_id):
     available_models = ['YOLO_V8', 'YOLO_V11']
@@ -17,7 +19,7 @@ def load_model(model_name, gpu_id):
     SomniAI_log(f"{model_name} is loaded!")
     return model.to(get_device(gpu_id)).eval()
 
-
+        
 def get_device(gpu_id):
     
     assert gpu_id in list(range(torch.cuda.device_count())), \

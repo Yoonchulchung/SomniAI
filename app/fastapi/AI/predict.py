@@ -1,7 +1,9 @@
 from PIL import Image
 import io
 import utils
+import torch
 
+from utils import SomniAI_log
 
 async def use_gpu(model, img):
     
@@ -13,8 +15,15 @@ async def use_gpu(model, img):
     return ...
         
         
-def predict(model, image):
-    predictions = model(image, verbose=False)
+def predict(model, batch, gpu_id):
+
+    batch = batch.to('cuda')
+    
+    try:
+        with torch.no_grad():
+            predictions = model[gpu_id](batch, verbose=False)
+    except Exception as e:
+        SomniAI_log(f"[Error] Error occured while inferencing image : {e}")
     return predictions
 
 
