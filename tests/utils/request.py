@@ -3,7 +3,7 @@ import requests as reqeust
 
 
 
-def send_data_to_server(data, url):
+def send_json_to_server(data, url):
     request = {
             'image': data,
         }
@@ -16,3 +16,5 @@ def send_data_to_server(data, url):
     else:
         print("Error in prediction:", response.status_code, response.text)
         return None
+    
+            
