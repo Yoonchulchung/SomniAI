@@ -58,7 +58,6 @@ def _is_probably_tensor_file(f: UploadFile) -> bool:
 @app.post("/upload/application")
 async def upload_application(request: Request):
     '''
-    Not Recommended to send data through HTTP Connection.
     Please send only binary data in the [B, C, H, W] or [C, H, W] format.
     '''
     
