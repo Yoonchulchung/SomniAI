@@ -2,17 +2,9 @@
 <h1>MoJI Application</h1>
 </div>
 
-<div style="display: flex; align-items: center;">
-  <div style="flex: 1; padding-right: 20px;">
-    <p>
-      This React Native app, developed for the Smart Pillow Project, captures a person's presence and transmits the data to an AI server for analysis.
-    </p>
-  </div>
-  <div style="flex: 1;">
-    <img src="./MoJI.png" alt="sleep pose" style="max-width: 80%; height: auto; border-radius: 10px;">
-  </div>
-</div>
+This React Native application, developed for the Smart Pillow Project, monitors user presence in real-time. To ensure high performance, camera frames from react-native-vision-camera are processed efficiently by a C++ layer using JSI (JavaScript Interface) before the data is transmitted to an AI server for analysis.
 
+![Image](./MoJI.png)
 
 
 # Getting Started
@@ -49,26 +41,12 @@ npx react-native run-android
 # OR using Yarn
 yarn android
 ```
-### iOS
 
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
+We don't support IOS.
 
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
-```
-bundle install
+### C++ Implementation
+You can check out the C++ source files responsible for the high-speed streaming and processing logic in the directory below or click [here](./android/app/src/main/cpp/)
 
-Then, and every time you update your native dependencies, run:
+__./android/app/src/main/cpp/__
 
-bundle exec pod install
-```
-For more information, please visit CocoaPods Getting Started guide.
-```
-# Using npm
-npm run ios
-
-# OR using Yarn
-yarn ios
-```
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
-
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
+Before building the project, you must first compile __curl__ and __OpenSSL__ for the Android runtime. Check out our [build](./curl/)
