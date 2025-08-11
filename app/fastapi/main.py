@@ -1,6 +1,5 @@
-from fastapi import FastAPI, Request, HTTPException, File, UploadFile
+from fastapi import FastAPI, Request, HTTPException, File, UploadFile, Depends
 from typing import Optional, List, Union
-import uvicorn
 import asyncio
 
 from utils import SomniAI_log
@@ -8,6 +7,8 @@ import AI
 import utils
 
 import torch
+
+import SomniAI
 ########################################################################
 #        Init
 ########################################################################
@@ -31,6 +32,12 @@ async def lifespan(app: FastAPI):
     SomniAI_log("Bye!")
 
 app = FastAPI(lifespan=lifespan)
+
+def get_cfg():
+    return SomniAI.config.ServiceConfig()
+
+def get_parser(cfg = Depends(get_cfg)):
+    return SomniAI.Response_HTTP_1_1(cfg)
 
 ########################################################################
 #        Upload
@@ -56,35 +63,17 @@ def _is_probably_tensor_file(f: UploadFile) -> bool:
 
 
 @app.post("/upload/application")
-async def upload_application(request: Request):
+async def upload_application(request: Request, parser = Depends(get_parser)):
     '''
     Please send only binary data in the [B, C, H, W] or [C, H, W] format.
     '''
+    content_type = parser._get_content_type(request)
     
-    avail_content_type = ['application/octet-stream', 'application/json']
-    content_type = request.headers.get('content-type', '').lower().split(';')[0].strip()
-    
-    if not content_type in avail_content_type:
-            SomniAI_log('[Warning] Invalid Content-Type:', content_type)
-            raise HTTPException(status_code=415, detail=f"Only {avail_content_type} is supported.")
-
     if content_type == 'application/octet-stream':
-        try:
-            body = await request.body()
-            dataset = torch.load(BytesIO(body))
-        except Exception as e:
-            SomniAI_log('[Error] Failed to parse data from body:', str(e))
-            raise HTTPException(status_code=400, detail="Invalid tensor data.")
+        dataset = await parser.response_application_octet_stream(request)
         
     elif content_type == 'application/json':
-        try:
-            json_body = await request.json()
-            base64_img = json_body.get('image')
-            dataset = utils.process_base64_to_tensor(base64_img)
-        except Exception as e:
-            SomniAI_log('[Error] Failed to parse data from body:', str(e))
-            raise HTTPException(status_code=400, detail="Invalid tensor data.")
-        
+       dataset = await parser.response_application_json
     else:
         ...
     await _enqueue_batch_or_tensor(dataset)   
@@ -180,7 +169,3 @@ async def status(request: Request):
 @app.post("/test")
 async def test(request: Request):
     return {'request' : request}
-
-
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000, reload=False) 
