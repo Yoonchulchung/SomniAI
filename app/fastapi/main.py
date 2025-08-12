@@ -55,61 +55,18 @@ async def _enqueue_batch_or_tensor(dataset):
         raise HTTPException(status_code=400, detail="Invalid tensor shape")
 
 
-def _is_probably_tensor_file(f: UploadFile) -> bool:
-    return (
-        (f.content_type or "").lower().startswith("application/octet-stream")
-        or (f.filename or "").lower().endswith((".pt", ".pth", ".pth.tar"))
-    )
-
-
-@app.post("/upload/application")
-async def upload_application(request: Request, parser = Depends(get_parser)):
+@app.post("/upload/http_1_1")
+async def upload_http_1_1(request : Request, files: Optional[List[UploadFile]] = File(None), 
+                 parser = Depends(get_parser)):
     '''
-    Please send only binary data in the [B, C, H, W] or [C, H, W] format.
+    Please send bytes data. Do not send Pytorch Tensor format.
     '''
-    content_type = parser._get_content_type(request)
     
-    if content_type == 'application/octet-stream':
-        dataset = await parser.response_application_octet_stream(request)
-        
-    elif content_type == 'application/json':
-       dataset = await parser.response_application_json
-    else:
-        ...
+    dataset = await parser.get_tensor(request, files)
     await _enqueue_batch_or_tensor(dataset)   
 
     return {"msg": "succeed to send data"}
 
-
-@app.post("/upload/multipart")
-async def upload_multipart(request : Request, files: List[UploadFile] = File(...)):
-    
-    content_type = request.headers.get('content-type', '').lower()
-    if not content_type.startswith('multipart/form-data'):
-            SomniAI_log('[Warning] Invalid Content-Type:', content_type)
-            raise HTTPException(status_code=415, detail="Only multipart/form-data is supported.")
-
-    if not files:
-        raise HTTPException(status_code=400, detail="No files uploaded")
-
-    processed = 0
-    for f in files:
-        try:
-            raw = await f.read()
-            
-            # This is for (.pt) file
-            if _is_probably_tensor_file(f):
-                dataset = torch.load(BytesIO(raw), map_location="cpu")
-                await _enqueue_batch_or_tensor(dataset)
-                processed += (dataset.shape[0] if dataset.ndim == 4 else 1)
-                continue
-        except Exception as e:
-            SomniAI_log('[Error] Failed to parse data from body:', str(e))
-            raise HTTPException(status_code=400, detail="Invalid tensor data.")
-    
-    return {'msg' : 'succeed to send data'}
-            
-    
 # FastAPI is the best choice?
 
 ########################################################################
