@@ -1,17 +1,21 @@
-from .ports import Transport
 import json
 import base64
 from concurrent.futures import ThreadPoolExecutor
 
+from typing import Protocol, Dict, Any, Optional, Tuple
+class Transport(Protocol):
+    def post(self, data): ...
 
 class RequestHTTP_1_1(Transport):
     
     def __init__(self, cfg):
         
-        self.cfg = cfg()
+        self.cfg = cfg
         self._session = self.cfg.build_session()
         
-    def get_url(self, url):
+        self.url = self._get_url(self.cfg.server_url)
+        
+    def _get_url(self, url):
         if url is None:
             raise ValueError("URL is None")
     
@@ -20,34 +24,41 @@ class RequestHTTP_1_1(Transport):
         else:
             return url
             
-    def post_bytes(self, url, data, headers):
-        
-        r = self._session.post(self.get_url(url), data=data, headers=headers)   
-        return r.status_code, r.content
+    def _post_bytes(self, data : bytes):
+        headers = {"Content-Type": "application/octet-stream"}
+        return self._session.post(url=self.url, data=data, headers=headers)  
     
-    def post_bytes_multi_user(self, url, data, headers, total_requests=1000, concurrency=50):
-    
+    def _post_bytes_multi_user(self, data : bytes):
+        headers = {"Content-Type": "multipart/form-data"}
         def send_once():
-            return self.cfg.requests_mod.post(url=url, data=data, headers=headers)
+            return self.cfg.requests_mod.post(url=self.url, data=data, headers=headers)
         
-        with ThreadPoolExecutor(max_workers=concurrency) as exe:
-            futures = [exe.submit(send_once) for _ in range(total_requests)]
-        
-    def post_json(self, url, data, headers = None):
-        hdrs = {"Content-Type":"application/json", **(headers or {})}
-
-        data = base64.encodebytes(data) if not is_base64(data) else data
-        
-        obj = {'image' : data}
-        r = self._session.post(self.get_url(url), data=json.dumps(obj), headers=hdrs)
-        return r.status_code, r.content
-
-def is_base64(s: str) -> bool:
-    if not s or not isinstance(s, str):
-        return False
-    try:
-        base64.b64decode(s, validate=True)
-        return True
-    except Exception:
-        return False
+        with ThreadPoolExecutor(max_workers=self.cfg.concurrency) as exe:
+            futures = [exe.submit(send_once) for _ in range(self.cfg.total_requests)]
+        return futures
     
+    def _post_json(self, data : bytes):
+
+        b64_data = base64.b64encode(data).decode("utf-8")
+                
+        obj = {'image' : b64_data}
+        return self._session.post(self.get_url(self.url), json=obj)
+        
+
+    def post(self, data):
+        
+        print("Sending data....")
+        
+        handlers = {
+            'application/json' : self._post_json,
+            'application/octet-stream' : self._post_bytes,
+        }
+        
+        handler = handlers.get(self.cfg.content_type)
+        r = handler(data)
+        
+        print('=' * 10, "Received Data", "="*10)
+        for key, value in r.headers.items():
+            print(f"{key}: {value}")
+        print(json.dumps(r.json(), indent=2))
+        print("="* 35)
