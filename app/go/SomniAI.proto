@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package somniai.v1;
+option go_package = "somniai.com/grpc/proto;proto";
+
+message SendImage {
+  string name = 1;
+  bytes image = 2;
+}
+
+message Ack {
+  bool ok = 1;
+}
+
+service PushGo {
+  
+  // Mobile -> Go Server
+  rpc StreamToGo(stream SendImage) returns (Ack);
+}
+
+service PushPy {
+
+  //Go Server -> FastAPI
+  rpc StreamToPy(stream SendImage) returns (Ack);
+}
