@@ -63,13 +63,13 @@ class Response_HTTP_1_1(TensorParser):
             body = await request.body()
             
             if not self._is_image_bytes(body):
-                raise HTTPException(status_code=400, detail=f"Please available Data!")        
+                raise HTTPException(status_code=400, detail="Invalid image data. Don't send tensor!")
         
             return self._img_bytes_to_tensor(body)
         
         except Exception as e:
             SomniAI_log('[Error] Failed to parse data from body:', str(e))
-            raise HTTPException(status_code=400, detail="Invalid tensor data.")
+            raise HTTPException(status_code=400, detail=f"Error : {e}")
 
     
     async def _get_tensor_from_json(self, request) -> torch.Tensor:
@@ -85,7 +85,7 @@ class Response_HTTP_1_1(TensorParser):
             return self._img_bytes_to_tensor(bytes)
         except Exception as e:
             SomniAI_log('[Error] Failed to parse data from body:', str(e))
-            raise HTTPException(status_code=400, detail="Invalid tensor data.")
+            raise HTTPException(status_code=400, detail=f"Error : {e}")
         
     
     async def _get_tensor_from_multipart(self, request) -> torch.Tensor:
@@ -111,3 +111,57 @@ class Response_HTTP_1_1(TensorParser):
             return await handler(request, files)
         else:
             return await handler(request)
+        
+        
+import time
+import AI
+class ProcessGPU():
+    
+    def __init__(self, cfg):
+        self.cfg = cfg
+
+    async def enqueue_batch_or_tensor(self, dataset):
+        
+        if dataset.ndim == 4:
+            for img in dataset:          # shape: [N, C, H, W]
+                await self.cfg.request_queue.put(img)
+        elif dataset.ndim == 3:
+            await self.cfg.request_queue.put(dataset)  # single image
+        else:
+            raise HTTPException(status_code=400, detail="Invalid tensor shape")
+
+    async def enque_gpu(self, id):
+        await self.cfg.gpu_available.put(id)
+        
+    
+    async def micro_batch_schdeuler(self, ):
+        '''
+        Make Batch until GPU is available.
+        '''
+        batch = []
+        
+        while True:
+            try:
+                if len(batch) < self.cfg.BATCH_THRESHOLD :
+                    img = await asyncio.wait_for(self.cfg.request_queue.get(), timeout=self.cfg.BATCH_TIMEOUT)
+                    batch.append(img)
+
+            except asyncio.TimeoutError:
+                pass
+            
+            if batch and self.cfg.gpu_available.qsize() > 0:
+                gpu_id = await self.cfg.gpu_available.get()
+
+                batch_tensor = torch.stack(batch, dim=0)
+                batch = []
+                batch_tensor = AI.preprocess(batch_tensor)
+
+                asyncio.create_task(self._run_inference(self.cfg.models, batch_tensor, gpu_id))
+            
+            
+    async def _run_inference(self, model, batch, gpu_id):
+        
+        start_time = time.time()
+        loop = asyncio.get_event_loop()
+        result = await loop.run_in_executor(None, AI.predict, model, batch, gpu_id)
+        await self.cfg.gpu_available.put(gpu_id)
