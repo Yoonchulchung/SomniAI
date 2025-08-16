@@ -1,6 +1,6 @@
 import torch
 from ultralytics import YOLO
-from utils.log import SomniAI_log
+from SomniAI.log import SomniAI_log
 
 MAX_GPU_MEMRY_GB = 24.0 
 BATCH_THRESHOLD = 30
