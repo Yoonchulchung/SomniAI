@@ -1,24 +1,24 @@
 #!/bin/bash
 set -e
-
-NDK_INSTALL_SCRIPTS="$(pwd)/scripts/install_ndk.sh"
-
-if [ ! -d "$ANDROID_NDK_ROOT" ] ; then
-     echo "[ERROR] Build OpenSSL Not found NDK! Trying to Install NDK ..."
-     source "${NDK_INSTALL_SCRIPTS}"
-fi
-
+#======================================================
+# Check NDK
+#======================================================
+# NDK should be installed before build OpenSSL
 TOOLCHAIN="${ANDROID_NDK_ROOT}/toolchains/llvm/prebuilt/${OS_NAME}-x86_64"
-if [ -f "$TOOLCHAIN" ] ; then
-     echo "[ERROR] Found no Toolchain at : ${TOOLCHAIN}"
+if [ ! -d "$TOOLCHAIN" ] ; then
+     echo "[ERROR] Missing toolchains : ${TOOLCHAIN}"
+     echo "[ERROR] Please install NDK First!"
      exit 1
 fi
 
 PATH=$TOOLCHAIN/bin:$PATH
 
+#======================================================
+# Download OpenSSL
+#======================================================
 OPENSSL_PATH="$(pwd)/openssl"
 if [ ! -d "$OPENSSL_PATH" ] ; then 
-     echo "Donloading OpenSSL ..."
+     echo "[INFO] Downloading OpenSSL ..."
      git submodule update --init --recursive || {
           git clone https://github.com/openssl/openssl.git || {
                echo "[ERROR] Failed to download OpenSSL"

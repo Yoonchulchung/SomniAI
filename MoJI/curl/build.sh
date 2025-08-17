@@ -4,8 +4,6 @@ echo "**********************************************************************"
 echo "Building Curl and OpenSSL for MOJI ..."
 INSTALL_ROOT="$(pwd)"
 
-NDK_INSTALL_SCRIPTS="$(pwd)/scripts/install_ndk.sh"
-
 case "$(uname)" in
     Linux*) export OS_NAME="linux";;
     Darwin*) export OS_NAME="darwin";;
@@ -14,13 +12,10 @@ esac
 
 echo "OS : ${OS_NAME}"
 
-if [ ! -d "$ANDROID_NDK_ROOT" ] ; then
-    source "$NDK_INSTALL_SCRIPTS" || {
-        echo "[ERROR] Something Wrong while installing NDK"
-        exit 1
-    }
-fi
-
+# In order to build curl for android, OpenSSL should be built first.
+#======================================================
+# Build OpenSSL
+#======================================================
 OPEN_SSL_BUILD_SCRIPTS="$(pwd)/scripts/build_openssl.sh"
 if [ ! -f "$OPEN_SSL_BUILD_SCRIPTS" ] ; then
     echo "[ERROR] Missing OpenSSL build script : $OPEN_SSL_BUILD_SCRIPTS"
@@ -37,6 +32,9 @@ source "$OPEN_SSL_BUILD_SCRIPTS" || {
 
 cd "$INSTALL_ROOT"
 
+#======================================================
+# Build Curl
+#======================================================
 CURL_BUILD_SCRIPTS="$(pwd)/scripts/build_curl.sh"
 if [ ! -f "$CURL_BUILD_SCRIPTS" ] ; then
     echo "[ERROR] Missing Curl build script : $CURL_BUILD_SCRIPTS"
@@ -45,3 +43,4 @@ fi
 source "$CURL_BUILD_SCRIPTS"
 
 echo "**********************************************************************"
+cd "$INSTALL_ROOT"

@@ -53,6 +53,7 @@ echo "[INFO] Ninja Build is Completed!"
 
 OUTPUT_PATH="$(pwd)/curl_output"
 
+# This should be installed in sudo permsission
 if [ ! -d "$OUTPUT_PATH" ] ; then
   sudo cmake --install ./build --prefix "${OUTPUT_PATH}" || {
     echo "[ERROR] Something wrong while Installing!"
