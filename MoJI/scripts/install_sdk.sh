@@ -20,6 +20,9 @@ if [ ! -d "$SDK_DOWNLOAD_PATH" ] ; then
     mkdir "$SDK_DOWNLOAD_PATH"
 fi
 
+#======================================================
+# Download SDK Zip File    
+#======================================================
 SDK_ZIP_FILE="${SDK_DOWNLOAD_PATH}/SDK-${OS_NAME}.zip"
 
 if [ ! -f "${SDK_ZIP_FILE}" ] ; then 
@@ -30,6 +33,9 @@ if [ ! -f "${SDK_ZIP_FILE}" ] ; then
     }
 fi
 
+#======================================================
+# Unzip SDK Zip File    
+#======================================================
 if [ -f "${SDK_ZIP_FILE}" ] ; then
     mkdir -p "${SDK_ROOT}"
     unzip "${SDK_ZIP_FILE}" -d "${SDK_TMP}" || {

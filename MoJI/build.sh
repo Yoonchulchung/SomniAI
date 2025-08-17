@@ -86,6 +86,8 @@ echo "[INFO] Curl for android is installed!"
 #======================================================
 # Build MoJI Application
 #======================================================
+# Require Java SE 17
+
 echo "**********************************************************************"
 echo "[INFO] Building MoJI Application..."
 

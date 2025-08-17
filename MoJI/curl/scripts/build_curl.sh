@@ -37,7 +37,7 @@ cmake -S ./curl -B ./build -G Ninja \
   -DCURL_USE_LIBPSL=OFF
 
 if [ $? -ne 0 ] ; then
-  echo "[ERROR] Something wrong while doing comake configure/generate !"
+  echo "[ERROR] Something wrong while doing cmake configure/generate !"
   exit 1 
 fi
 
@@ -57,7 +57,7 @@ OUTPUT_PATH="$(pwd)/curl_output"
 if [ ! -d "$OUTPUT_PATH" ] ; then
   sudo cmake --install ./build --prefix "${OUTPUT_PATH}" || {
     echo "[ERROR] Something wrong while Installing!"
-    exit 1
+    exit 1  
   }
 fi
 
