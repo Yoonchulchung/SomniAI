@@ -47,6 +47,6 @@
     "prettier": "^3.2.4",
     "react-native-codegen": "0.75.4",
     "typescript": "^5.1.6",
-    "@react-native-community/cli" : "12.4.4"
+    "@react-native-community/cli" : "latest"
   }
 }
