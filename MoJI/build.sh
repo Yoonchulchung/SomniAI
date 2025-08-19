@@ -58,8 +58,7 @@ echo "[INFO] Android SDK is installed!"
 export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
 echo "[INFO] ANDROID_HOME : ${ANDROID_HOME}"
 
-echo "[INFO] Type y to agree sdkmanager --licenses"
-$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
+printf 'y\ny\ny\ny\ny\ny\ny\n' | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
 
 #======================================================
 # Check SDK Path
@@ -71,6 +70,22 @@ $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
 #   │       ├──bin/sdkmanager
 #   ├─platform-tools/
 #   ├─ndk/
+REQUIRED_PATHS=(
+  "$ANDROID_SDK_PATH/cmdline-tools/latest/bin/sdkmanager"
+  "$ANDROID_SDK_PATH/platform-tools"
+  "$ANDROID_SDK_PATH/ndk"
+)
+
+for path in "${REQUIRED_PATHS[@]}"; do
+    if [ -e "$path" ]; then
+        echo "[OK] Found: $path"
+    else
+        echo "[ERROR] Missing: $path"
+        exit 1
+    fi
+done
+
+echo "[INFO] Android SDK directory structure is valid!"
 
 
 
