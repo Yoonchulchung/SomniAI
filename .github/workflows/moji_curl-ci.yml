@@ -31,7 +31,7 @@ jobs:
 
           echo "[INFO] Runner OS : ${RUNNER_OS}"
 
-          if [ -f "./MoJI/build.sh" ] ; then
+          if [ -f "./build.sh" ] ; then
             echo "[INFO] Building shell on ${RUNNER_OS}..."
             source build.sh || {
               echo "[ERROR] Something wrong while building!"
