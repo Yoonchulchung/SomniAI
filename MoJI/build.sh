@@ -9,7 +9,7 @@ case "$(uname)" in
     Darwin*) export OS_NAME="darwin";;
     CYGWIN*|MINGW*|MSYS*) export OS_NAME="windows" ;;
 esac
-
+  
 echo "OS : ${OS_NAME}"
 
 # Before Install, NDK and SDK should be ready to use!
@@ -91,13 +91,11 @@ echo "[INFO] Curl for android is installed!"
 echo "**********************************************************************"
 echo "[INFO] Building MoJI Application..."
 
-
-cd android ; ./gradlew clean
-
 echo "[INFO] watchman version : $(watchman --version)" || {
     echo "[ERROR] Please install watchman!"
     exit 1
 }
 
-npx react-native run-android
+cd android && ./gradlew clean && ./gradlew build
+
 echo "**********************************************************************"
