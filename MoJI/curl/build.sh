@@ -1,5 +1,4 @@
 #!/bin/bash 
-clear
 echo "**********************************************************************"
 echo "Building Curl and OpenSSL for MOJI ..."
 INSTALL_ROOT="$(pwd)"

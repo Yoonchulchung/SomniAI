@@ -1,5 +1,4 @@
 #!/bin/bash
-clear
 
 export ANDROID_HOME="$(pwd)/android_sdk"
 export ANDROID_SDK_ROOT="${ANDROID_HOME}"
