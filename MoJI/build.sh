@@ -98,4 +98,4 @@ echo "[INFO] watchman version : $(watchman --version)" || {
 cd android && ./gradlew clean && ./gradlew build
 
 echo "**********************************************************************"
-  
+    
