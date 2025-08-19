@@ -32,21 +32,23 @@ fi
 #      exit 1
 # }
 
+#======================================================
+# Build OpenSSL
+#======================================================
 INSTALL_OPEN_SSL_ROOT="$(pwd)/openssl-android"
-PREFIX="${INSTALL_OPEN_SSL_ROOT}/output"
-export OPENSSL_HOME="${PREFIX}"
+export OPENSSL_ANDROID="$(pwd)/openssl-for-android"
 
-echo "PRFIX PATH : ${PREFIX}"
+echo "[INFO] OpenSSL for Android path : ${OPENSSL_ANDROID}"
 
 if [ ! -d "$INSTALL_OPEN_SSL_ROOT" ] ; then
      mkdir "$INSTALL_OPEN_SSL_ROOT"
 fi
 
 cd "$INSTALL_OPEN_SSL_ROOT"
-echo "[INFO] Configuring OpenSSL for android-arm64 : $PREFIX"
+echo "[INFO] Configuring OpenSSL for android-arm64 : $OPENSSL_ANDROID"
 
-if [ -d "$PREFIX" ] ; then
-     echo "[INFO] Found Built OpenSSL : ${PREFIX}"
+if [ -d "$OPENSSL_ANDROID" ] ; then
+     echo "[INFO] Found Built OpenSSL : ${OPENSSL_ANDROID}"
      return 0
 fi
 
@@ -57,14 +59,13 @@ CROSS_COMPILE=${TARGET}${API}-
 perl "${OPENSSL_PATH}"/Configure android-arm64 \
      --cross-compile-prefix=$CROSS_COMPILE \
      -D__ANDROID_API__=$API \
-     --prefix=$PREFIX \
+     --prefix=$OPENSSL_ANDROID \
      no-shared || {
           echo "[ERROR] Failed to Configure OpenSSL"
           exit 1
      }
 
-if [ ! -d "$PREFIX" ] ; then
-     echo "[INFO] make ..."
-     make -j$(nproc)
-     make install_sw 
-fi
+echo "[INFO] make ..."
+make -j$(nproc)
+make install_sw 
+

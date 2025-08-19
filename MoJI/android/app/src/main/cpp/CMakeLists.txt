@@ -11,10 +11,9 @@ set(CURL_DIR "${ANDROID_CURL_ROOT}/lib/cmake/CURL")
 message(STATUS "[MoJI-CMake] Curl Directory : ${ANDROID_CURL_ROOT}")
 message(STATUS "[MoJI-CMake] CURL_DIR Directory : ${CURL_DIR}")
 
-set(OPENSSL_ROOT_DIR       "${ANDROID_CURL_ROOT}/../openssl-android-install")
-set(OPENSSL_CRYPTO_LIBRARY "${OPENSSL_ROOT_DIR}/lib/libcrypto.a")
-set(OPENSSL_SSL_LIBRARY    "${OPENSSL_ROOT_DIR}/lib/libssl.a")
-set(OPENSSL_INCLUDE_DIR    "${OPENSSL_ROOT_DIR}/include")
+set(OPENSSL_CRYPTO_LIBRARY "${ANDROID_OPENSSL_ROOT}/lib/libcrypto.a")
+set(OPENSSL_SSL_LIBRARY    "${ANDROID_OPENSSL_ROOT}/lib/libssl.a")
+set(OPENSSL_INCLUDE_DIR    "${ANDROID_OPENSSL_ROOT}/include")
 
 file(TO_CMAKE_PATH "${NODE_MODULES_DIR}" NODE_MODULES_DIR)
 message(STATUS "[MoJI-CMake] Node_Modules Directory : ${NODE_MODULES_DIR}")

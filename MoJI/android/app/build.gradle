@@ -156,7 +156,8 @@ android {
             cmake {
                 cppFlags "-O2 -frtti -fexceptions -Wall -Wno-unused-variable -fstack-protector-all"
                 arguments "-DANDROID_STL=c++_shared",
-                  "-DANDROID_CURL_ROOT=${nodeModules}/../curl/curl_output",
+                  "-DANDROID_CURL_ROOT=${nodeModules}/../curl/curl-for-android",
+                  "-DANDROID_OPENSSL_ROOT=${nodeModules}/../curl/openssl-for-android",
                   "-DNODE_MODULES_DIR=${nodeModules}"
                 abiFilters (*reactNativeArchitectures())
                 }

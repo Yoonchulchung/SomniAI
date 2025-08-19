@@ -104,7 +104,7 @@ EOF
 
 "$SDKMANAGER" --sdk_root="$ANDROID_HOME" \
   "cmake;3.22.1" "platform-tools" "platforms;android-34" "build-tools;34.0.0"
-  
+
 #======================================================
 # Check SDK Path
 #======================================================
@@ -113,7 +113,7 @@ EOF
 #   ├──cmdline-tools/
 #   │   ├──latest/
 #   │       ├──bin/sdkmanager
-#   ├─ndk/. 
+#   ├─ndk/
 REQUIRED_PATHS=(
   "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
   "$ANDROID_SDK_ROOT/ndk"
@@ -131,13 +131,13 @@ done
 echo "[INFO] Android SDK directory structure is valid!"
 
 #======================================================
-# Install Curl for Android
+# Install Curl and OpenSSL for Android
 #======================================================
 # Check if Curl for android is built. This is import because MoJI uses curl for HTTP connection.
 
 CURL_PATH="$(pwd)/curl/curl_output"
-
-if [ ! -d "$CURL_PATH" ] ; then
+OPENSSL_PATH="$(pwd)/curl/openssl-android-install"
+if [ ! -d "$CURL_PATH" ] || [ ! -d "$OPENSSL_PATH" ]; then
     echo "[INFO] Installing Curl for Android ..."
     cd "${CURL_PATH%/*}" ; ./build.sh "${NDK_VERSION}" || {
         echo "[ERROR] Something wrong while installing curl for android!"

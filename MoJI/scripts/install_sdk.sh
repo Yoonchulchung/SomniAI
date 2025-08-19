@@ -37,7 +37,7 @@ fi
 #======================================================
 if [ -f "${SDK_ZIP_FILE}" ] ; then
     mkdir -p "${ANDROID_SDK_ROOT}"
-    echo "[INFO] unziping files to ${SDK_TMP} "
+    echo "[INFO] unziping SDK files to ${SDK_TMP} "
     unzip -q "${SDK_ZIP_FILE}" -d "${SDK_TMP}" || {
         echo "[ERROR] Something wrong while unziping SDK Zip File!"
         rm -rf "${SDK_TMP}"
@@ -47,7 +47,7 @@ fi
 
 if [ ! -d "$SDK_PATH" ] ; then
     mkdir -p "${SDK_PATH}"
-    echo "[INFO] Copying files to ${SDK_PATH}} "
+    echo "[INFO] Copying SDK files to ${SDK_PATH} "
     mv "${SDK_TMP}/cmdline-tools/"* "${SDK_PATH}/" || {
         echo "[ERROR] Something while moving to ${SDK_PATH}"
         rm -rf "${SDK_PATH}"

@@ -17,8 +17,7 @@ if [ ! -d "$CURL_PATH" ] ; then
      }
 fi
 
-
-# Check out build_openssl.sh if OPENSSL_HOME path is weird.
+# Check out build_openssl.sh if OPENSSL_ANDROID path is weird.
 
 cmake -S ./curl -B ./build -G Ninja \
   -DCMAKE_TOOLCHAIN_FILE="$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake" \
@@ -26,10 +25,10 @@ cmake -S ./curl -B ./build -G Ninja \
   -DANDROID_PLATFORM=android-21 \
   -DBUILD_SHARED_LIBS=OFF -DBUILD_CURL_EXE=OFF -DHTTP_ONLY=ON \
   -DCURL_USE_OPENSSL=ON \
-  -DOPENSSL_ROOT_DIR="$OPENSSL_HOME" \
-  -DOPENSSL_CRYPTO_LIBRARY="$OPENSSL_HOME/lib/libcrypto.a" \
-  -DOPENSSL_SSL_LIBRARY="$OPENSSL_HOME/lib/libssl.a" \
-  -DOPENSSL_INCLUDE_DIR="$OPENSSL_HOME/include" \
+  -DOPENSSL_ROOT_DIR="$OPENSSL_ANDROID" \
+  -DOPENSSL_CRYPTO_LIBRARY="$OPENSSL_ANDROID/lib/libcrypto.a" \
+  -DOPENSSL_SSL_LIBRARY="$OPENSSL_ANDROID/lib/libssl.a" \
+  -DOPENSSL_INCLUDE_DIR="$OPENSSL_ANDROID/include" \
   -DCURL_BROTLI=OFF \
   -DCURL_ZSTD=OFF \
   -DCURL_NGHTTP2=OFF \
@@ -51,14 +50,14 @@ fi
 
 echo "[INFO] Ninja Build is Completed!"
 
-OUTPUT_PATH="$(pwd)/curl_output"
+CURL_ANDROID="$(pwd)/curl-for-android"
 
 # This should be installed in sudo permsission
-if [ ! -d "$OUTPUT_PATH" ] ; then
-  sudo cmake --install ./build --prefix "${OUTPUT_PATH}" || {
+if [ ! -d "$CURL_ANDROID" ] ; then
+  sudo cmake --install ./build --prefix "${CURL_ANDROID}" || {
     echo "[ERROR] Something wrong while Installing!"
     exit 1  
   }
 fi
 
-echo "[INFO] Finished Installing! Check out : ${OUTPUT_PATH}"
+echo "[INFO] Finished Installing! Check out : ${CURL_ANDROID}"
