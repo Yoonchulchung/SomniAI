@@ -29,7 +29,7 @@ case "${1:-26}" in
     26*) NDK_VERSION="26.1.10909125" ;;
     27*) NDK_VERSION="27.3.13750724" ;;
 esac
-
+  
 NDK_INSTALL_SCRIPTS="$(pwd)/scripts/install_ndk.sh"
 export ANDROID_NDK_ROOT="${ANDROID_SDK_ROOT}/ndk/${NDK_VERSION}"
 NDK_INSTALL_PATH="${ANDROID_SDK_ROOT}/ndk/download"
