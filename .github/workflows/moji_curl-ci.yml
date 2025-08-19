@@ -25,6 +25,7 @@ jobs:
           submodules: true
       - name: Run Build Shell
         shell: bash
+        working-directory: MoJI
         run: |
           set -euo pipefail
 
@@ -32,7 +33,7 @@ jobs:
 
           if [ -f "./MoJI/build.sh" ] ; then
             echo "[INFO] Building shell on ${RUNNER_OS}..."
-            cd MoJI && source build.sh || {
+            source build.sh || {
               echo "[ERROR] Something wrong while building!"
               exit 1
             }
