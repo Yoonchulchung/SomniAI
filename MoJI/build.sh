@@ -103,7 +103,12 @@ echo "[INFO] watchman version : $(watchman --version)" || {
     exit 1
 }
 
-if [ -! d "${CURRENT_DIR/android}" ] ; then
+echo "[INFO] Installing npm... "
+npm install && {
+    echo "[INFO] Completed installing modules!"
+}
+
+if [ ! -d "${CURRENT_DIR}/android" ] ; then
     ls
     echo "[ERROR] wrong path!"
     exit 1
