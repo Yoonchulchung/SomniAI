@@ -68,11 +68,9 @@ yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
 #   ├──cmdline-tools/
 #   │   ├──latest/
 #   │       ├──bin/sdkmanager
-#   ├─platform-tools/
 #   ├─ndk/
 REQUIRED_PATHS=(
   "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
-  "$ANDROID_SDK_ROOT/platform-tools"
   "$ANDROID_SDK_ROOT/ndk"
 )
 
