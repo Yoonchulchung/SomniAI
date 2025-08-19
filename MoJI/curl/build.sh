@@ -10,7 +10,7 @@ case "$(uname)" in
 esac
 
 echo "OS : ${OS_NAME}"
-
+  
 # In order to build curl for android, OpenSSL should be built first.
 #======================================================
 # Build OpenSSL

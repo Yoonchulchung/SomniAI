@@ -1,15 +1,25 @@
 #!/bin/bash
 
 CURRENT_DIR="$(pwd)"
-export ANDROID_HOME="$(pwd)/android_sdk"
+case "$(uname)" in
+    Linux*)
+        export OS_NAME="linux"
+        export ANDROID_HOME="$HOME/Android/Sdk"
+        ;;
+
+    Darwin*)
+        export OS_NAME="darwin"
+        export ANDROID_HOME="$HOME/Library/Android/sdk"
+        ;;
+
+    CYGWIN*|MINGW*|MSYS*)
+        export OS_NAME="windows"
+        export ANDROID_HOME="/c/Users/$USERNAME/AppData/Local/Android/Sdk"
+        ;;
+esac
+
 export ANDROID_SDK_ROOT="${ANDROID_HOME}"
 
-case "$(uname)" in
-    Linux*) export OS_NAME="linux";;
-    Darwin*) export OS_NAME="darwin";;
-    CYGWIN*|MINGW*|MSYS*) export OS_NAME="windows" ;;
-esac
-  
 echo "OS : ${OS_NAME}"
 
 # Before Install, NDK and SDK should be ready to use!
@@ -19,7 +29,7 @@ echo "OS : ${OS_NAME}"
 #======================================================
 # Select NDK Version
 # NDK 27 is not available because react-native-worklets-core not accepts 27.0.12077973.
-# But We never tested 27.3.13750724 because we already setted ndk version to 26
+# But We never tested 27.3.13750724 because we already setted ndk version to 26 
 case "${1:-26}" in
     26*) NDK_VERSION="26.1.10909125" ;;
     27*) NDK_VERSION="27.3.13750724" ;;
@@ -43,7 +53,7 @@ fi
 #======================================================
 # Install SDK
 #======================================================
-SDK_PATH="$(pwd)/android_sdk/cmdline-tools"
+SDK_PATH="${ANDROID_SDK_ROOT}/cmdline-tools"
 SDK_INSTALL_SCRIPTS="$(pwd)/scripts/install_sdk.sh"
 
 if [ ! -d "${SDK_PATH}" ] ; then
@@ -92,6 +102,9 @@ y
 y
 EOF
 
+"$SDKMANAGER" --sdk_root="$ANDROID_HOME" \
+  "cmake;3.22.1" "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+  
 #======================================================
 # Check SDK Path
 #======================================================
@@ -126,7 +139,7 @@ CURL_PATH="$(pwd)/curl/curl_output"
 
 if [ ! -d "$CURL_PATH" ] ; then
     echo "[INFO] Installing Curl for Android ..."
-    cd "${CURL_PATH%/*}" ; ./build.sh NDK_VERSION || {
+    cd "${CURL_PATH%/*}" ; ./build.sh "${NDK_VERSION}" || {
         echo "[ERROR] Something wrong while installing curl for android!"
         exit 1
     }
