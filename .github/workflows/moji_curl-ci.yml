@@ -1,0 +1,44 @@
+name: MoJI Curl Build Test
+
+on:
+  push:
+    branches: [ "main" ]
+    paths: 
+      - "MoJI/scripts/**"
+      - "MoJI/curl/scripts/**"  
+      - "MoJI/curl/build.sh"
+      - "MoJI/build.sh"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ "ubuntu-latest", "macos-latest" ]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: Run Build Shell
+        shell: bash
+        runs: |
+          set -euo pipefail
+
+          echo "[INFO] Runner OS : ${RUNNER_OS}"
+
+          if [ -f "./MoJI/build.sh" ] ; then
+            echo "[INFO] Building shell on ${RUNNER_OS}..."
+            source MoJI/build.sh || {
+              echo "[ERROR] Something wrong while building!"
+              exit 1
+            }
+          else
+            echo "[ERROR] Missing build shell : ./MoJI/build.sh"
+            exit 1
+          fi
+
+    
