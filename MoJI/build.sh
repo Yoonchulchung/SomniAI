@@ -135,10 +135,10 @@ echo "[INFO] Android SDK directory structure is valid!"
 #======================================================
 # Check if Curl for android is built. This is import because MoJI uses curl for HTTP connection.
 
-CURL_PATH="$(pwd)/curl/curl_output"
-OPENSSL_PATH="$(pwd)/curl/openssl-android-install"
-if [ ! -d "$CURL_PATH" ] || [ ! -d "$OPENSSL_PATH" ]; then
-    echo "[INFO] Installing Curl for Android ..."
+export CURL_ANDROID_ROOT="$(pwd)/curl/curl-for-android"
+export OPENSSL_ANDROID_ROOT="$(pwd)/curl/openssl-for-android"
+if [ ! -d "$CURL_ANDROID_ROOT" ] || [ ! -d "$OPENSSL_ANDROID_ROOT" ]; then
+    echo "[INFO] Installing curl and OpenSSL for Android ..."
     cd "${CURL_PATH%/*}" ; ./build.sh "${NDK_VERSION}" || {
         echo "[ERROR] Something wrong while installing curl for android!"
         exit 1

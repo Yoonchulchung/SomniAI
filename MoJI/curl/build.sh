@@ -39,7 +39,9 @@ if [ ! -f "$CURL_BUILD_SCRIPTS" ] ; then
     echo "[ERROR] Missing Curl build script : $CURL_BUILD_SCRIPTS"
     exit 1
 fi
-source "$CURL_BUILD_SCRIPTS"
+source "$CURL_BUILD_SCRIPTS" || {
+  
+}
 
 echo "**********************************************************************"
 cd "$INSTALL_ROOT"
