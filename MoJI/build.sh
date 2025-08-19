@@ -58,7 +58,7 @@ echo "[INFO] Android SDK is installed!"
 export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
 echo "[INFO] ANDROID_HOME : ${ANDROID_HOME}"
 
-yes | head -n 7 | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
+yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
 
 #======================================================
 # Check SDK Path
@@ -86,8 +86,6 @@ for path in "${REQUIRED_PATHS[@]}"; do
 done
 
 echo "[INFO] Android SDK directory structure is valid!"
-
-
 
 #======================================================
 # Install Curl for Android
@@ -132,4 +130,3 @@ fi
 cd "${CURRENT_DIR}"/android && ./gradlew clean && ./gradlew build
 
 echo "**********************************************************************"
-    
