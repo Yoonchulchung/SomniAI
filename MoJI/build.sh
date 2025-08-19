@@ -55,10 +55,42 @@ if [ ! -d "${SDK_PATH}" ] ; then
 fi
 echo "[INFO] Android SDK is installed!"
 
+SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+
+if [ ! -x "$SDKMANAGER" ]; then
+  echo "[ERROR] sdkmanager not found at: $SDKMANAGER"
+  echo "        Check cmdline-tools/latest is correctly placed."
+  exit 1
+fi
+
 export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
 echo "[INFO] ANDROID_HOME : ${ANDROID_HOME}"
 
-yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
+# Below command makes failure. Don't know why...
+# yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
+echo "[INFO] Accepting licenses..."
+"$SDKMANAGER" --licenses --sdk_root="$ANDROID_HOME" <<'EOF'
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+EOF
 
 #======================================================
 # Check SDK Path
