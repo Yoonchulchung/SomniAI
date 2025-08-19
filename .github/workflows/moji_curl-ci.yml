@@ -8,6 +8,7 @@ on:
       - "MoJI/curl/scripts/**"  
       - "MoJI/curl/build.sh"
       - "MoJI/build.sh"
+      - "MoJI/package.json"
 
 permissions:
   contents: read
