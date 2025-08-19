@@ -100,7 +100,7 @@ EOF
 #   ├──cmdline-tools/
 #   │   ├──latest/
 #   │       ├──bin/sdkmanager
-#   ├─ndk/
+#   ├─ndk/. 
 REQUIRED_PATHS=(
   "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
   "$ANDROID_SDK_ROOT/ndk"
