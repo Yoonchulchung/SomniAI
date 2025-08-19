@@ -58,7 +58,7 @@ echo "[INFO] Android SDK is installed!"
 export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
 echo "[INFO] ANDROID_HOME : ${ANDROID_HOME}"
 
-printf 'y\ny\ny\ny\ny\ny\ny\n' | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
+yes | head -n 7 | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
 
 #======================================================
 # Check SDK Path
@@ -71,9 +71,9 @@ printf 'y\ny\ny\ny\ny\ny\ny\n' | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanag
 #   ├─platform-tools/
 #   ├─ndk/
 REQUIRED_PATHS=(
-  "$ANDROID_SDK_PATH/cmdline-tools/latest/bin/sdkmanager"
-  "$ANDROID_SDK_PATH/platform-tools"
-  "$ANDROID_SDK_PATH/ndk"
+  "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+  "$ANDROID_SDK_ROOT/platform-tools"
+  "$ANDROID_SDK_ROOT/ndk"
 )
 
 for path in "${REQUIRED_PATHS[@]}"; do
