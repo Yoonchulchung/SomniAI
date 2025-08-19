@@ -32,7 +32,7 @@ jobs:
 
           if [ -f "./MoJI/build.sh" ] ; then
             echo "[INFO] Building shell on ${RUNNER_OS}..."
-            source MoJI/build.sh || {
+            cd MoJI && source build.sh || {
               echo "[ERROR] Something wrong while building!"
               exit 1
             }
