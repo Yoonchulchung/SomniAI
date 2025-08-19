@@ -40,7 +40,8 @@ if [ ! -f "$CURL_BUILD_SCRIPTS" ] ; then
     exit 1
 fi
 source "$CURL_BUILD_SCRIPTS" || {
-  
+  echo "[ERROR] Something whlie building curl for android!"
+  exit 1
 }
 
 echo "**********************************************************************"

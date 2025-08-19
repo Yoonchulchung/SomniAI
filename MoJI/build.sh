@@ -139,7 +139,9 @@ export CURL_ANDROID_ROOT="$(pwd)/curl/curl-for-android"
 export OPENSSL_ANDROID_ROOT="$(pwd)/curl/openssl-for-android"
 if [ ! -d "$CURL_ANDROID_ROOT" ] || [ ! -d "$OPENSSL_ANDROID_ROOT" ]; then
     echo "[INFO] Installing curl and OpenSSL for Android ..."
-    cd "${CURL_PATH%/*}" ; ./build.sh "${NDK_VERSION}" || {
+    echo "$OPENSSL_ANDROID_ROOT"
+    exit 1
+    cd "$(pwd)/curl" ; ./build.sh "${NDK_VERSION}" || {
         echo "[ERROR] Something wrong while installing curl for android!"
         exit 1
     }
