@@ -73,7 +73,7 @@ REQUIRED_PATHS=(
   "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
   "$ANDROID_SDK_ROOT/ndk"
 )
-
+echo "[INFO] Checking files..."
 for path in "${REQUIRED_PATHS[@]}"; do
     if [ -e "$path" ]; then
         echo "[OK] Found: $path"
