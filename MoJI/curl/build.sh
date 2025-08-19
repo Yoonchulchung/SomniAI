@@ -45,4 +45,4 @@ source "$CURL_BUILD_SCRIPTS" || {
 }
 
 echo "**********************************************************************"
-cd "$INSTALL_ROOT"
+cd "$INSTALL_ROOT". 
