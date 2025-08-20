@@ -1,5 +1,4 @@
 #!/bin/bash 
-clear
 echo "**********************************************************************"
 echo "Building Curl and OpenSSL for MOJI ..."
 INSTALL_ROOT="$(pwd)"
@@ -11,7 +10,7 @@ case "$(uname)" in
 esac
 
 echo "OS : ${OS_NAME}"
-
+  
 # In order to build curl for android, OpenSSL should be built first.
 #======================================================
 # Build OpenSSL
@@ -40,7 +39,10 @@ if [ ! -f "$CURL_BUILD_SCRIPTS" ] ; then
     echo "[ERROR] Missing Curl build script : $CURL_BUILD_SCRIPTS"
     exit 1
 fi
-source "$CURL_BUILD_SCRIPTS"
+source "$CURL_BUILD_SCRIPTS" || {
+  echo "[ERROR] Something whlie building curl for android!"
+  exit 1
+}
 
 echo "**********************************************************************"
-cd "$INSTALL_ROOT"
+cd "$INSTALL_ROOT". 

@@ -1,0 +1,64 @@
+name: MoJI Curl Build Test
+
+on:
+  push:
+    branches: [ "main" ]
+    paths: 
+      - "MoJI/scripts/**"
+      - "MoJI/curl/scripts/**"  
+      - "MoJI/curl/build.sh"
+      - "MoJI/build.sh"
+      - "MoJI/package.json"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ "ubuntu-latest", "macos-latest" ]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      
+      - name: Install watchman (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew update
+          brew install watchman
+          watchman --version
+
+      - name: Install watchman (Ubuntu)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y watchman
+          watchman --version
+
+      - name: Run Build Shell
+        shell: bash
+        working-directory: MoJI
+        run: |
+          set -euo pipefail
+
+          echo "[INFO] Runner OS : ${RUNNER_OS}"
+
+          if [ -f "./build.sh" ] ; then
+            echo "[INFO] Building shell on ${RUNNER_OS}..."
+            source build.sh || {
+              echo "[ERROR] Something wrong while building!"
+              exit 1
+            }
+          else
+            echo "[ERROR] Missing build shell : ./MoJI/build.sh"
+            exit 1
+          fi
+
+    

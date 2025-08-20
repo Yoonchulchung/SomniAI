@@ -16,7 +16,7 @@ fi
 echo "[INFO] Installing NDK ${NDK_VERSION}..."
 
 if [ ! -f "${NDK_INSTALL_PATH}/${NDK_ZIP_FILE}" ] ; then
-    echo "[INFO] Downloading NDK ${NDK_TAG} from Google..."
+    echo "[INFO] Downloading NDK ${NDK_TAG} from Google to ${NDK_INSTALL_PATH}/${NDK_ZIP_FILE}"
     # NDK 27 : https://dl.google.com/android/repository/android-ndk-r27d-darwin.dmg, but you can download **darwin.zip
     sleep 1
     wget "https://dl.google.com/android/repository/${NDK_ZIP_FILE}" -O "${NDK_INSTALL_PATH}/${NDK_ZIP_FILE}" || {
@@ -30,13 +30,13 @@ fi
 # Unzip NDK Zip File    
 #======================================================
 if [ ! -d "$ANDROID_NDK_ROOT" ] ; then   
-    echo "[INFO] Unzipng NDK ${NDK_TAG} Zip file ..."
-    unzip "${NDK_INSTALL_PATH}/${NDK_ZIP_FILE}" -d "${NDK_INSTALL_PATH}" || {
+    echo "[INFO] Unzipng NDK ${NDK_TAG} Zip file to ${NDK_INSTALL_PATH}"
+    unzip -q "${NDK_INSTALL_PATH}/${NDK_ZIP_FILE}" -d "${NDK_INSTALL_PATH}" || {
         echo "[Error] Something wrong while unziping ${NDK_ZIP_FILE}"
         exit 1
     }
     mkdir -p "${ANDROID_NDK_ROOT}"
-    echo "[INFO] Copying files..."
+    echo "[INFO] Copying NDK files to ${ANDROID_NDK_ROOT}"
     cp -r "${NDK_INSTALL_PATH}/${NDK_ZIP_FILE%-*}/"* "${ANDROID_NDK_ROOT}" || {
         echo "[ERROR] Something wrong while moving files!"
         rm -rf ${ANDROID_NDK_ROOT}
