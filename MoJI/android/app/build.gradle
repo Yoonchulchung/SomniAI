@@ -120,7 +120,7 @@ static def findNodeModules(baseDir) {
 }
 
 def nodeModules = findNodeModules(projectDir)
-logger.warn("[MOJI] Found Node_Module directoriy : $nodeModules")
+logger.warn("[MOJI] Found Node Module directoriy : ${nodeModules}")
 /* ===================================*/
 
 logger.warn("[MOJI] ndkVersion: ${rootProject.ext.ndkVersion}")
@@ -206,7 +206,7 @@ android {
     }
     externalNativeBuild {
         cmake {
-            path "src/main/cpp/CMakeLists.txt"
+            path "${nodeModules}/../cpp/CMakeLists.txt"
         }
     }
 
