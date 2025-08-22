@@ -48,14 +48,14 @@ def get_GPU(cfg = Depends(get_GPU_cfg)):
 #        Upload
 ########################################################################
 
-
+import time
 @app.post("/upload/http_1_1")
 async def upload_http_1_1(request : Request, files: Optional[List[UploadFile]] = File(None), 
                  parser = Depends(get_HTTP_parser), gpu = Depends(get_GPU)):
     '''
     Please send bytes data. Do not send Pytorch Tensor format.
     '''
-    
+
     dataset = await parser.get_tensor(request, files)
     await gpu.enqueue_batch_or_tensor(dataset)   
 
@@ -67,10 +67,13 @@ async def upload_http_1_1(request : Request, files: Optional[List[UploadFile]] =
 #        Debug
 ########################################################################
 
-@app.get("/stauts")
-async def status(request: Request):
-    return {'status' : 'active'}
-
+def get_healtcheck():
+    return SomniAI.Rsponse_Health_Check()
+import json
+@app.api_route("/health", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"])
+async def health(request: Request, parser=Depends(get_healtcheck)):
+    return await parser.parse_client(request)
+    
 @app.post("/test")
 async def test(request: Request):
     return {'request' : request}
