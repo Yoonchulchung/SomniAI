@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
 if [ -d "$OPENSSL_ANDROID_ROOT" ] ; then
     echo "[INFO] Found Built OpenSSL : ${OPENSSL_ANDROID_ROOT}"
@@ -22,7 +22,7 @@ PATH=$TOOLCHAIN/bin:$PATH
 #======================================================
 # Download OpenSSL
 #======================================================
-OPENSSL_PATH="$(pwd)/openssl"
+OPENSSL_PATH="${CURL_ROOT}/openssl"
 if [ ! -d "$OPENSSL_PATH" ] ; then 
     echo "[INFO] Downloading OpenSSL ..."
     git submodule update --init --recursive || {
@@ -41,7 +41,7 @@ fi
 #======================================================
 # Build OpenSSL
 #======================================================
-INSTALL_OPEN_SSL_ROOT="$(pwd)/openssl-android"
+INSTALL_OPEN_SSL_ROOT="${CURL_ROOT}/openssl-android"
 
 if [ ! -d "$INSTALL_OPEN_SSL_ROOT" ] ; then
     mkdir "$INSTALL_OPEN_SSL_ROOT"
