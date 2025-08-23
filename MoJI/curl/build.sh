@@ -1,7 +1,7 @@
 #!/bin/bash 
 echo "**********************************************************************"
 echo "Building Curl and OpenSSL for MOJI ..."
-CURL_ROOT="$(pwd)"
+export CURL_ROOT="$(pwd)"
 
 case "$(uname)" in
     Linux*) export OS_NAME="linux";;

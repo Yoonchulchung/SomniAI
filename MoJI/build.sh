@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-MOJI_ROOT="$(pwd)"
+export MOJI_ROOT="$(pwd)"
 
 case "$(uname)" in
     Linux*)
