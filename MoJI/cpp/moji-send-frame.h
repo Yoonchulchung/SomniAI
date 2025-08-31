@@ -5,6 +5,7 @@
 #include <android/log.h>
 
 #include <thread>
+#include "send-http.h"
 
 #define LOG_TAG "MoJIPlugin"
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)

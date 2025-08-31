@@ -18,7 +18,7 @@ jsi::Value MoJISend::MoJISendFrame(jsi::Runtime& runtime, const jsi::Value& this
                 std::string copiedIp = ip;
 
                 std::thread([copiedBuffer = std::move(copiedBuffer), copiedIp]() {
-                    MoJISend::sendBufferOverHTTP(copiedBuffer.data(), copiedBuffer.size(), copiedIp);
+                    SendHTTP::sendBufferOverHTTP(copiedBuffer.data(), copiedBuffer.size(), copiedIp);
                 }).detach();
                 
                 /* ================================ */
