@@ -1,0 +1,21 @@
+
+type: develop
+
+FASTAPI:
+  HOST : localhost
+  PORT : 8000
+  API_PREFIX : /fastapi
+  WORKERS : 1
+  RELOAD : True
+  LOG_LEVEL : info
+
+HTTP:
+  BATCH_THRESHOLD : 256
+  BATCH_TIMEOUT : 1.0 # 1sec
+
+AI:
+  FREE_MEM_THRESHOLD : 2 # GB
+  INFERENCE_MODE : vlm
+  MODEL_NAME : BLIP2
+  VLM_QUESTION : ...
+  VLM_PROMPOT : ...

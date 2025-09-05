@@ -1,60 +1,90 @@
 import torch
-from ultralytics import YOLO
-from SomniAI.log import SomniAI_log
+from typing import Callable, Any
+import gc
 
-MAX_GPU_MEMRY_GB = 24.0 
-BATCH_THRESHOLD = 30
 
-_loaded_models = {}
+class ModelLoader:
+    # Only GPU Load is allowed
 
-def load_model(model_name, gpu_id):
+    def __init__(self, 
+                 cfg,
+                 free_mem_threshold : float = 2.0, # Bytes
+                 vision_register : Callable = None,
+                 vlm_register : Callable = None,
+                 logger : Callable = None,
+                 ):
+        
+        self.cfg = cfg
+        self.free_mem_threshold = free_mem_threshold
     
-    available_models = {'YOLO_V8', 'YOLO_V11'}
+        self.vision_register = vision_register
+        self.vlm_register = vlm_register
+        
+        self.logger = logger
+        if not torch.cuda.is_available():
+            raise ValueError("GPU is not available")
+        
+    def _check_mem_ok(self, gpu_id) -> bool:
+        
+        try:
+            free_b, total_b = torch.cuda.mem_get_info()
+        except Exception:
+            props = torch.cuda.get_device_properties(gpu_id)
+            total_b = props.total_memory
+            free_b = max(0, total_b - torch.cuda.memory_reserved(gpu_id) - torch.cuda.memory_allocated(gpu_id))
+            self.logger(free_b)
+        return free_b >= self.free_mem_threshold
     
-    if model_name not in available_models:
-        raise ValueError(f"Model should be one of these: {available_models}")
+    def _load_vlm(self, model_name, gpu_id):
+        
+        model = self.vlm_register.get(model_name)
+        model = model(self.cfg.prompt, self.cfg.question)
+        return model
+        
+    def _load_vision(self, model_name, gpu_id):
+        
+        model = self.vision_register.get(model_name)
+        return model.to('cuda').eval()
+        
+    def _load_llm(self, model_name, gpu_id):
+        ...
+        
+    def get_model(self, model_name, gpu_id):
+        
+        in_vision = model_name in self.vision_register.list()
+        in_vlm    = model_name in self.vlm_register.list()
 
-    if model_name in _loaded_models:
-        SomniAI_log(f"{model_name} is loaded from cache")
-        return _loaded_models[model_name]
-    
-    models = {
-        'YOLO_V8' : YOLO("yolov8n-pose.pt"),
-        'YOLO_V11' : YOLO("yolo11n-pose.pt"),
-    }
-
-    try:
-        total = torch.cuda.get_device_properties(gpu_id).total_memory
-        reserved = torch.cuda.memory_reserved(gpu_id)
-        allocated = torch.cuda.memory_allocated(gpu_id)
-        free = total - reserved - allocated
-
-        SomniAI_log(
-            f"GPU {gpu_id} memory check → total: {total/1e9:.2f} GB, free: {free/1e9:.2f} GB"
-        )
-        if free > 1 * 1024**3:
-                    device = f"cuda:{gpu_id}"
-        else:
-            SomniAI_log(
-                f"GPU {gpu_id} memory insufficient, loading {model_name} on CPU"
+        if not (in_vision or in_vlm):
+            raise ValueError(
+                f"Unknown model_name: '{model_name}'."
+                f"Available vision: {list(self.vision_register.list())}"
+                f"available vlm: {list(self.vlm_register.list())}"
             )
-            
-    except Exception as e:
-        SomniAI_log(f"GPU check failed: {e}, fallback to CPU")
-        
-    model = models.get(model_name).to(get_device(gpu_id)).eval()
-    _loaded_models[model_name] = model
-    
-    SomniAI_log(f"{model_name} is loaded!")
-    return model
 
+        assert gpu_id in list(range(torch.cuda.device_count())), \
+        f"gpu_id should be between 0 and {torch.cuda.device_count() - 1}"
+
+        try:
+            if in_vision:
+                model = self._load_vlm(model_name, gpu_id)
+            else :
+                model = self.vlm_register.get(model_name)
+            
+            if model is None:
+                raise KeyError(f"Registry returned None for '{model_name}'")
+
+            if not self._check_mem_ok(gpu_id):
+                del model
+                gc.collect()
+                torch.cuda.empty_cache()
+        except Exception as e:
+            try:
+                if model is not None:
+                    del model
+                gc.collect()
+                torch.cuda.empty_cache()
+            finally:
+                raise RuntimeError(f"Failed to instantiate '{model_name}' on cuda:{gpu_id}: {e}") from e
         
-def get_device(gpu_id):
-    
-    assert gpu_id in list(range(torch.cuda.device_count())), \
-       f"gpu_id should be between 0 and {torch.cuda.device_count() - 1}"
-       
-    device = f'cuda:{gpu_id}' if torch.cuda.is_available() else 'cpu'
-    SomniAI_log(f'[{device}] is used for AI')
-    
-    return device
+        self.logger(f"{model_name} is loaded!")
+        return model
