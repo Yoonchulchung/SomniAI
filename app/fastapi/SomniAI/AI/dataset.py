@@ -10,7 +10,7 @@ class Dataset:
         self.transform_pipeline = transforms.Compose([
                                         transforms.ToTensor(),
                                         transforms.Normalize(mean=self.cfg.NORM_MEAN,
-                                                             std=self.cfg.NROM_STD)
+                                                             std=self.cfg.NORM_STD)
                                     ])
 
         self.normalize_only = transforms.Normalize(mean=self.cfg.NORM_MEAN,

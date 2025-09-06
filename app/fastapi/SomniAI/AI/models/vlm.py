@@ -7,38 +7,48 @@ from typing import Dict
 from PIL import Image
 
 class VLMAdapter(nn.Module):
-    def caption(self, image: Image.Image, prompt: Optional[str] = None, **gen_kw) -> str:
+    def caption(self, image: torch.Tensor, prompt: Optional[str] = None, **gen_kw) -> str:
         raise NotImplementedError
-    def vqa(self, image: Image.Image, question: str, **gen_kw) -> str:
+    def vqa(self, image: torch.Tensor, question: str, **gen_kw) -> str:
         raise NotImplementedError
-    def forward(self, image : Image.Image):
+    def forward(self, image : torch.Tensor):
         raise NotImplementedError        
 
 @vlm_register.register("BLIP") 
 class BLIPCaptionAdapter(VLMAdapter):
     def __init__(
             self,
-            model_id: str,
-            prompt: str = "",
-            question: Optional[str] = None,
-            dtype: Optional[torch.dtype] = None,
-            device_map: Optional[str] = None,
-            default_max_new_tokens: int = 32,
+            cfg,
+            device
         ):
-        
+        super().__init__()
         from transformers import BlipProcessor, BlipForConditionalGeneration
         
-        self.default_max_new_tokens = default_max_new_tokens
-        self.prompt = prompt
-        self.question = question
-        self.processor = BlipProcessor.from_pretrained(model_id)
-        if device_map:
-            self.model = BlipForConditionalGeneration.from_pretrained(model_id, device_map=device_map, torch_dtype=dtype)
-        else:
-            self.model = BlipForConditionalGeneration.from_pretrained(model_id, torch_dtype=dtype)
+        self.cfg = cfg
+        self.model_id = self.cfg.MODEL_ID
+        self.default_max_new_tokens = self.cfg.MAX_NEW_TOKENS
+        self.prompt = self.cfg.VLM_PROMPT
+        self.question = self.cfg.VLM_QUESTION
+        self.dtype = cfg.DTYPE
+        self.processor = BlipProcessor.from_pretrained(self.cfg.MODEL_ID)
+        self.device = torch.device(device) if not isinstance(device, torch.device) else device
+        self.device_map = self.cfg.DEVICE_MAP
+        self.task = self.cfg.TASK_TYPE
         
-        self.model.to('cuda').eval()
-        self.dtype = dtype
+        if self.device_map:
+            self.model = BlipForConditionalGeneration.from_pretrained(self.model_id, device_map=self.device_map, torch_dtype=self.dtype)
+        else:
+            self.model = BlipForConditionalGeneration.from_pretrained(self.model_id, torch_dtype=self.dtype)
+            self.model.to(self.device)
+
+        self.model.eval()
+        
+        if self.task.upper() == "VQA":
+            self.inference = self.vqa
+        elif self.task.upper() == "CAPTION":
+            self.inference = self.caption
+        else:
+            raise ValueError("Invalid task")
 
     def _gen(self, inputs: Dict[str, torch.Tensor], **gen_kw) -> torch.Tensor:
 
@@ -68,10 +78,7 @@ class BLIPCaptionAdapter(VLMAdapter):
         return self.processor.decode(out[0], skip_special_tokens=True)
     
     def forward(self, image: torch.Tensor, **gen_kw) -> str:
-        if self.question:
-            return self.vqa(image, **gen_kw)
-        return self.caption(image, **gen_kw)
-    
+        return self.inference(image, **gen_kw)
     
     
 @vlm_register.register("BLIP2")

@@ -1,17 +1,18 @@
 
 import torch
-from SomniAI.log import SomniAI_log      
-
 import torch.nn as nn
-from typing import Optional
+from typing import Optional, Callable
+
 
 class Inference(nn.Module):
     
-    def __init__(self, prompt : str = None, question : str = None, ):
+    def __init__(self, prompt : str = None, question : str = None, logger : Callable = None):
         self.prompt = prompt
         self.question = question
         
-    def _run_inference_vision(model, batch, gpu_id):
+        self.logger = logger
+        
+    def _run_inference_vision(self, model, batch, gpu_id):
         
         if not isinstance(batch, torch.Tensor):
             raise TypeError("Batch must be a torch.Tensor. Please convert before inference.")
@@ -23,7 +24,7 @@ class Inference(nn.Module):
             with torch.no_grad():
                 predictions = model[gpu_id](batch, verbose=False)
         except Exception as e:
-            SomniAI_log(f"[Error] Error occured while inferencing image : {e}")
+            self.logger(f"[Error] Error occured while inferencing image : {e}")
         return predictions
 
     def _run_inference_vlm(self, model, img, gpu_id):
@@ -36,7 +37,7 @@ class Inference(nn.Module):
                 ans = model.vqa(img, self.prompt)
                 cap = model.caption(img, self.question)
         except Exception as e:
-            SomniAI_log(f"[Error] VLM inference failed: {e}")
+            self.logger(f"[Error] VLM inference failed: {e}")
             
         return {"answer": ans, "caption": cap}
 

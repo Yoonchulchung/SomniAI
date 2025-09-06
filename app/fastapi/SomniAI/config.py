@@ -4,6 +4,13 @@ import importlib
 from dataclasses import dataclass, field
 from typing import Union, Dict, Any
 import types
+import torch
+
+DTYPE_MAP = {
+    "float32": torch.float32,
+    "float16": torch.float16,
+    "bfloat16": torch.bfloat16
+}
 
 @dataclass
 class FastAPIConfig:
@@ -22,10 +29,17 @@ class HTTPConfig:
 @dataclass
 class AIConfig:
     FREE_MEM_THRESHOLD: int = 2   # GB
-    INFERENCE_MODE: str = "vlm"
-    MODEL_NAME: str = "BLIP2"   
+    INFERENCE_MODE: str = ...
+    MODEL_NAME: str = ...
     VLM_QUESTION : str = ...
-    VLM_PROMPOT : str = ...
+    VLM_PROMPT : str = ...
+    DEVICE_MAP : str = ...
+    MODEL_ID: str = ...
+    TASK_TYPE : str = ...
+    MAX_NEW_TOKENS : int = ...
+    DTYPE : torch.dtype = field(default=torch.float32)
+    NORM_MEAN : int = ...
+    NORM_STD : int = ...
 
 @dataclass
 class Config:
@@ -33,7 +47,7 @@ class Config:
     FASTAPI: FastAPIConfig = field(default_factory=FastAPIConfig)
     HTTP: HTTPConfig = field(default_factory=HTTPConfig)
     AI: AIConfig = field(default_factory=AIConfig)
-    
+
     
 def _get_config_file(config_path : str):
     
@@ -99,8 +113,15 @@ def _parse_config(config_data : Union[Dict[str, Any], types.ModuleType, Config])
         FREE_MEM_THRESHOLD=int(_get(ai_raw, "FREE_MEM_THRESHOLD", AIConfig.FREE_MEM_THRESHOLD)),
         INFERENCE_MODE=str(_get(ai_raw, "INFERENCE_MODE", AIConfig.INFERENCE_MODE)),
         MODEL_NAME=str(_get(ai_raw, "MODEL_NAME", AIConfig.MODEL_NAME)),
-        VLM_PROMPOT=str(_get(ai_raw, "VLM_PROMPOT", AIConfig.VLM_PROMPOT)),
+        VLM_PROMPT=str(_get(ai_raw, "VLM_PROMPT", AIConfig.VLM_PROMPT)),
         VLM_QUESTION=str(_get(ai_raw, "VLM_QUESTION", AIConfig.VLM_QUESTION)),
+        MODEL_ID=str(_get(ai_raw, "MODEL_ID", AIConfig.MODEL_ID)),
+        TASK_TYPE=str(_get(ai_raw, "TASK_TYPE", AIConfig.TASK_TYPE)),
+        MAX_NEW_TOKENS=str(_get(ai_raw, "MAX_NEW_TOKENS", AIConfig.MAX_NEW_TOKENS)),
+        DTYPE = DTYPE_MAP[_get(ai_raw, "DTYPE", AIConfig.DTYPE)],
+        NORM_MEAN=str(_get(ai_raw, "NORM_MEAN", AIConfig.NORM_MEAN)),
+        NORM_STD=str(_get(ai_raw, "NORM_STD", AIConfig.NORM_STD)),
+        DEVICE_MAP=str(_get(ai_raw, "DEVICE_MAP", AIConfig.DEVICE_MAP)),
     )
 
     return Config(
@@ -123,6 +144,7 @@ def _get(mapping: Dict[str, Any], key: str, default: Any = None) -> Any:
         if isinstance(k, str) and k.lower() == kl:
             return v
     return default
+    
     
 def load_config(config_path: str) -> Config:
     raw = _get_config_file(config_path)

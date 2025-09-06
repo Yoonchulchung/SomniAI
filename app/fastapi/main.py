@@ -1,11 +1,7 @@
-from fastapi import FastAPI, Request, File, UploadFile, Depends
-from typing import Optional, List
+from fastapi import FastAPI
 import asyncio
-import torch
-import hypercorn
 
 from SomniAI.config import load_config
-from SomniAI.log import SomniAI_log
 import SomniAI.registry as registry
 from SomniAI.boot_loader import bootstrap, shutdown
 import argparse
@@ -21,7 +17,7 @@ registry.set_cfg(SomniAI_cfg)
 from contextlib import asynccontextmanager
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    gpu = bootstrap()
+    gpu = await bootstrap()
     asyncio.create_task(gpu.micro_batch_schdeuler())
     
     yield
@@ -34,7 +30,6 @@ from routers.v1 import health, http_1_1, ping
 app.include_router(health.router, prefix=SomniAI_cfg.FASTAPI.API_PREFIX, tags=["health"])
 app.include_router(http_1_1.router, prefix=SomniAI_cfg.FASTAPI.API_PREFIX, tags=["http_1_1_resp"])
 app.include_router(ping.router, prefix=SomniAI_cfg.FASTAPI.API_PREFIX, tags=["ping"])
-
 
 from hypercorn.config import Config
 from hypercorn.asyncio import serve
@@ -50,5 +45,3 @@ async def start():
     
 if __name__ == "__main__":
     asyncio.run(start())
-
-    

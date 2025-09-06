@@ -12,12 +12,12 @@ class Registry:
             return cls_or_fn
         return _wrap
 
-    def get(self, name: str):
+    def get(self, model_name: str):
         
-        if not name in self._map:
-            raise ValueError(f"[{name}] is not registered")
-        
-        return self._map[name]
+        if not model_name in self.list():
+            raise ValueError(f"[{model_name}] is not registered. available models : {self.list()}")
+        else:
+            return self._map[model_name]
 
     def list(self):
         return list(self._map.keys())
