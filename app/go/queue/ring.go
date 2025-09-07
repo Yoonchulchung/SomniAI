@@ -9,7 +9,7 @@ type Ring struct {
 	head     int
 	tail     int
 	size     int
-  data     []string
+    data     []string
 	capacity int
 	mu       sync.Mutex
 	notFull  *sync.Cond
