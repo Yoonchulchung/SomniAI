@@ -1,15 +1,15 @@
 package queue
 
 import (
-  "context"
-  "sync"
+	"context"
+	"sync"
 )
 
 type Ring struct {
 	head     int
 	tail     int
 	size     int
-    data     []string
+	data     []string
 	capacity int
 	mu       sync.Mutex
 	notFull  *sync.Cond
@@ -25,23 +25,18 @@ func New(capacity int) *Ring {
 	r.notEmpty = sync.NewCond(&r.mu)
 	return r
 }
-// ENQUEUE 함수
+
+//  ENQUEUE 함수
 func (r *Ring) Enqueue(ctx context.Context, item string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	for r.size == r.capacity {
-		wait := make(chan struct{})
-		go func() {
-			r.notFull.Wait()
-			close(wait)
-		}()
-
-		select {
-		case <-wait:
-		case <-ctx.Done():
+		
+		if ctx.Err() != nil {
 			return ctx.Err()
 		}
+		r.notFull.Wait()
 	}
 
 	r.data[r.tail] = item
@@ -50,23 +45,18 @@ func (r *Ring) Enqueue(ctx context.Context, item string) error {
 	r.notEmpty.Signal()
 	return nil
 }
-// DEQUEUE 함수
+
+//  DEQUEUE 함수
 func (r *Ring) Dequeue(ctx context.Context) (string, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	for r.size == 0 {
-		wait := make(chan struct{})
-		go func() {
-			r.notEmpty.Wait()
-			close(wait)
-		}()
-
-		select {
-		case <-wait:
-		case <-ctx.Done():
+		
+		if ctx.Err() != nil {
 			return "", ctx.Err()
 		}
+		r.notEmpty.Wait()
 	}
 
 	item := r.data[r.head]
