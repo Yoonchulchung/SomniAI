@@ -10,16 +10,16 @@ type Ring struct {
 	tail     int
 	size     int
 	data     []string
-	capacity int
+	cap     int
 	mu       sync.Mutex
 	notFull  *sync.Cond
 	notEmpty *sync.Cond
 }
 
-func New(capacity int) *Ring {
+func New(cap int) *Ring {
 	r := &Ring{
-		data:     make([]string, capacity),
-		capacity: capacity,
+		data:     make([]string, cap),
+		cap: cap,
 	}
 	r.notFull = sync.NewCond(&r.mu)
 	r.notEmpty = sync.NewCond(&r.mu)
@@ -31,7 +31,7 @@ func (r *Ring) Enqueue(ctx context.Context, item string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	for r.size == r.capacity {
+	for r.size == r.cap {
 		
 		if ctx.Err() != nil {
 			return ctx.Err()
@@ -40,7 +40,7 @@ func (r *Ring) Enqueue(ctx context.Context, item string) error {
 	}
 
 	r.data[r.tail] = item
-	r.tail = (r.tail + 1) % r.capacity
+	r.tail = (r.tail + 1) % r.cap
 	r.size++
 	r.notEmpty.Signal()
 	return nil
@@ -60,7 +60,7 @@ func (r *Ring) Dequeue(ctx context.Context) (string, error) {
 	}
 
 	item := r.data[r.head]
-	r.head = (r.head + 1) % r.capacity
+	r.head = (r.head + 1) % r.cap
 	r.size--
 	r.notFull.Signal()
 	return item, nil
