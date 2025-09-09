@@ -1,69 +1,66 @@
 package main
 
 import (
+	"context"
 	"log"
-	"net"
+	"net/http"
+	"os"
+	"os/signal"
+	"strconv"
+	"syscall"
 	"time"
 
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
-    "google.golang.org/grpc/keepalive"
-
-	pb "somniai.com/grpc/proto"
+	"github.com/Yoonchulchung/SomniAI/queue"
+	"github.com/Yoonchulchung/SomniAI/router"
 )
 
-type BridgeServ struct {
-	pb.UnimplementedPushGoServer
-	py pb.PushPyClient
-}
+const (
+	defaultWorkerNum = 2
+	queueSize        = 100
+)
 
-func (s *BridgeServ) StreamToGo(stream pb.PushGo_StreamToGoServer) error {
-	ctx := stream.Context()
-
-	pyStream, err := s.py.StreamToPy(ctx)
-	if err != nil {return err}
-	defer func() {
-		_, _ = pyStream.CloseAndRecv()
-	}()
-
+func worker(q *queue.Ring, workerID int) {
 	for {
-		frame, err := stream.Recv()
+		item, err := q.Dequeue(context.Background())
 		if err != nil {
-			return err
+			log.Printf("Worker %d: Dequeue error: %v", workerID, err)
+			return
 		}
-		if err := pyStream.Send(frame) ; err != nil {
-			return err
-		}
+		log.Printf("Worker %d: Processing item: %s", workerID, item)
 	}
 }
 
 func main() {
+	ringQueue := queue.NewRing(queueSize)
 
-	log.Println("Starting Go Server ...")
-	log.Println("Connecting to unix:///tmp/py_infer.sock ...")
-	pyConn, err := grpc.Dial(
-		"unix:///tmp/py_infer.sock",
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithBlock(),
-		grpc.WithKeepaliveParams(keepalive.ClientParameters{
-			Time: 10 * time.Second, Timeout : 3 * time.Second, PermitWithoutStream : true,
-		}),
-	)
-	log.Println("Go connection succeed : unix:///tmp/py_infer.sock!")
+	workerNumStr := os.Getenv("WORKER_NUM")
+	workerNum, err := strconv.Atoi(workerNumStr)
+	if err != nil || workerNum <= 0 {
+		workerNum = defaultWorkerNum
+	}
+	for i := 0; i < workerNum; i++ {
+		go worker(ringQueue, i)
+	}
 
-	if err != nil { log.Fatal(err) }
-	defer pyConn.Close()
-	
-	pyClients := pb.NewPushPyClient(pyConn)
+	http.HandleFunc("/go/upload", router.UploadHandler(ringQueue))
 
-	lis, err := net.Listen("tcp", ":5000")
-	if err != nil { log.Fatal(err) }
+	server := &http.Server{Addr: ":3000"}
+	go func() {
+		log.Println("Server is running on port 3000")
+		if err := server.ListenAndServe(); err != http.ErrServerClosed {
+			log.Fatalf("Server failed to start: %v", err)
+		}
+	}()
 
-	s := grpc.NewServer(
-		grpc.MaxRecvMsgSize(32 << 20), // 32MB
-		grpc.MaxSendMsgSize(32 << 20), // 32MB
-	)
-	pb.RegisterPushGoServer(s, &BridgeServ{py : pyClients})
-    log.Println("Go gRPC ingest listening on :50051; relaying to UDS /tmp/py_infer.sock")
-	if err := s.Serve(lis); err != nil { log.Fatal(err) }
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	log.Println("Shutting down server...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := server.Shutdown(ctx); err != nil {
+		log.Fatalf("Server shutdown failed: %v", err)
+	}
+	log.Println("Server gracefully stopped.")
 }
