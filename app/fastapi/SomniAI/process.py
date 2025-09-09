@@ -5,12 +5,18 @@ from typing import Dict,  Any
 import time
 import gc
 
-class ProcessGPU():
+class ProcessGPU:
     
     _instance = None
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
+        return cls._instance
+    
+    @classmethod
+    def get_instance(cls):
+        if cls._instance is None:
+            raise RuntimeError("ProcessGPU is not initialized yet")
         return cls._instance
     
     def __init__(self, cfg_AI, cfg_HTTP, Inference, Dataset, logger):
@@ -57,6 +63,8 @@ class ProcessGPU():
             
             self.logger(f"MEM info : Total : {float(total_b/1e9):2.2f}/{float(free_b/1e9):2.2f} GB")
             
+            self.inference.set_model(model)
+            
             
     async def delete_model(self, model_name):
         async with self._model_lock:
@@ -79,9 +87,13 @@ class ProcessGPU():
             return True
         
     async def get_result(self):
-        async with self._result_lock:
-            return self.result_queue.pop()
-        
+        if self.result_queue.empty():
+            return {"message": "Nothing is in queue"}
+        else:
+            result = await self.result_queue.get()
+            return {"message" : result}
+            
+
     async def enqueue_batch_or_tensor(self, dataset):
         
         if dataset.ndim == 4:
@@ -93,6 +105,10 @@ class ProcessGPU():
                 await self.request_queue.put(dataset)  # single image
         else:
             raise HTTPException(status_code=400, detail="Invalid tensor shape")
+
+    async def enqueue_batch(self, dataset):
+        async with self._request_lock:
+            await self.request_queue.put(dataset)  # single image
 
     async def enque_gpu(self, id):
         await self.gpu_available.put(id)
@@ -106,29 +122,29 @@ class ProcessGPU():
         
         while True:
             try:
-                if len(batch) < self.BATCH_THRESHOLD :
+                if len(batch) < self.BATCH_THRESHOLD:
                     async with self._request_lock:
                         img = await asyncio.wait_for(self.request_queue.get(), timeout=self.cfg_HTTP.BATCH_TIMEOUT)
-                    batch.append(img)
+                        batch.append(img)
 
             except asyncio.TimeoutError:
                 pass
             
-            if batch and self.gpu_available.qsize() > 0:
-                gpu_id = await self.gpu_available.get()
-
-                batch_tensor = torch.stack(batch, dim=0)
+            if batch:
+                image = batch.copy()
+                #batch_tensor = torch.stack(batch, dim=0)
                 batch = []
-                batch_tensor = self.dataset.preprocess(batch_tensor)
+                #batch_tensor = self.dataset.preprocess(batch_tensor)
+                
+                asyncio.create_task(self._run_inference(image, 0))
 
-                asyncio.create_task(self._run_inference(batch_tensor, gpu_id))
-            
             
     async def _run_inference(self, batch, gpu_id):
         
         start_time = time.time()
         loop = asyncio.get_event_loop()
+        
         async with self._model_lock:
-            result = await loop.run_in_executor(None, self.inference, self.model_queeu.get(), batch, gpu_id)
+            result = await loop.run_in_executor(None, self.inference, batch)
         async with self._result_lock:
-            await self.result_queue(result)
+            await self.result_queue.put(result)

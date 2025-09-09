@@ -7,7 +7,8 @@ from fastapi import Request
 from SomniAI.log import SomniAI_log
 
 class HealthCheck(Protocol):
-    async def parse_client(self, request) -> None: ...
+    async def parse_client(self, request) -> None: 
+        raise NotImplementedError
 
     
 class Rsponse_Health_Check(HealthCheck):
