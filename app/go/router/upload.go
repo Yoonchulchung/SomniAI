@@ -39,7 +39,7 @@ func UploadHandler(q *queue.Ring) http.HandlerFunc {
 		var req UploadRequest
 		err := json.NewDecoder(r.Body).Decode(&req)
 		if err != nil {
-			// 파싱 실패 시 400 Bad Request와 에러 메시지를 반환
+			// 파싱 실패 시 400 에러 메시지를 반환
 			errorJSON(w, http.StatusBadRequest, "invalid json")
 			return
 		}
