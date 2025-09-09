@@ -1,15 +1,12 @@
+
 package router
 
 import (
-	"context"
 	"encoding/json"
-	"errors"
-	"io"
 	"net/http"
 	"strings"
-	"time"
-
-	"somniai-go-server/queue"
+	
+	"github.com/Yoonchulchung/SomniAI/queue"
 )
 
 type UploadRequest struct {
@@ -17,64 +14,53 @@ type UploadRequest struct {
 }
 
 
-func writeJSON(w http.ResponseWriter, status int, v any) {
+func errorJSON(w http.ResponseWriter, status int, msg string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(v)
+	json.NewEncoder(w).Encode(map[string]string{"error": msg})
 }
 
-func errorJSON(w http.ResponseWriter, status int, msg string) {
-	writeJSON(w, status, map[string]string{"error": msg})
-}
 
 func UploadHandler(q *queue.Ring) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		
+		// HTTP 메소드가 POST인지 확인
 		if r.Method != http.MethodPost {
-			errorJSON(w, http.StatusMethodNotAllowed, "invalid method")
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
 
-		
-		ct := r.Header.Get("Content-Type")
-		if !strings.HasPrefix(ct, "application/json") {
-			errorJSON(w, http.StatusBadRequest, "invalid content type")
+		// Content-Type이 application/json인지 확인
+		if r.Header.Get("Content-Type") != "application/json" {
+			errorJSON(w, http.StatusBadRequest, "invalid json")
 			return
 		}
 
-		
-		defer r.Body.Close()
-		r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1MB
-
-		//  JSON 파싱
+		// JSON 요청 본문을 파싱
 		var req UploadRequest
-		dec := json.NewDecoder(r.Body)
-		dec.DisallowUnknownFields() 
-		if err := dec.Decode(&req); err != nil {
-			
-			if !errors.Is(err, io.EOF) {
-				errorJSON(w, http.StatusBadRequest, "invalid json")
-				return
-			}
+		err := json.NewDecoder(r.Body).Decode(&req)
+		if err != nil {
+			// 파싱 실패 시 400 Bad Request와 에러 메시지를 반환
+			errorJSON(w, http.StatusBadRequest, "invalid json")
+			return
 		}
-
 		
+		// 요청의 predict 키가 비어있는지 확인
 		if strings.TrimSpace(req.Predict) == "" {
-			errorJSON(w, http.StatusBadRequest, "predict key missing")
+			errorJSON(w, http.StatusBadRequest, "invalid json")
 			return
 		}
 
-		ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
-		defer cancel()
-
-		if err := q.Enqueue(ctx, req.Predict); err != nil {
+		// 큐에 데이터를 저장
+		err = q.Enqueue(r.Context(), req.Predict)
+		if err != nil {
 			
-			errorJSON(w, http.StatusServiceUnavailable, "queue is full or timeout")
+			http.Error(w, "Service Unavailable", http.StatusServiceUnavailable)
 			return
 		}
 
-	
-		writeJSON(w, http.StatusOK, map[string]string{"message": "succeed to send data"})
+		// 성공 응답을 반환
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{"message": "succeed to send data"})
 	}
 }
-
