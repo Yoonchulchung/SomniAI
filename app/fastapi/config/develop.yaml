@@ -3,8 +3,8 @@ type: develop
 
 FASTAPI:
   HOST : localhost
-  PORT : 8000
-  API_PREFIX : /fastapi
+  PORT : 5000
+  API_PREFIX : /api/v1
   WORKERS : 1
   RELOAD : True
   LOG_LEVEL : info
@@ -24,6 +24,6 @@ AI:
   DTYPE : float16
   VLM_QUESTION : What objects can you see?
   VLM_PROMPOT : "Question: What objects are in this image? Answer:"
-  NORM_MEAN :
-  NROM_STD : 
+  NORM_MEAN : (0.485, 0.456, 0.406)
+  NROM_STD : (0.229, 0.224, 0.225)
   

@@ -1,10 +1,13 @@
 import yaml
 import os
 import importlib
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, is_dataclass, asdict
 from typing import Union, Dict, Any
 import types
 import torch
+from pathlib import Path
+from enum import Enum
+import numpy as np
 
 DTYPE_MAP = {
     "float32": torch.float32,
@@ -25,21 +28,21 @@ class FastAPIConfig:
 class HTTPConfig:
     BATCH_THRESHOLD: int = 256
     BATCH_TIMEOUT: float = 1.0
-    
+
 @dataclass
 class AIConfig:
     FREE_MEM_THRESHOLD: int = 2   # GB
-    INFERENCE_MODE: str = ...
-    MODEL_NAME: str = ...
-    VLM_QUESTION : str = ...
-    VLM_PROMPT : str = ...
-    DEVICE_MAP : str = ...
-    MODEL_ID: str = ...
-    TASK_TYPE : str = ...
-    MAX_NEW_TOKENS : int = ...
+    INFERENCE_MODE: str = None
+    MODEL_NAME: str = None
+    VLM_QUESTION : str = None
+    VLM_PROMPT : str = None
+    DEVICE_MAP : str = None
+    MODEL_ID: str = None
+    TASK_TYPE : str = None
+    MAX_NEW_TOKENS : int = None
     DTYPE : torch.dtype = field(default=torch.float32)
-    NORM_MEAN : int = ...
-    NORM_STD : int = ...
+    NORM_MEAN: tuple[float] = (0.485, 0.456, 0.406)
+    NORM_STD:  tuple[float] = (0.229, 0.224, 0.225)
 
 @dataclass
 class Config:
@@ -113,15 +116,15 @@ def _parse_config(config_data : Union[Dict[str, Any], types.ModuleType, Config])
         FREE_MEM_THRESHOLD=int(_get(ai_raw, "FREE_MEM_THRESHOLD", AIConfig.FREE_MEM_THRESHOLD)),
         INFERENCE_MODE=str(_get(ai_raw, "INFERENCE_MODE", AIConfig.INFERENCE_MODE)),
         MODEL_NAME=str(_get(ai_raw, "MODEL_NAME", AIConfig.MODEL_NAME)),
-        VLM_PROMPT=str(_get(ai_raw, "VLM_PROMPT", AIConfig.VLM_PROMPT)),
         VLM_QUESTION=str(_get(ai_raw, "VLM_QUESTION", AIConfig.VLM_QUESTION)),
+        VLM_PROMPT=str(_get(ai_raw, "VLM_PROMPT", AIConfig.VLM_PROMPT)),
+        DEVICE_MAP=str(_get(ai_raw, "DEVICE_MAP", AIConfig.DEVICE_MAP)),
         MODEL_ID=str(_get(ai_raw, "MODEL_ID", AIConfig.MODEL_ID)),
         TASK_TYPE=str(_get(ai_raw, "TASK_TYPE", AIConfig.TASK_TYPE)),
         MAX_NEW_TOKENS=str(_get(ai_raw, "MAX_NEW_TOKENS", AIConfig.MAX_NEW_TOKENS)),
         DTYPE = DTYPE_MAP[_get(ai_raw, "DTYPE", AIConfig.DTYPE)],
-        NORM_MEAN=str(_get(ai_raw, "NORM_MEAN", AIConfig.NORM_MEAN)),
-        NORM_STD=str(_get(ai_raw, "NORM_STD", AIConfig.NORM_STD)),
-        DEVICE_MAP=str(_get(ai_raw, "DEVICE_MAP", AIConfig.DEVICE_MAP)),
+        NORM_MEAN=_get(ai_raw, "NORM_MEAN", AIConfig.NORM_MEAN),
+        NORM_STD=_get(ai_raw, "NORM_STD", AIConfig.NORM_STD),
     )
 
     return Config(
@@ -149,3 +152,40 @@ def _get(mapping: Dict[str, Any], key: str, default: Any = None) -> Any:
 def load_config(config_path: str) -> Config:
     raw = _get_config_file(config_path)
     return _parse_config(raw)
+
+def to_yamlable(obj):
+    if is_dataclass(obj):
+        return {k: to_yamlable(v) for k, v in asdict(obj).items()}
+
+    if isinstance(obj, dict):
+        return {to_yamlable(k): to_yamlable(v) for k, v in obj.items()}
+
+    if isinstance(obj, (list, tuple, set)):
+        return [to_yamlable(x) for x in obj]
+
+    if isinstance(obj, torch.dtype):
+        return str(obj)  # "torch.float32"
+
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    
+    if isinstance(obj, (np.integer, np.floating, np.bool_)):
+        return obj.item()
+
+    if isinstance(obj, Path):
+        return str(obj)
+
+    if isinstance(obj, Enum):
+        return obj.value
+    return obj
+
+def save_yaml(cfg, path: str):
+    data = to_yamlable(cfg)
+    with open(path, "w", encoding="utf-8") as f:
+        yaml.safe_dump(
+            data,
+            f,
+            sort_keys=False,
+            allow_unicode=True,
+            default_flow_style=False,
+        )
