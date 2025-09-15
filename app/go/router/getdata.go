@@ -47,4 +47,19 @@ func GetDataHandler(q *queue.Ring) http.HandlerFunc {
 		
 		writeJSON(w, http.StatusOK, response)
 	}
+
+
+	// router/getdata.go 파일에 아래 함수를 추가하세요.
+
+// writeJSON은 JSON 응답을 편리하게 반환하는 헬퍼 함수입니다.
+func writeJSON(w http.ResponseWriter, status int, v any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(v)
+}
+
+// errorJSON도 함께 추가하여 일관성을 유지하는 것이 좋습니다.
+func errorJSON(w http.ResponseWriter, status int, msg string) {
+	writeJSON(w, status, map[string]string{"error": msg})
+}
 }
