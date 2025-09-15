@@ -2,63 +2,68 @@ package queue
 
 import (
 	"context"
+	"errors"
 	"sync"
 )
 
+
+var ErrQueueEmpty = errors.New("queue is empty")
+
+
+type QueueItem struct {
+	Predict string
+	ID      int64
+}
+
+
 type Ring struct {
-	head     int
-	tail     int
-	capacity int
-	items    []string
-	mu       sync.Mutex
-	notFull  *sync.Cond
-	notEmpty *sync.Cond
+	data []QueueItem
+	head int
+	tail int
+	size int
+	cap  int
+	mu   sync.Mutex
 }
 
-func NewRing(capacity int) *Ring {
-	r := &Ring{
-		items:    make([]string, capacity),
-		capacity: capacity,
+
+func New(capacity int) *Ring {
+	if capacity <= 0 {
+		capacity = 1
 	}
-	r.notFull = sync.NewCond(&r.mu)
-	r.notEmpty = sync.NewCond(&r.mu)
-	return r
+	q := &Ring{
+		data: make([]QueueItem, capacity),
+		cap:  capacity,
+	}
+	return q
 }
 
-func (r *Ring) Enqueue(ctx context.Context, item string) error {
+
+func (r *Ring) Enqueue(item QueueItem) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	for (r.tail+1)%r.capacity == r.head {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
-			r.notFull.Wait()
-		}
+	if r.size == r.cap {
+		
+		return errors.New("queue is full")
 	}
 
-	r.items[r.tail] = item
-	r.tail = (r.tail + 1) % r.capacity
-	r.notEmpty.Signal()
+	r.data[r.tail] = item
+	r.tail = (r.tail + 1) % r.cap
+	r.size++
 	return nil
 }
 
-func (r *Ring) Dequeue(ctx context.Context) (string, error) {
+
+func (r *Ring) Dequeue() (QueueItem, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	for r.head == r.tail {
-		select {
-		case <-ctx.Done():
-			return "", ctx.Err()
-		default:
-			r.notEmpty.Wait()
-		}
+	if r.size == 0 {
+		return QueueItem{}, ErrQueueEmpty
 	}
 
-	item := r.items[r.head]
-	r.head = (r.head + 1) % r.capacity
-	r.notFull.Signal()
+	item := r.data[r.head]
+	r.head = (r.head + 1) % r.cap
+	r.size--
 	return item, nil
 }
