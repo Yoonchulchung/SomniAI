@@ -1,13 +1,22 @@
-
 package router
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
+	"io"
 	"net/http"
+	"regexp"
 	"strings"
-	
+	"sync/atomic"
+	"time"
+
 	"github.com/Yoonchulchung/SomniAI/queue"
 )
+
+
+var reqID int64
+
 
 type UploadRequest struct {
 	Predict string `json:"predict"`
@@ -23,42 +32,48 @@ func errorJSON(w http.ResponseWriter, status int, msg string) {
 
 func UploadHandler(q *queue.Ring) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// HTTP 메소드가 POST인지 확인
-		if r.Method != http.MethodPost {
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-
-		// Content-Type이 application/json인지 확인
-		if r.Header.Get("Content-Type") != "application/json" {
-			errorJSON(w, http.StatusBadRequest, "invalid json")
-			return
-		}
-
-		// JSON 요청 본문을 파싱
-		var req UploadRequest
-		err := json.NewDecoder(r.Body).Decode(&req)
-		if err != nil {
-			// 파싱 실패 시 400 에러 메시지를 반환
-			errorJSON(w, http.StatusBadRequest, "invalid json")
-			return
-		}
 		
-		// 요청의 predict 키가 비어있는지 확인
-		if strings.TrimSpace(req.Predict) == "" {
-			errorJSON(w, http.StatusBadRequest, "invalid json")
+		if r.Method != http.MethodPost {
+			errorJSON(w, http.StatusMethodNotAllowed, "invalid method")
 			return
 		}
 
-		// 큐에 데이터를 저장
-		err = q.Enqueue(r.Context(), req.Predict)
-		if err != nil {
-			
-			http.Error(w, "Service Unavailable", http.StatusServiceUnavailable)
+		
+		if r.Header.Get("Content-Type") != "application/json" {
+			errorJSON(w, http.StatusUnsupportedMediaType, "unsupported content type")
 			return
 		}
 
-		// 성공 응답을 반환
+		
+		var req UploadRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			if !errors.Is(err, io.EOF) {
+				errorJSON(w, http.StatusBadRequest, "invalid json")
+				return
+			}
+		}
+
+		
+		const motorPattern = `^MOTOR_0[1-3]$`
+		if strings.TrimSpace(req.Predict) == "" || !regexp.MustCompile(motorPattern).MatchString(req.Predict) {
+			errorJSON(w, http.StatusBadRequest, "invalid payload: 'predict' must match ^MOTOR_0[1-3]$")
+			return
+		}
+
+		
+		currentID := atomic.AddInt64(&reqID, 1)
+		item := queue.QueueItem{
+			Predict: req.Predict,
+			ID:      currentID,
+		}
+
+		// 큐가 가득 찼을 때 429 Too Many Requests 반환
+		if err := q.Enqueue(item); err != nil {
+			errorJSON(w, http.StatusTooManyRequests, "queue is full")
+			return
+		}
+
+	
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(map[string]string{"message": "succeed to send data"})
