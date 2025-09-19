@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, Request
 
-from SomniAI.router import health_check
+from SomniAI.router.health_check import Rsponse_Health_Check
 
 
 def get_healtcheck():
-    return health_check()
+    return Rsponse_Health_Check()
 
 router = APIRouter()
 
