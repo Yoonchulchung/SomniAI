@@ -15,72 +15,6 @@ class VLMAdapter(nn.Module):
     def forward(self, image ):
         raise NotImplementedError        
 
-def tensor_to_pil(img: torch.Tensor) -> Image.Image:
-    """
-    허용 입력:
-      - (H,W)        -> gray
-      - (C,H,W)      -> C=1/3/4
-      - (H,W,C)      -> C=1/3/4
-    dtype:
-      - float: [-1,1] 또는 [0,1] 또는 [0,255]
-      - int/uint: 자동 보정
-    """
-    t = img.detach().cpu()
-
-    # (B,C,H,W) or (B,H,W,C) -> 배치 차원 제거 (B==1 가정)
-    if t.ndim == 4:
-        if t.shape[0] != 1:
-            raise ValueError(f"Batch size>1: {tuple(t.shape)}. 먼저 배치로 iterate 하세요.")
-        t = t.squeeze(0)  # (C,H,W) or (H,W,C)
-
-    # (C,H,W) -> (H,W,C)
-    if t.ndim == 3 and t.shape[0] in (1, 3, 4):
-        t = t.permute(1, 2, 0)
-
-    # (H,W) 그대로 가능, (H,W,C) 가능
-    if t.ndim == 2:
-        pass
-    elif t.ndim == 3:
-        if t.shape[2] not in (1, 3, 4):
-            raise ValueError(f"Unsupported channel count: {t.shape[2]}")
-    else:
-        raise ValueError(f"Unsupported tensor shape: {tuple(t.shape)}")
-
-    # dtype/범위 보정
-    if t.dtype.is_floating_point:
-        t = t.to(torch.float32)
-        mn, mx = float(t.min()), float(t.max())
-        if mn < 0.0:              # [-1,1] -> [0,1]
-            t = (t + 1.0) / 2.0
-        if float(t.max()) > 1.0:  # [0,255] float -> [0,1]
-            t = t / 255.0
-        t = (t.clamp(0, 1) * 255.0).round().to(torch.uint8)
-    else:
-        if t.dtype != torch.uint8:
-            # 값 범위 추정 후 0~255로 매핑
-            t = t.to(torch.int32)
-            mn, mx = int(t.min()), int(t.max())
-            if 0 <= mn and mx <= 255:
-                t = t.to(torch.uint8)
-            else:
-                t = (t - mn).to(torch.float32) / max(1, (mx - mn))
-                t = (t.clamp(0, 1) * 255.0).round().to(torch.uint8)
-
-    arr = t.numpy()
-    if arr.ndim == 3 and arr.shape[2] == 1:
-        arr = np.squeeze(arr, axis=2)  # (H,W)
-
-    return Image.fromarray(arr)
-
-def batch_tensor_to_pils(batch: torch.Tensor) -> List[Image.Image]:
-    """
-    (B,C,H,W) or (B,H,W,C) -> [PIL.Image] (B개)
-    """
-    if batch.ndim != 4:
-        raise ValueError(f"Expected 4D batch, got {tuple(batch.shape)}")
-    return [tensor_to_pil(batch[i]) for i in range(batch.shape[0])]
-
-
 @vlm_register.register("BLIP") 
 class BLIPCaptionAdapter(VLMAdapter):
     def __init__(
@@ -94,8 +28,6 @@ class BLIPCaptionAdapter(VLMAdapter):
         self.cfg = cfg
         self.model_id = self.cfg.MODEL_ID
         self.default_max_new_tokens = int(self.cfg.MAX_NEW_TOKENS)
-        print("$$$")
-        print(self.default_max_new_tokens)
         self.prompt = self.cfg.VLM_PROMPT
         self.question = self.cfg.VLM_QUESTION
         self.dtype = cfg.DTYPE
@@ -138,7 +70,6 @@ class BLIPCaptionAdapter(VLMAdapter):
             inputs = {k: v.to(self.device) for k, v in inputs.items()}
         out = self._gen(inputs, **gen_kw)
         result = self.processor.decode(out[0], skip_special_tokens=True)
-        print(result)
         return result
 
     def vqa(self, image: Image.Image, **gen_kw) -> str:
@@ -147,7 +78,6 @@ class BLIPCaptionAdapter(VLMAdapter):
             inputs = {k: v.to(self.device) for k, v in inputs.items()}
         out = self._gen(inputs, **gen_kw)
         result = self.processor.decode(out[0], skip_special_tokens=True)
-        print (result)
         
         return result
     
@@ -253,3 +183,70 @@ class Llava15Adapter(VLMAdapter):
     
     def forward(self, image):
         ...
+        
+
+
+def tensor_to_pil(img: torch.Tensor) -> Image.Image:
+    """
+    허용 입력:
+      - (H,W)        -> gray
+      - (C,H,W)      -> C=1/3/4
+      - (H,W,C)      -> C=1/3/4
+    dtype:
+      - float: [-1,1] 또는 [0,1] 또는 [0,255]
+      - int/uint: 자동 보정
+    """
+    t = img.detach().cpu()
+
+    # (B,C,H,W) or (B,H,W,C) -> 배치 차원 제거 (B==1 가정)
+    if t.ndim == 4:
+        if t.shape[0] != 1:
+            raise ValueError(f"Batch size>1: {tuple(t.shape)}. 먼저 배치로 iterate 하세요.")
+        t = t.squeeze(0)  # (C,H,W) or (H,W,C)
+
+    # (C,H,W) -> (H,W,C)
+    if t.ndim == 3 and t.shape[0] in (1, 3, 4):
+        t = t.permute(1, 2, 0)
+
+    # (H,W) 그대로 가능, (H,W,C) 가능
+    if t.ndim == 2:
+        pass
+    elif t.ndim == 3:
+        if t.shape[2] not in (1, 3, 4):
+            raise ValueError(f"Unsupported channel count: {t.shape[2]}")
+    else:
+        raise ValueError(f"Unsupported tensor shape: {tuple(t.shape)}")
+
+    # dtype/범위 보정
+    if t.dtype.is_floating_point:
+        t = t.to(torch.float32)
+        mn, mx = float(t.min()), float(t.max())
+        if mn < 0.0:              # [-1,1] -> [0,1]
+            t = (t + 1.0) / 2.0
+        if float(t.max()) > 1.0:  # [0,255] float -> [0,1]
+            t = t / 255.0
+        t = (t.clamp(0, 1) * 255.0).round().to(torch.uint8)
+    else:
+        if t.dtype != torch.uint8:
+            # 값 범위 추정 후 0~255로 매핑
+            t = t.to(torch.int32)
+            mn, mx = int(t.min()), int(t.max())
+            if 0 <= mn and mx <= 255:
+                t = t.to(torch.uint8)
+            else:
+                t = (t - mn).to(torch.float32) / max(1, (mx - mn))
+                t = (t.clamp(0, 1) * 255.0).round().to(torch.uint8)
+
+    arr = t.numpy()
+    if arr.ndim == 3 and arr.shape[2] == 1:
+        arr = np.squeeze(arr, axis=2)  # (H,W)
+
+    return Image.fromarray(arr)
+
+def batch_tensor_to_pils(batch: torch.Tensor) -> List[Image.Image]:
+    """
+    (B,C,H,W) or (B,H,W,C) -> [PIL.Image] (B개)
+    """
+    if batch.ndim != 4:
+        raise ValueError(f"Expected 4D batch, got {tuple(batch.shape)}")
+    return [tensor_to_pil(batch[i]) for i in range(batch.shape[0])]

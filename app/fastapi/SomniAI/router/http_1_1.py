@@ -87,11 +87,6 @@ class Response_HTTP_1_1(TensorParser):
     
     async def get_tensor(self, request : Request, files : Optional[UploadFile] = File(None)) -> torch.Tensor:
         
-        client_host=request.client.host
-        hostname, _, _ = socket.gethostbyaddr(client_host)
-
-        print(f"{hostname} sent!")
-        
         ct = _get_content_type(request)
         handlers = {
                     'application/octet-stream' : self._get_tensor_from_octet_stream,
@@ -112,10 +107,6 @@ class Response_HTTP_1_1(TensorParser):
             return await handler(request)
         
     async def get_pil(self, request, files : Optional[UploadFile] = File(None)) -> Image.Image:
-        client_host=request.client.host
-        hostname, _, _ = socket.gethostbyaddr(client_host)
-
-        print(f"{hostname} sent!")
         
         ct = _get_content_type(request)
         handlers = {

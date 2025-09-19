@@ -4,6 +4,7 @@ import asyncio
 from typing import Dict,  Any
 import time
 import gc
+from PIL import Image
 
 class ProcessGPU:
     
@@ -86,14 +87,19 @@ class ProcessGPU:
             self.logger(f"[ProcessGPU] Unloaded {model_name}")
             return True
         
-    async def get_result(self):
+        
+    async def get_result(self) -> tuple[Image.Image, str]:
         if self.result_queue.empty():
-            return {"message": "Nothing is in queue"}
+            return (None, None)
         else:
-            result = await self.result_queue.get()
-            return {"message" : result}
+            img, message = await self.result_queue.get()
+            img = img[0]
+            if isinstance(img, list):
+                raise TypeError(f"Expected a PIL.Image.Image, but got list with length {len(img)}")
             
-
+            return (img, message)
+        
+        
     async def enqueue_batch_or_tensor(self, dataset):
         
         if dataset.ndim == 4:
@@ -109,6 +115,7 @@ class ProcessGPU:
     async def enqueue_batch(self, dataset):
         async with self._request_lock:
             await self.request_queue.put(dataset)  # single image
+
 
     async def enque_gpu(self, id):
         await self.gpu_available.put(id)
@@ -145,6 +152,6 @@ class ProcessGPU:
         loop = asyncio.get_event_loop()
         
         async with self._model_lock:
-            result = await loop.run_in_executor(None, self.inference, batch)
+            img, result = await loop.run_in_executor(None, self.inference, batch)
         async with self._result_lock:
-            await self.result_queue.put(result)
+            await self.result_queue.put((img, result))

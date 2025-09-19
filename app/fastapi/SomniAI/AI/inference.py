@@ -44,13 +44,13 @@ class Inference(nn.Module):
         except Exception as e:
             self.logger(f"[Error] VLM inference failed: {e}")
             
-        return {"answer": ans}
+        return img, ans
 
     def _run_inference_llm(self, model, img, gpu_id):
         ...
     
     def forward(self, img):
-        return self._run_inference_vlm(img)
+        return img, self._run_inference_vlm(img)
     
     
     
