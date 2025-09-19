@@ -1,11 +1,11 @@
+import base64
+import io
+
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 from PIL import Image
-import base64
-import io
-from SomniAI.process import ProcessGPU
-import html
 
+from SomniAI.process import ProcessGPU
 
 router = APIRouter()
 
@@ -105,9 +105,6 @@ def _show_image(data_url: str, message_html: str) -> str:
     """
     return html_page
 
-
-
-from fastapi.responses import StreamingResponse
 
 def pil_to_streaming_response(img: Image.Image, fmt: str = "PNG"):
     buf = io.BytesIO()

@@ -1,6 +1,8 @@
-import torch
-from typing import Callable, Any
 import gc
+from typing import Any, Callable
+
+import torch
+
 
 class ModelLoaderInterface:
     
@@ -52,6 +54,9 @@ class GPUModelLoader(ModelLoaderInterface):
         
     def _load_llm(self, model_name, gpu_id):
         ...
+    
+    def get_model_list(self):
+        return self.vlm_register.list()
         
     async def get_model(self, model_name, gpu_id):
         

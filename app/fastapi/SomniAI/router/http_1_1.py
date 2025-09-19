@@ -1,13 +1,14 @@
 import base64
-from PIL import Image
-import torchvision.transforms as transforms
 import io
-import socket
-from typing import Protocol, Optional
+from typing import Optional, Protocol
+
 import torch
-from fastapi import Request, HTTPException, UploadFile, File
-from SomniAI.log import SomniAI_log
+import torchvision.transforms as transforms
+from fastapi import File, HTTPException, Request, UploadFile
 from PIL import Image
+
+from SomniAI.log import SomniAI_log
+
 
 class TensorParser(Protocol):
     async def get_tensor(self, request : Request) -> torch.Tensor: 
@@ -15,6 +16,7 @@ class TensorParser(Protocol):
 
     async def get_pil(self, request : Request) -> Image.Image :
         raise NotImplementedError
+
 
 class Response_HTTP_1_1(TensorParser):
     def __init__(self, cfg):
@@ -55,6 +57,7 @@ class Response_HTTP_1_1(TensorParser):
     
     async def _get_tensor_from_multipart(self, request : Request) -> torch.Tensor:
         ...
+        
     
     async def _get_pil_from_json(self, request : Request) -> Image.Image:
         try:    
@@ -85,6 +88,7 @@ class Response_HTTP_1_1(TensorParser):
             SomniAI_log('[Error] Failed to parse data from body:', str(e))
             raise HTTPException(status_code=400, detail=f"Error : {e}")
     
+    
     async def get_tensor(self, request : Request, files : Optional[UploadFile] = File(None)) -> torch.Tensor:
         
         ct = _get_content_type(request)
@@ -105,6 +109,7 @@ class Response_HTTP_1_1(TensorParser):
             return await handler(request, files)
         else:
             return await handler(request)
+        
         
     async def get_pil(self, request, files : Optional[UploadFile] = File(None)) -> Image.Image:
         

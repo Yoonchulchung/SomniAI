@@ -1,3 +1,11 @@
 fastapi
 ultralytics
 uvicorn
+transformers
+accelerate
+timm
+torch
+colorama
+soxr
+fastapi-mcp
+isort

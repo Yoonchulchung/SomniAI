@@ -1,13 +1,14 @@
-import yaml
-import os
 import importlib
-from dataclasses import dataclass, field, is_dataclass, asdict
-from typing import Union, Dict, Any
+import os
 import types
-import torch
-from pathlib import Path
+from dataclasses import asdict, dataclass, field, is_dataclass
 from enum import Enum
+from pathlib import Path
+from typing import Any, Dict, Union
+
 import numpy as np
+import torch
+import yaml
 
 DTYPE_MAP = {
     "float32": torch.float32,

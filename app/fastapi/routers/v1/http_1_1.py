@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Request, UploadFile, File, Depends
-from typing import Optional, List
+from typing import List, Optional
 
-from SomniAI.router.http_1_1 import Response_HTTP_1_1
+from fastapi import APIRouter, Depends, File, Request, UploadFile
+
 from SomniAI.process import ProcessGPU
 from SomniAI.registry import get_cfg
+from SomniAI.router.http_1_1 import Response_HTTP_1_1
 
 router = APIRouter()
 SomniAI_cfg = get_cfg()

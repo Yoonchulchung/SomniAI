@@ -1,5 +1,7 @@
-from typing import Dict, Callable
+from typing import Callable, Dict
+
 from SomniAI.log import SomniAI_log
+
 
 class Registry:
     def __init__(self):
@@ -8,7 +10,6 @@ class Registry:
     def register(self, name: str):
         def _wrap(cls_or_fn):
             self._map[name] = cls_or_fn
-            SomniAI_log(f"{cls_or_fn} is registered!")
             return cls_or_fn
         return _wrap
 

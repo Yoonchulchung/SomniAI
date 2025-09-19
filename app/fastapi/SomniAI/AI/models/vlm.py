@@ -1,11 +1,13 @@
 
-from SomniAI.AI.registry import vlm_register
-from typing import Optional, List
+from typing import Dict, List, Optional
+
+import numpy as np
 import torch
 import torch.nn as nn
-from typing import Dict
 from PIL import Image
-import numpy as np
+
+from SomniAI.AI.registry import vlm_register
+
 
 class VLMAdapter(nn.Module):
     def caption(self, image: Image.Image, prompt: Optional[str] = None, **gen_kw) -> str:
@@ -23,7 +25,7 @@ class BLIPCaptionAdapter(VLMAdapter):
             device
         ):
         super().__init__()
-        from transformers import BlipProcessor, BlipForConditionalGeneration
+        from transformers import BlipForConditionalGeneration, BlipProcessor
         
         self.cfg = cfg
         self.model_id = self.cfg.MODEL_ID
@@ -88,7 +90,7 @@ class BLIPCaptionAdapter(VLMAdapter):
 @vlm_register.register("BLIP2")
 class BLIP2Adapter(VLMAdapter):
     def __init__(self, model_id: str, device: str = None, dtype: Optional[torch.dtype] = None, device_map: Optional[str] = None):
-        from transformers import Blip2Processor, Blip2ForConditionalGeneration
+        from transformers import Blip2ForConditionalGeneration, Blip2Processor
         self.processor = Blip2Processor.from_pretrained(model_id)
         if device_map:
             self.model = Blip2ForConditionalGeneration.from_pretrained(model_id, device_map=device_map, torch_dtype=dtype)
@@ -120,7 +122,7 @@ class BLIP2Adapter(VLMAdapter):
 @vlm_register.register("GIT")
 class GITCaptionAdapter(VLMAdapter):
     def __init__(self, model_id: str, device: str = None, dtype: Optional[torch.dtype] = None, device_map: Optional[str] = None):
-        from transformers import AutoProcessor, AutoModelForCausalLM
+        from transformers import AutoModelForCausalLM, AutoProcessor
         self.processor = AutoProcessor.from_pretrained(model_id)
         if device_map:
             self.model = AutoModelForCausalLM.from_pretrained(model_id, device_map=device_map, torch_dtype=dtype)
@@ -154,7 +156,7 @@ class Llava15Adapter(VLMAdapter):
     def __init__(self, model_id: str, device: str = None, dtype: Optional[torch.dtype] = None, device_map: Optional[str] = None):
         # 최근 transformers는 llava-hf 가 들어와 있어서 신버전 필요
         # ex) "llava-hf/llava-1.5-7b-hf" 또는 "liuhaotian/llava-v1.5-7b" (후자는 trust_remote_code 필요할 수 있음)
-        from transformers import AutoProcessor, AutoModelForCausalLM
+        from transformers import AutoModelForCausalLM, AutoProcessor
         self.processor = AutoProcessor.from_pretrained(model_id, trust_remote_code=True)
         if device_map:
             self.model = AutoModelForCausalLM.from_pretrained(model_id, device_map=device_map, torch_dtype=dtype, trust_remote_code=True)

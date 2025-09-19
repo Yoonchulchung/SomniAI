@@ -1,10 +1,12 @@
-from fastapi import HTTPException
-import torch
 import asyncio
-from typing import Dict,  Any
-import time
 import gc
+import time
+from typing import Any, Dict
+
+import torch
+from fastapi import HTTPException
 from PIL import Image
+
 
 class ProcessGPU:
     

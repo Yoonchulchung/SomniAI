@@ -1,11 +1,13 @@
-from fastapi import FastAPI
+import argparse
 import asyncio
 
-from SomniAI.config import load_config
+from fastapi import FastAPI
+from hypercorn.asyncio import serve
+from hypercorn.config import Config
 
 import SomniAI.registry as registry
 from SomniAI.boot_loader import bootstrap, shutdown
-import argparse
+from SomniAI.config import load_config
 
 parser = argparse.ArgumentParser(description="SomniAI FastAPI Server")
 parser.add_argument('config', type=str, help="FastAPI config path")
@@ -15,7 +17,10 @@ SomniAI_cfg = load_config(args.config)
 
 registry.set_cfg(SomniAI_cfg)
 
+
 from contextlib import asynccontextmanager
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     gpu = await bootstrap()
@@ -25,17 +30,17 @@ async def lifespan(app: FastAPI):
     
     shutdown()
 
+
 app = FastAPI(lifespan=lifespan)
 
-from routers.v1 import health, http_1_1, ping, check_result, main
+from routers.v1 import check_result, health, http_1_1, main, ping
+
 app.include_router(health.router, prefix=SomniAI_cfg.FASTAPI.API_PREFIX, tags=["health"])
 app.include_router(http_1_1.router, prefix=SomniAI_cfg.FASTAPI.API_PREFIX, tags=["http_1_1_resp"])
 app.include_router(ping.router, prefix=SomniAI_cfg.FASTAPI.API_PREFIX, tags=["ping"])
 app.include_router(check_result.router, prefix=SomniAI_cfg.FASTAPI.API_PREFIX, tags=["result"])
 app.include_router(main.router, tags=["main"])
 
-from hypercorn.config import Config
-from hypercorn.asyncio import serve
 
 async def start():
     config = Config()
@@ -45,6 +50,7 @@ async def start():
     config.loglevel = getattr(SomniAI_cfg.FASTAPI.LOG_LEVEL, "LOG_LEVEL", "info").lower()
 
     await serve(app, config)
+    
     
 if __name__ == "__main__":
     asyncio.run(start())

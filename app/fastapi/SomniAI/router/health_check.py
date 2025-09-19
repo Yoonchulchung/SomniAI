@@ -1,10 +1,12 @@
 import platform
-import psutil
+from typing import Any, Protocol
 
+import psutil
 import torch
-from typing import Protocol, Any
 from fastapi import Request
+
 from SomniAI.log import SomniAI_log
+
 
 class HealthCheck(Protocol):
     async def parse_client(self, request) -> None: 
@@ -15,6 +17,7 @@ class Rsponse_Health_Check(HealthCheck):
     
     def __init__(self, ):
         ...
+        
         
     async def _print_clients_info(self, request : Request) -> None:
         client_id = request.client.host
@@ -45,6 +48,7 @@ class Rsponse_Health_Check(HealthCheck):
         
         SomniAI_log(*message)
     
+    
     async def _get_server_status(self, ) -> dict[str, Any]:
         os_info = f"{platform.system()} {platform.release()} ({platform.version()})"
         cpu_info = platform.processor()
@@ -67,6 +71,7 @@ class Rsponse_Health_Check(HealthCheck):
             "memory": mem_info,
             "gpu": gpu_info
         }
+        
         
     async def parse_client(self, request) -> dict[str, Any]:
         client_request=request

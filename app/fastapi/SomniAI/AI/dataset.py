@@ -1,7 +1,8 @@
-from torchvision import transforms
-import torch
 import numpy as np
+import torch
 from PIL import Image
+from torchvision import transforms
+
 
 class Dataset:
     
@@ -31,8 +32,8 @@ class Dataset:
                 if tensor.max() > 1.0:
                     tensor = tensor / 255.0
 
-                mean = torch.tensor([0.5, 0.5, 0.5], device=tensor.device)[None, :, None, None]
-                std  = torch.tensor([0.5, 0.5, 0.5], device=tensor.device)[None, :, None, None]
+                mean = torch.tensor(self.cfg.NORM_MEAN, device=tensor.device)[None, :, None, None]
+                std  = torch.tensor(self.cfg.NORM_STD, device=tensor.device)[None, :, None, None]
                 tensor = (tensor - mean) / std
                 return tensor
 
