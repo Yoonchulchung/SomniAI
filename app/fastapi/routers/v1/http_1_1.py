@@ -15,8 +15,7 @@ def get_HTTP_parser():
 def get_ProcessGPU():
     return ProcessGPU.get_instance()
 
-
-@router.post("/upload/http_1_1/torch")
+@router.post("/upload/tensor")
 async def upload_http_1_1(request : Request, files: Optional[List[UploadFile]] = File(None), 
                  http = Depends(get_HTTP_parser), gpu = Depends(get_ProcessGPU)):
     '''
@@ -30,7 +29,7 @@ async def upload_http_1_1(request : Request, files: Optional[List[UploadFile]] =
 
 
 
-@router.post("/upload/http_1_1/pil")
+@router.post("/upload/pil")
 async def upload_http_1_1(request : Request, files: Optional[List[UploadFile]] = File(None), 
                  http = Depends(get_HTTP_parser), gpu = Depends(get_ProcessGPU)):
     '''
