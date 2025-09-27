@@ -44,7 +44,7 @@ class GPUModelLoader(ModelLoaderInterface):
     
     def _load_vlm(self, model_name, gpu_id):
         model = self.vlm_register.get(model_name)
-        model = model(self.cfg, "cuda")
+        model = model(self.cfg)
         return model
         
     def _load_vision(self, model_name, gpu_id):

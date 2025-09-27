@@ -16,6 +16,21 @@ DTYPE_MAP = {
     "bfloat16": torch.bfloat16
 }
 
+MODEL_ID_MAP = {
+    "BLIP" : "Salesforce/blip-image-captioning-base",
+    "BLIP2": "Salesforce/blip2-opt-2.7b",
+             # Salesforce/blip2-flan-t5-xl
+             # Salesforce/blip2-flan-t5-xxl    
+    "GIT" : "microsoft/git-large-coco",
+            #"microsoft/git-base",
+            # microsoft/git-base-coco
+            # microsoft/git-large-coco
+    "Llava" : "llava-hf/llava-1.5-7b-hf",
+            # llava-hf/llava-1.5-13b-hf
+            # llava-hf/llava-v1.6-vicuna-7b-hf
+}
+
+
 @dataclass
 class FastAPIConfig:
     HOST: str = "localhost"
@@ -40,7 +55,7 @@ class AIConfig:
     DEVICE_MAP : str = None
     MODEL_ID: str = None
     TASK_TYPE : str = None
-    MAX_NEW_TOKENS : int = None
+    MAX_TOKENS : int = None
     DTYPE : torch.dtype = field(default=torch.float32)
     NORM_MEAN: tuple[float] = (0.485, 0.456, 0.406)
     NORM_STD:  tuple[float] = (0.229, 0.224, 0.225)
@@ -112,6 +127,13 @@ def _parse_config(config_data : Union[Dict[str, Any], types.ModuleType, Config])
         BATCH_THRESHOLD=int(_get(http_raw, "BATCH_THRESHOLD", HTTPConfig.BATCH_THRESHOLD)),
         BATCH_TIMEOUT=float(_get(http_raw, "BATCH_TIMEOUT", HTTPConfig.BATCH_TIMEOUT)),
     )
+    
+    bf16_avail = torch.cuda.is_available() and torch.cuda.is_bf16_supported()
+    dtype = DTYPE_MAP[_get(ai_raw, "DTYPE", AIConfig.DTYPE)]
+    
+    if dtype == torch.bfloat16 and not bf16_avail:
+        print("torch.bfloat16 is not supported")
+        dtype = torch.float16
 
     ai = AIConfig(
         FREE_MEM_THRESHOLD=int(_get(ai_raw, "FREE_MEM_THRESHOLD", AIConfig.FREE_MEM_THRESHOLD)),
@@ -120,10 +142,10 @@ def _parse_config(config_data : Union[Dict[str, Any], types.ModuleType, Config])
         VLM_QUESTION=str(_get(ai_raw, "VLM_QUESTION", AIConfig.VLM_QUESTION)),
         VLM_PROMPT=str(_get(ai_raw, "VLM_PROMPT", AIConfig.VLM_PROMPT)),
         DEVICE_MAP=str(_get(ai_raw, "DEVICE_MAP", AIConfig.DEVICE_MAP)),
-        MODEL_ID=str(_get(ai_raw, "MODEL_ID", AIConfig.MODEL_ID)),
+        MODEL_ID=MODEL_ID_MAP[str(_get(ai_raw, "MODEL_NAME", AIConfig.MODEL_NAME))],
         TASK_TYPE=str(_get(ai_raw, "TASK_TYPE", AIConfig.TASK_TYPE)),
-        MAX_NEW_TOKENS=str(_get(ai_raw, "MAX_NEW_TOKENS", AIConfig.MAX_NEW_TOKENS)),
-        DTYPE = DTYPE_MAP[_get(ai_raw, "DTYPE", AIConfig.DTYPE)],
+        MAX_TOKENS=int(_get(ai_raw, "MAX_TOKENS", AIConfig.MAX_TOKENS)),
+        DTYPE = dtype,
         NORM_MEAN=_get(ai_raw, "NORM_MEAN", AIConfig.NORM_MEAN),
         NORM_STD=_get(ai_raw, "NORM_STD", AIConfig.NORM_STD),
     )

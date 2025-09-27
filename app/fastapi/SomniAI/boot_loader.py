@@ -25,7 +25,7 @@ async def bootstrap() -> ProcessGPU:
     SomniAI_cfg = get_cfg()
     gpu = ProcessGPU(SomniAI_cfg.AI, 
                      SomniAI_cfg.HTTP, 
-                     Inference(SomniAI_cfg.AI.VLM_PROMPT, SomniAI_cfg.AI.VLM_QUESTION), 
+                     Inference(SomniAI_cfg.AI.VLM_PROMPT, SomniAI_cfg.AI.VLM_QUESTION, SomniAI_log), 
                      Dataset(SomniAI_cfg.AI), 
                      SomniAI_log)
     
