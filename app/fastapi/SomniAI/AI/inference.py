@@ -14,7 +14,7 @@ class Inference(nn.Module):
         
         self.logger = logger
         
-        self.model = ""
+        self.model = None
         
     def set_model(self, model):
         self.model = model

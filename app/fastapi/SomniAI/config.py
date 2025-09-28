@@ -16,7 +16,7 @@ DTYPE_MAP = {
     "bfloat16": torch.bfloat16
 }
 
-MODEL_ID_MAP = {
+VLM_MODEL_ID_MAP = {
     "BLIP" : "Salesforce/blip-image-captioning-base",
     "BLIP2": "Salesforce/blip2-opt-2.7b",
              # Salesforce/blip2-flan-t5-xl
@@ -28,7 +28,20 @@ MODEL_ID_MAP = {
     "Llava" : "llava-hf/llava-1.5-7b-hf",
             # llava-hf/llava-1.5-13b-hf
             # llava-hf/llava-v1.6-vicuna-7b-hf
+    "Qwen2VL" : "Qwen/Qwen2-VL-7B-Instruct",
+            #"Qwen/Qwen2-VL-2B-Instruct",
+            # Qwen/Qwen2-VL-7B-Instruct
+            # "Qwen/Qwen2.5-Omni-7B"
+    "Qwen3GG" : "Qwen/Qwen3Guard-Gen-4B"
+            # Qwen/Qwen3Guard-Gen-4B
 }
+
+VISION_MODEL_ID_MAP = {
+    "YOLO" : "yolov8n-pose.pt"
+            # yolov8s-pose.pt
+}
+
+
 
 
 @dataclass
