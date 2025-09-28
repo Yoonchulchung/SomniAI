@@ -15,22 +15,27 @@ HTTP:
 
 AI:
   FREE_MEM_THRESHOLD : 2 # GB
-  INFERENCE_MODE : vlm
-  MODEL_NAME : Llava
-  TASK_TYPE : CAPTION
-  MAX_TOKENS : 32
-  DEVICE_MAP : auto
-  DTYPE : bfloat16
-  VLM_QUESTION: >-
-    Is the person lying on the bed? If yes, are they lying face down (prone position) or not? If prone, are they
-    positioned to the left side of the pillow, the right side, or the center?
-  VLM_PROMPT: |-
-    You should answer only in the following format:
-    - "Not lying on bed"
-    - "Lying but not prone"
-    - "Prone - Left"
-    - "Prone - Center"
-    - "Prone - Right"
   NORM_MEAN : (0.485, 0.456, 0.406)
   NROM_STD : (0.229, 0.224, 0.225)
+  VLM:
+    MODEL_NAME : Qwen2VL
+    DEVICE : cuda:0
+    DEVICE_MAP : auto
+    DTYPE : float16
+    TASK_TYPE : CAPTION
+    MAX_TOKENS : 32
+    QUESTION: >-
+      Is the person lying on the bed? If yes, are they lying face down (prone position) or not? If prone, are they
+      positioned to the left side of the pillow, the right side, or the center?
+    PROMPT: |-
+      Respond with exactly one of the following labels, without quotes or extra text:
+      [Not lying on bed, Lying but not prone, Prone - Left, Prone - Center, Prone - Right]
+  VISION:
+    MODEL_NAME : YOLO
+    MODEL_CFG_PATH : ./
+    DEVICE : cuda:1
+    DTYPE : float16
+    CHECKPOINT : ./
+
+
   
