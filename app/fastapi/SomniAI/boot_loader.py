@@ -25,18 +25,18 @@ async def bootstrap() -> ProcessGPU:
     SomniAI_cfg = get_cfg()
     gpu = ProcessGPU(SomniAI_cfg.AI, 
                      SomniAI_cfg.HTTP, 
-                     Inference(SomniAI_cfg.AI.VLM_PROMPT, SomniAI_cfg.AI.VLM_QUESTION, SomniAI_log), 
+                     Inference(SomniAI_cfg.AI.VLM.PROMPT, SomniAI_cfg.AI.VLM.QUESTION, SomniAI_log), 
                      Dataset(SomniAI_cfg.AI), 
                      SomniAI_log)
     
-    model_loader = GPUModelLoader(SomniAI_cfg.AI,
+    model_loader = GPUModelLoader(SomniAI_cfg,
                                   SomniAI_cfg.AI.FREE_MEM_THRESHOLD,
                                   vlm_register=vlm_register,
                                   vision_register=vision_register, 
                                   logger=SomniAI_log)
     
-    model = await model_loader.get_model(SomniAI_cfg.AI.MODEL_NAME, 0)
-    await gpu.add_model(model, 0)
+    vlm = await model_loader.get_model(SomniAI_cfg.AI.VLM.MODEL_NAME)
+    await gpu.add_model(vlm, 0)
     
     work_dir = "./work_dir"
     

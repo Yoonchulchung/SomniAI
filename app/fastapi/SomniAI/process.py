@@ -29,7 +29,6 @@ class ProcessGPU:
         self.dataset = Dataset
         self.logger = logger
         
-        self.inference_mode = cfg_AI.INFERENCE_MODE
         self.inference = Inference
         
         self.BATCH_THRESHOLD = self.cfg_HTTP.BATCH_THRESHOLD
@@ -150,10 +149,9 @@ class ProcessGPU:
             
     async def _run_inference(self, batch, gpu_id):
         
-        start_time = time.time()
         loop = asyncio.get_event_loop()
         
         async with self._model_lock:
-            img, result = await loop.run_in_executor(None, self.inference, batch)
+            result = await loop.run_in_executor(None, self.inference, batch)
         async with self._result_lock:
-            await self.result_queue.put((img, result))
+            await self.result_queue.put((batch, result))

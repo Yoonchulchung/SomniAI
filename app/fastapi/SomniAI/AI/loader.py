@@ -6,7 +6,7 @@ import torch
 
 class ModelLoaderInterface:
     
-    def get_model(self, model_name, gpu_id):
+    def get_model(self, model_name):
         raise NotImplemented
 
 class GPUModelLoader(ModelLoaderInterface):
@@ -42,15 +42,16 @@ class GPUModelLoader(ModelLoaderInterface):
             self.logger(free_b)
         return free_b >= self.free_mem_threshold
     
-    def _load_vlm(self, model_name, gpu_id):
+    def _load_vlm(self, model_name):
         model = self.vlm_register.get(model_name)
-        model = model(self.cfg)
+        model = model(self.cfg.AI.VLM)
         return model
         
-    def _load_vision(self, model_name, gpu_id):
+    def _load_vision(self, model_name):
         
         model = self.vision_register.get(model_name)
-        return model.to('cuda').eval()
+        model = model(self.cfg.AI.VISION)
+        return model
         
     def _load_llm(self, model_name, gpu_id):
         ...
@@ -58,7 +59,7 @@ class GPUModelLoader(ModelLoaderInterface):
     def get_model_list(self):
         return self.vlm_register.list()
         
-    async def get_model(self, model_name, gpu_id):
+    async def get_model(self, model_name):
         
         self.logger(f"{model_name} is loading...")
         in_vision = model_name in self.vision_register.list()
@@ -71,19 +72,16 @@ class GPUModelLoader(ModelLoaderInterface):
                 f"available vlm: {list(self.vlm_register.list())}"
             )
 
-        assert gpu_id in list(range(torch.cuda.device_count())), \
-        f"gpu_id should be between 0 and {torch.cuda.device_count() - 1}"
-
         try:
             if in_vlm:
-                model = self._load_vlm(model_name, gpu_id)
+                model = self._load_vlm(model_name)
             else :
-                model = self._load_vision(model_name, gpu_id)
+                model = self._load_vision(model_name)
             
             if model is None:
                 raise KeyError(f"Registry returned None for '{model_name}'")
 
-            if not self._check_mem_ok(gpu_id):
+            if not self._check_mem_ok(0):
                 del model
                 gc.collect()
                 torch.cuda.empty_cache()
@@ -94,16 +92,7 @@ class GPUModelLoader(ModelLoaderInterface):
                 gc.collect()
                 torch.cuda.empty_cache()
             finally:
-                raise RuntimeError(f"Failed to instantiate '{model_name}' on cuda:{gpu_id}: {e}") from e
+                raise RuntimeError(f"Failed to instantiate '{model_name}'. {e}")
         
         self.logger(f"{model_name} is loaded!")
         return model
-    
-
-class CPUModelLoader(ModelLoaderInterface):
-    
-    def __init__(self):
-        super().__init__()
-        
-    def get_model(self, model_name, gpu_id):
-        return super().get_model(model_name, gpu_id)

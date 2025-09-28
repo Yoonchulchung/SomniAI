@@ -32,16 +32,14 @@ VLM_MODEL_ID_MAP = {
             #"Qwen/Qwen2-VL-2B-Instruct",
             # Qwen/Qwen2-VL-7B-Instruct
             # "Qwen/Qwen2.5-Omni-7B"
-    "Qwen3GG" : "Qwen/Qwen3Guard-Gen-4B"
+    "Qwen3GG" : "Qwen/Qwen3Guard-Gen-4B",
             # Qwen/Qwen3Guard-Gen-4B
 }
 
 VISION_MODEL_ID_MAP = {
-    "YOLO" : "yolov8n-pose.pt"
+    "YOLO" : "yolov8n-pose.pt",
             # yolov8s-pose.pt
 }
-
-
 
 
 @dataclass
@@ -59,20 +57,34 @@ class HTTPConfig:
     BATCH_TIMEOUT: float = 1.0
 
 @dataclass
-class AIConfig:
-    FREE_MEM_THRESHOLD: int = 2   # GB
-    INFERENCE_MODE: str = None
+class VLMConfig:
     MODEL_NAME: str = None
-    VLM_QUESTION : str = None
-    VLM_PROMPT : str = None
+    MODEL_ID : str = None
+    DEVICE : str = None
     DEVICE_MAP : str = None
-    MODEL_ID: str = None
+    DTYPE : torch.dtype = field(default=torch.float32)
     TASK_TYPE : str = None
     MAX_TOKENS : int = None
+    QUESTION : str = None
+    PROMPT : str = None
+
+@dataclass
+class VISIONConfig:
+    MODEL_NAME: str = None
+    MODEL_ID : str = None
+    MODEL_CFG_PATH: str = None
+    DEVICE : str = None
     DTYPE : torch.dtype = field(default=torch.float32)
+    CHECKPOINT: str = None
+        
+@dataclass 
+class AIConfig:
+    FREE_MEM_THRESHOLD : int = 2
     NORM_MEAN: tuple[float] = (0.485, 0.456, 0.406)
     NORM_STD:  tuple[float] = (0.229, 0.224, 0.225)
-
+    VLM: VLMConfig = field(default_factory=VLMConfig)
+    VISION : VISIONConfig = field(default_factory=VISIONConfig)
+    
 @dataclass
 class Config:
     type: str = "develop"
@@ -123,9 +135,14 @@ def _parse_config(config_data : Union[Dict[str, Any], types.ModuleType, Config])
     if not isinstance(config_data, dict):
         raise TypeError("config_data must be dict/module/Config")
     
+    
     fastapi_raw = _get(config_data, "FASTAPI", {}) or {}
     http_raw    = _get(config_data, "HTTP", {}) or {}
     ai_raw      = _get(config_data, "AI", {}) or {}
+    
+    vlm_raw      = _get(ai_raw, "VLM", {}) or {}
+    vision_raw      = _get(ai_raw, "VISION", {}) or {}
+
 
     fastapi = FastAPIConfig(
         HOST=_get(fastapi_raw, "HOST", FastAPIConfig.HOST),
@@ -142,25 +159,46 @@ def _parse_config(config_data : Union[Dict[str, Any], types.ModuleType, Config])
     )
     
     bf16_avail = torch.cuda.is_available() and torch.cuda.is_bf16_supported()
-    dtype = DTYPE_MAP[_get(ai_raw, "DTYPE", AIConfig.DTYPE)]
+    dtype = DTYPE_MAP[_get(vlm_raw, "DTYPE", VLMConfig.DTYPE)]
     
     if dtype == torch.bfloat16 and not bf16_avail:
         print("torch.bfloat16 is not supported")
         dtype = torch.float16
+    
+    vlm = VLMConfig(
+        MODEL_NAME=_get(vlm_raw, "MODEL_NAME", VLMConfig.MODEL_NAME),
+        MODEL_ID=VLM_MODEL_ID_MAP[str(_get(vlm_raw, "MODEL_NAME", VLMConfig.MODEL_NAME))],
+        DEVICE=_get(vlm_raw, "DEVICE", VLMConfig.DEVICE),
+        DEVICE_MAP=_get(vlm_raw, "DEVICE_MAP", VLMConfig.DEVICE_MAP),
+        DTYPE = dtype,
+        TASK_TYPE=_get(vlm_raw, "TASK_TYPE", VLMConfig.TASK_TYPE),
+        MAX_TOKENS=int(_get(vlm_raw, "MAX_TOKENS", VLMConfig.MAX_TOKENS)),
+        QUESTION=_get(vlm_raw, "QUESTION", VLMConfig.QUESTION),
+        PROMPT=_get(vlm_raw, "PROMPT", VLMConfig.PROMPT),
 
+    )
+    
+    dtype = DTYPE_MAP[_get(vision_raw, "DTYPE", VISIONConfig.DTYPE)]
+    
+    if dtype == torch.bfloat16 and not bf16_avail:
+        print("torch.bfloat16 is not supported")
+        dtype = torch.float16
+        
+    vision = VISIONConfig(
+        MODEL_NAME=_get(vision_raw, "MODEL_NAME", VISIONConfig.MODEL_NAME),
+        MODEL_ID=VISION_MODEL_ID_MAP[_get(vision_raw, "MODEL_NAME", VISIONConfig.MODEL_NAME)],
+        MODEL_CFG_PATH=_get(vision_raw, "MODEL_CFG_PATH", VISIONConfig.MODEL_CFG_PATH),
+        DEVICE=_get(vision_raw, "DEVICE", VISIONConfig.DEVICE),
+        DTYPE=dtype,
+        CHECKPOINT=_get(vision_raw, "CHECKPOINT", VISIONConfig.CHECKPOINT),
+    )
+    
     ai = AIConfig(
         FREE_MEM_THRESHOLD=int(_get(ai_raw, "FREE_MEM_THRESHOLD", AIConfig.FREE_MEM_THRESHOLD)),
-        INFERENCE_MODE=str(_get(ai_raw, "INFERENCE_MODE", AIConfig.INFERENCE_MODE)),
-        MODEL_NAME=str(_get(ai_raw, "MODEL_NAME", AIConfig.MODEL_NAME)),
-        VLM_QUESTION=str(_get(ai_raw, "VLM_QUESTION", AIConfig.VLM_QUESTION)),
-        VLM_PROMPT=str(_get(ai_raw, "VLM_PROMPT", AIConfig.VLM_PROMPT)),
-        DEVICE_MAP=str(_get(ai_raw, "DEVICE_MAP", AIConfig.DEVICE_MAP)),
-        MODEL_ID=MODEL_ID_MAP[str(_get(ai_raw, "MODEL_NAME", AIConfig.MODEL_NAME))],
-        TASK_TYPE=str(_get(ai_raw, "TASK_TYPE", AIConfig.TASK_TYPE)),
-        MAX_TOKENS=int(_get(ai_raw, "MAX_TOKENS", AIConfig.MAX_TOKENS)),
-        DTYPE = dtype,
         NORM_MEAN=_get(ai_raw, "NORM_MEAN", AIConfig.NORM_MEAN),
         NORM_STD=_get(ai_raw, "NORM_STD", AIConfig.NORM_STD),
+        VLM=vlm,
+        VISION=vision,
     )
 
     return Config(
