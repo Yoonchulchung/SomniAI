@@ -50,7 +50,7 @@ async def bootstrap() -> ProcessGPU:
     return gpu
 
 
-def shutdown() -> None:
+async def shutdown() -> None:
     
     # delete model
     SomniAI_log("Bye!")

@@ -24,11 +24,12 @@ from contextlib import asynccontextmanager
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     gpu = await bootstrap()
-    asyncio.create_task(gpu.micro_batch_schdeuler())
+    asyncio.create_task(gpu.air_micro_scheduler())
+    asyncio.create_task(gpu.side_micro_scheduler())
     
     yield
     
-    shutdown()
+    await shutdown()
 
 
 app = FastAPI(lifespan=lifespan)

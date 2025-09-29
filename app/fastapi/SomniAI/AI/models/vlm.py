@@ -55,10 +55,10 @@ class VLMAdapter(nn.Module):
         raise NotImplementedError
     
     def caption(self, image: Image.Image) -> str:
-        return self._gen(image, self.cfg.VLM_PROMPT)
+        return self._gen(image, self.cfg.PROMPT)
 
     def vqa(self, image: Image.Image) -> str:
-        return self._gen(image, self.cfg.VLM_QUESTION)
+        return self._gen(image, self.cfg.QUESTION)
     
     def forward(self, image: Image.Image) -> str:
         return self.inference(image)

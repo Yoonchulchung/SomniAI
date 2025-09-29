@@ -9,11 +9,11 @@ from SomniAI.process import ProcessGPU
 
 router = APIRouter()
 
-@router.get("/result")
+@router.get("/result-air")
 async def result(request: Request, ):
     gpu = ProcessGPU.get_instance()
     
-    img, message = await gpu.get_result()
+    img, message = await gpu.get_air_result()
     
     if not message:
         return _nothing()

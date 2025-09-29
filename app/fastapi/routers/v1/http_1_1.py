@@ -16,21 +16,21 @@ def get_HTTP_parser():
 def get_ProcessGPU():
     return ProcessGPU.get_instance()
 
-@router.post("/upload/tensor")
-async def upload_http_1_1(request : Request, files: Optional[List[UploadFile]] = File(None), 
-                 http = Depends(get_HTTP_parser), gpu = Depends(get_ProcessGPU)):
-    '''
-    Please send bytes data. Do not send Pytorch Tensor format.
-    '''
+# @router.post("/upload-air/tensor")
+# async def upload_http_1_1(request : Request, files: Optional[List[UploadFile]] = File(None), 
+#                  http = Depends(get_HTTP_parser), gpu = Depends(get_ProcessGPU)):
+#     '''
+#     Please send bytes data. Do not send Pytorch Tensor format.
+#     '''
 
-    dataset = await http.get_tensor(request, files)
-    await gpu.enqueue_batch_or_tensor(dataset)   
+#     dataset = await http.get_tensor(request, files)
+#     await gpu.enqueue_batch_or_tensor(dataset)   
 
-    return {"msg": "succeed to send data"}
+#     return {"msg": "succeed to send data"}
 
 
 
-@router.post("/upload/pil")
+@router.post("/upload-air")
 async def upload_http_1_1(request : Request, files: Optional[List[UploadFile]] = File(None), 
                  http = Depends(get_HTTP_parser), gpu = Depends(get_ProcessGPU)):
     '''
@@ -38,6 +38,32 @@ async def upload_http_1_1(request : Request, files: Optional[List[UploadFile]] =
     '''
 
     dataset = await http.get_pil(request, files)
-    await gpu.enqueue_batch(dataset)   
+    await gpu.enqueue_air(dataset)   
+
+    return {"msg": "succeed to send data"}
+
+# @router.post("/upload-side/tensor")
+# async def upload_http_1_1(request : Request, files: Optional[List[UploadFile]] = File(None), 
+#                  http = Depends(get_HTTP_parser), gpu = Depends(get_ProcessGPU)):
+#     '''
+#     Please send bytes data. Do not send Pytorch Tensor format.
+#     '''
+
+#     dataset = await http.get_tensor(request, files)
+#     await gpu.enqueue_batch_or_tensor(dataset)   
+
+#     return {"msg": "succeed to send data"}
+
+
+
+@router.post("/upload-side")
+async def upload_http_1_1(request : Request, files: Optional[List[UploadFile]] = File(None), 
+                 http = Depends(get_HTTP_parser), gpu = Depends(get_ProcessGPU)):
+    '''
+    Please send bytes data. Do not send Pytorch Tensor format.
+    '''
+
+    dataset = await http.get_pil(request, files)
+    await gpu.enqueue_side(dataset)   
 
     return {"msg": "succeed to send data"}
