@@ -46,7 +46,7 @@ app.include_router(main.router, tags=["main"])
 async def start():
     config = Config()
     config.bind = [f"{SomniAI_cfg.FASTAPI.HOST}:{SomniAI_cfg.FASTAPI.PORT}"]
-    config.reload = getattr(SomniAI_cfg.FASTAPI.RELOAD, "RELOAD", True)
+    config.use_reloader = getattr(SomniAI_cfg.FASTAPI.RELOAD, "RELOAD", True)
     config.workers = SomniAI_cfg.FASTAPI.WORKERS
     config.loglevel = getattr(SomniAI_cfg.FASTAPI.LOG_LEVEL, "LOG_LEVEL", "info").lower()
 

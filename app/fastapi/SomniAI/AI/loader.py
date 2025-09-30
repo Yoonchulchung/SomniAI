@@ -67,9 +67,9 @@ class GPUModelLoader(ModelLoaderInterface):
         
         if not (in_vision or in_vlm):
             raise ValueError(
-                f"Unknown model_name: '{model_name}'."
-                f"Available vision: {list(self.vision_register.list())}"
-                f"available vlm: {list(self.vlm_register.list())}"
+                f"Unknown model_name: '{model_name}'.\n"
+                f"Available vision: {list(self.vision_register.list())}\n"
+                f"available vlm: {list(self.vlm_register.list())}\n"
             )
 
         try:

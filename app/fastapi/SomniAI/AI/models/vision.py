@@ -15,7 +15,7 @@ class BasePoseAdapter:
         self._build()
         self.model.to(cfg.DEVICE).eval()
         
-        self.half = (self.cfg.DTYPE in (torch.float16, torch.bfloat16)) and self.cfg.DEVICE.type == "cuda"
+        self.half = (self.cfg.DTYPE in (torch.float16, torch.bfloat16)) and self.cfg.DEVICE == "cuda"
 
     def _build(self):
         raise NotImplementedError
@@ -46,7 +46,7 @@ class YOLOv8PoseAdapter(BasePoseAdapter):
             imgsz=640,
             conf=self.cfg.CONF_THRES,
             iou=self.cfg.IOU_THRES,
-            device=str(self.device),
+            device=str(self.cfg.DEVICE),
             half=self.half,
             verbose=False
         )

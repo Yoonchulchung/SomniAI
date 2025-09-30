@@ -14,23 +14,27 @@ class Inference:
         
         self.logger = logger
         
-        self.model = None
+        self._vision_model = None
+        self._vlm_model = None
         
-    def set_model(self, model):
-        self.model = model
+    def set_vision_model(self, model):
+        self._vision_model = model
+        
+    def set_vlm_model(self, model):
+        self._vlm_model = model
         
     def run_in_vision(self, img):
         
         try:
-            pred = self.model.predict(img)
+            keypoints, scores, bboxes = self._vision_model.predict(img)
         except Exception as e:
             self.logger(f"[Error] Error occured while inferencing image : {e}")
-        return pred
+        return keypoints
 
     def run_in_vlm(self, img):
         
         try:
-            ans = self.model(img)
+            ans = self._vlm_model(img)
         except Exception as e:
             self.logger(f"[Error] VLM inference failed: {e}")
             

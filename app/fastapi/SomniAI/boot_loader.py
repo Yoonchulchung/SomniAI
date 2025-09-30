@@ -35,8 +35,10 @@ async def bootstrap() -> ProcessGPU:
                                   vision_register=vision_register, 
                                   logger=SomniAI_log)
     
-    vlm = await model_loader.get_model(SomniAI_cfg.AI.VLM.MODEL_NAME)
-    await gpu.add_model(vlm, 0)
+    vlm_model = await model_loader.get_model(SomniAI_cfg.AI.VLM.MODEL_NAME)
+    vision_model = await model_loader.get_model(SomniAI_cfg.AI.VISION.MODEL_NAME)
+    await gpu.add_vlm_model(vlm_model)
+    await gpu.add_vision_model(vision_model)
     
     work_dir = "./work_dir"
     

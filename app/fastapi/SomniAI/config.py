@@ -76,6 +76,8 @@ class VISIONConfig:
     DEVICE : str = None
     DTYPE : torch.dtype = field(default=torch.float32)
     CHECKPOINT: str = None
+    CONF_THRES : float = None
+    IOU_THRES : float = None
         
 @dataclass 
 class AIConfig:
@@ -191,6 +193,8 @@ def _parse_config(config_data : Union[Dict[str, Any], types.ModuleType, Config])
         DEVICE=_get(vision_raw, "DEVICE", VISIONConfig.DEVICE),
         DTYPE=dtype,
         CHECKPOINT=_get(vision_raw, "CHECKPOINT", VISIONConfig.CHECKPOINT),
+        CONF_THRES=float(_get(vision_raw, "CONF_THRES", VISIONConfig.CONF_THRES)),
+        IOU_THRES=float(_get(vision_raw, "IOU_THRES", VISIONConfig.IOU_THRES)),
     )
     
     ai = AIConfig(

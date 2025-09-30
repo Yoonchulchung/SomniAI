@@ -65,20 +65,37 @@ class ProcessGPU:
         self._infer_air_sema =  asyncio.Semaphore(1) 
         self._infer_side_sema =  asyncio.Semaphore(1) 
         
-    async def add_model(self, model, gpu_id):
+    async def add_vision_model(self, model):
         async with self._model_lock:
             if model in self._models:
                 self.logger(f"[ProcessGPU] {model} already loaded.")
 
             self._models[model] = model
             self.logger(f"")
-            props = torch.cuda.get_device_properties(gpu_id)
-            total_b = props.total_memory
-            free_b = max(0, total_b - torch.cuda.memory_reserved(gpu_id) - torch.cuda.memory_allocated(gpu_id))
             
-            self.logger(f"MEM info : Total : {float(total_b/1e9):2.2f}/{float(free_b/1e9):2.2f} GB")
+            # props = torch.cuda.get_device_properties(gpu_id)
+            # total_b = props.total_memory
+            # free_b = max(0, total_b - torch.cuda.memory_reserved(gpu_id) - torch.cuda.memory_allocated(gpu_id))
             
-            self.inference.set_model(model)
+            # self.logger(f"MEM info : Total : {float(total_b/1e9):2.2f}/{float(free_b/1e9):2.2f} GB")
+            
+            self.inference.set_vision_model(model)
+            
+    async def add_vlm_model(self, model):
+        async with self._model_lock:
+            if model in self._models:
+                self.logger(f"[ProcessGPU] {model} already loaded.")
+
+            self._models[model] = model
+            self.logger(f"")
+            
+            # props = torch.cuda.get_device_properties(gpu_id)
+            # total_b = props.total_memory
+            # free_b = max(0, total_b - torch.cuda.memory_reserved(gpu_id) - torch.cuda.memory_allocated(gpu_id))
+            
+            # self.logger(f"MEM info : Total : {float(total_b/1e9):2.2f}/{float(free_b/1e9):2.2f} GB")
+            
+            self.inference.set_vlm_model(model)
             
     async def delete_model(self, model_name):
         async with self._model_lock:
