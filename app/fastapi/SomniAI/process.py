@@ -8,7 +8,6 @@ from fastapi import HTTPException
 from PIL import Image
 
 
-
 class ProcessGPU:
     
     _instance = None
@@ -118,7 +117,7 @@ class ProcessGPU:
             return True
         
         
-    async def get_air_result(self) -> tuple[Image.Image, str]:
+    async def get_air_result(self) -> tuple[Image.Image, Dict]:
         
         if self._air_result_q.empty():
             return (None, None)
@@ -132,7 +131,7 @@ class ProcessGPU:
         
         return (img, message)
     
-    async def get_side_result(self) -> tuple[Image.Image, str]:
+    async def get_side_result(self) -> tuple[Image.Image, Dict]:
         
         if self._side_result_q.empty():
             return (None, None)

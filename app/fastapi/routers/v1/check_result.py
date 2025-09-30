@@ -1,16 +1,50 @@
 import base64
 import io
 
-from fastapi import APIRouter, Request
+import cv2
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse
 from PIL import Image
 
+from SomniAI.AI.dataset import Dataset
 from SomniAI.process import ProcessGPU
+from SomniAI.registry import get_cfg
 
 router = APIRouter()
 
+cfg = get_cfg()
+
+async def get_DataSet():
+    return Dataset(cfg.AI)
+
+
+@router.get("/result-side")
+async def result_side(request: Request, dataset=Depends(get_DataSet)):
+    gpu = ProcessGPU.get_instance()
+    
+    img, message = await gpu.get_side_result()
+    if not message:
+        return _nothing()
+    
+  
+    out = dataset.draw_yolo_keypoints(
+    message["result"],
+    img,
+    draw_boxes=True,
+    keypoint_radius=3,
+    keypoint_thickness=2,
+    skeleton_thickness=2,
+    use_normalized=False,     # results.keypoints.xy 사용 시 False
+    kpt_conf_thresh=0.2,      # 낮은 신뢰의 관절은 생략
+    )
+    
+    data_url = cv2_to_data_url(out, format="PNG")
+    page = _show_image(data_url=data_url, message_html="NONE")
+    return HTMLResponse(page)    
+
+
 @router.get("/result-air")
-async def result(request: Request, ):
+async def result_air(request: Request, ):
     gpu = ProcessGPU.get_instance()
     
     img, message = await gpu.get_air_result()
@@ -20,7 +54,7 @@ async def result(request: Request, ):
     
     data_url = pil_to_data_url(img, fmt="PNG")
 
-    page = _show_image(data_url=data_url, message_html=message)
+    page = _show_image(data_url=data_url, message_html=message["ans"])
     return HTMLResponse(page)
     
 def _nothing():
@@ -126,3 +160,14 @@ def pil_to_data_url(img: Image.Image, fmt: str = "PNG") -> str:
     b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
     mime = "image/png" if fmt.upper() == "PNG" else f"image/{fmt.lower()}"
     return f"data:{mime};base64,{b64}"
+  
+  
+def cv2_to_data_url(img_bgr, format: str = "png") -> str:
+      
+    success, encoded_img = cv2.imencode(f".{format}", img_bgr)
+    if not success:
+        raise ValueError("Could not encode image")
+
+    b64_bytes = base64.b64encode(encoded_img.tobytes()).decode("utf-8")
+
+    return f"data:image/{format};base64,{b64_bytes}"

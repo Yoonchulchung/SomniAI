@@ -68,7 +68,7 @@ class YOLOv8PoseAdapter(BasePoseAdapter):
         bboxes = r.boxes.xyxy.cpu().numpy() if r.boxes is not None else np.zeros((0, 4), dtype=np.float32)
         scores = r.boxes.conf.cpu().numpy() if r.boxes is not None else np.zeros((0,), dtype=np.float32)
 
-        return keypoints, list(scores), bboxes
+        return r, keypoints, list(scores), bboxes
     
 
 @vision_register.register("MMPose")

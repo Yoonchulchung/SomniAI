@@ -31,7 +31,7 @@ def get_ProcessGPU():
 
 
 @router.post("/upload-air")
-async def upload_http_1_1(request : Request, files: Optional[List[UploadFile]] = File(None), 
+async def upload_air(request : Request, files: Optional[List[UploadFile]] = File(None), 
                  http = Depends(get_HTTP_parser), gpu = Depends(get_ProcessGPU)):
     '''
     Please send bytes data. Do not send Pytorch Tensor format.
@@ -57,7 +57,7 @@ async def upload_http_1_1(request : Request, files: Optional[List[UploadFile]] =
 
 
 @router.post("/upload-side")
-async def upload_http_1_1(request : Request, files: Optional[List[UploadFile]] = File(None), 
+async def upload_side(request : Request, files: Optional[List[UploadFile]] = File(None), 
                  http = Depends(get_HTTP_parser), gpu = Depends(get_ProcessGPU)):
     '''
     Please send bytes data. Do not send Pytorch Tensor format.

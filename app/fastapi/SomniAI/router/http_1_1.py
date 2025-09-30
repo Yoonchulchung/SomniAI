@@ -94,8 +94,8 @@ class Response_HTTP_1_1(TensorParser):
         ct = _get_content_type(request)
         handlers = {
                     'application/octet-stream' : self._get_tensor_from_octet_stream,
-                    'application/json' : self._get_tensor_from_json,
-                    'multipart/form-data' : self._get_tensor_from_multipart,
+                    'application/json'         : self._get_tensor_from_json,
+                    'multipart/form-data'      : self._get_tensor_from_multipart,
                 }
         
         handler = handlers.get(ct)
@@ -116,7 +116,7 @@ class Response_HTTP_1_1(TensorParser):
         ct = _get_content_type(request)
         handlers = {
                     'application/octet-stream' : self._get_pil_from_octet_stream,
-                    'application/json' : self._get_pil_from_json,
+                    'application/json'         : self._get_pil_from_json,
                 }
         
         handler = handlers.get(ct)

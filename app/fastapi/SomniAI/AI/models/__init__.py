@@ -1,3 +1,4 @@
+from .vision import MMPoseAdapter, YOLOv8PoseAdapter
 from .vlm import (
     BLIP2Adapter,
     BLIPCaptionAdapter,
@@ -5,11 +6,6 @@ from .vlm import (
     Llava15Adapter,
     Qwen2VLAdapter,
     Qwen3GGAdapter,
-)
-
-from .vision import (
-    YOLOv8PoseAdapter,
-    MMPoseAdapter
 )
 
 __all__ = [
