@@ -57,7 +57,7 @@ class GPUModelLoader(ModelLoaderInterface):
         ...
     
     def get_model_list(self):
-        return self.vlm_register.list()
+        return [self.vlm_register.list(), self.vision_register.list()]
         
     async def get_model(self, model_name):
         
