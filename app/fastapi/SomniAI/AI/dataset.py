@@ -1,6 +1,10 @@
+from typing import Dict
+
 import cv2
 import numpy as np
 import torch
+from mmengine.structures import InstanceData
+from mmpose.structures import PoseDataSample
 from PIL import Image
 from torchvision import transforms
 
@@ -74,7 +78,6 @@ class Dataset:
         kpt_conf_thresh: float = 0.0,
     ):
         """
-        image_bgr: cv2.imread(...) 로 읽은 BGR 이미지
         yolo_result: ultralytics YOLO 예측 결과 중 하나 (ex. results[0])
                     - results[i].keypoints.xy  shape: [N, 17, 2] (픽셀 좌표)
                     - results[i].keypoints.xyn shape: [N, 17, 2] (정규화 좌표)
@@ -93,7 +96,7 @@ class Dataset:
         out = image_bgr.copy()
 
         kps_xy = yolo_result.keypoints.xyn if use_normalized else yolo_result.keypoints.xy  # [N,17,2]
-        kps_data = getattr(yolo_result.keypoints, "data", None)  # [N,17,3] if available (x,y,conf)
+        kps_data = getattr(yolo_result.keypoints, "data", None)  # [N,17,3]
 
         boxes = getattr(yolo_result, "boxes", None)
 
@@ -145,4 +148,76 @@ class Dataset:
         return tuple(int(float(v)) for v in xy)
         
 
+    def draw_mmpose_keypoints(self, cfg, img_bgr, pose_results : list):
+        from mmengine import Config
+        from mmpose.visualization import PoseLocalVisualizer
+
+        cfg = Config.fromfile(self.cfg.VISION.MODEL_CFG_PATH)
+        
+        dataset_meta = cfg.get('dataset_meta', None)
+
+        visualizer = PoseLocalVisualizer(vis_backends=None, save_dir=None)
+        visualizer.set_dataset_meta(dataset_meta)
     
+        img_bgr = np.array(img_bgr)
+        H, W = img_bgr.shape[:2]
+
+        pose_ds = self._dict_to_datasample(pose_results, img_shape=(H, W))
+
+        return visualizer.add_datasample(
+            name='result',
+            image=img_bgr,    
+            data_sample=pose_ds,
+            draw_gt=False,
+            draw_pred=True,
+            draw_heatmap=False,
+            show=False,
+            out_file=None,
+        )
+    
+    def _dict_to_datasample(self, pose_result_dict : Dict, img_shape : tuple = None) -> PoseDataSample:
+       
+        preds_wrapped = pose_result_dict.get('predictions', [])
+        if not preds_wrapped or not preds_wrapped[0]:
+            ds = PoseDataSample()
+            ds.pred_instances = InstanceData()
+            if img_shape is not None:
+                ds.set_metainfo(dict(img_shape=img_shape))
+            return ds
+
+        preds = preds_wrapped[0]
+        all_kpts, all_kpt_scores, all_bboxes, all_bbox_scores = [], [], [], []
+
+        for p in preds:
+            kpts = np.asarray(p['keypoints'], dtype=np.float32) # (K, 2)
+            all_kpts.append(kpts)
+
+            ksc = np.asarray(p.get('keypoint_scores', p.get('scores', [])), dtype=np.float32)
+            if ksc.size == 0:
+                ksc = np.ones((kpts.shape[0],), dtype=np.float32)
+            all_kpt_scores.append(ksc)
+
+            bbox = p.get('bbox', [0, 0, 0, 0])
+            if isinstance(bbox, (list, tuple)) and len(bbox) == 1 and isinstance(bbox[0], (list, tuple)):
+                bbox = bbox[0]
+            bbox = np.asarray(bbox, dtype=np.float32).reshape(4)
+            all_bboxes.append(bbox)
+
+            all_bbox_scores.append(float(p.get('bbox_score', 1.0)))
+
+        kpts_arr       = torch.from_numpy(np.stack(all_kpts, axis=0))            # float32
+        kpt_scores_arr = torch.from_numpy(np.stack(all_kpt_scores, axis=0))      # float32
+        bboxes_arr     = torch.from_numpy(np.stack(all_bboxes, axis=0))          # float32
+        bbox_scores_ts = torch.tensor(all_bbox_scores, dtype=torch.float32)
+
+        inst = InstanceData()
+        inst.keypoints       = kpts_arr
+        inst.keypoint_scores = kpt_scores_arr
+        inst.bboxes          = bboxes_arr
+        inst.bbox_scores     = bbox_scores_ts
+
+        ds = PoseDataSample()
+        ds.pred_instances = inst
+        if img_shape is not None:
+            ds.set_metainfo(dict(img_shape=img_shape))
+        return ds

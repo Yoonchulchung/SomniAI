@@ -228,7 +228,7 @@ class Qwen2VLAdapter(VLMAdapter):
 
         self.model = QwenVLForCG.from_pretrained(
             self.cfg.MODEL_ID,
-            torch_dtype=self.cfg.DTYPE,   
+            dtype=self.cfg.DTYPE,   
             device_map="cuda:0",          
             trust_remote_code=True,
         )
@@ -359,61 +359,3 @@ class Qwen3GGAdapter(VLMAdapter):
         categories = re.findall(category_pattern, content)
         return label, categories, refusal_label
 
-    
-
-def tensor_to_pil(img: torch.Tensor) -> Image.Image:
-
-    t = img.detach().cpu()
-
-    # (B,C,H,W) or (B,H,W,C) -> 배치 차원 제거 (B==1 가정)
-    if t.ndim == 4:
-        if t.shape[0] != 1:
-            raise ValueError(f"Batch size>1: {tuple(t.shape)}. 먼저 배치로 iterate 하세요.")
-        t = t.squeeze(0)  # (C,H,W) or (H,W,C)
-
-    # (C,H,W) -> (H,W,C)
-    if t.ndim == 3 and t.shape[0] in (1, 3, 4):
-        t = t.permute(1, 2, 0)
-
-    # (H,W) 그대로 가능, (H,W,C) 가능
-    if t.ndim == 2:
-        pass
-    elif t.ndim == 3:
-        if t.shape[2] not in (1, 3, 4):
-            raise ValueError(f"Unsupported channel count: {t.shape[2]}")
-    else:
-        raise ValueError(f"Unsupported tensor shape: {tuple(t.shape)}")
-
-    # dtype/범위 보정
-    if t.dtype.is_floating_point:
-        t = t.to(torch.float32)
-        mn, mx = float(t.min()), float(t.max())
-        if mn < 0.0:              # [-1,1] -> [0,1]
-            t = (t + 1.0) / 2.0
-        if float(t.max()) > 1.0:  # [0,255] float -> [0,1]
-            t = t / 255.0
-        t = (t.clamp(0, 1) * 255.0).round().to(torch.uint8)
-    else:
-        if t.dtype != torch.uint8:
-            # 값 범위 추정 후 0~255로 매핑
-            t = t.to(torch.int32)
-            mn, mx = int(t.min()), int(t.max())
-            if 0 <= mn and mx <= 255:
-                t = t.to(torch.uint8)
-            else:
-                t = (t - mn).to(torch.float32) / max(1, (mx - mn))
-                t = (t.clamp(0, 1) * 255.0).round().to(torch.uint8)
-
-    arr = t.numpy()
-    if arr.ndim == 3 and arr.shape[2] == 1:
-        arr = np.squeeze(arr, axis=2)  # (H,W)
-
-    return Image.fromarray(arr)
-
-def batch_tensor_to_pils(batch: torch.Tensor) -> List[Image.Image]:
-    """
-    (B,C,H,W) or (B,H,W,C) -> [PIL.Image] (B개)
-    """
-    if batch.ndim != 4:
-        raise ValueError(f"Expected 4D batch, got {tuple(batch.shape)}")
-    return [tensor_to_pil(batch[i]) for i in range(batch.shape[0])]

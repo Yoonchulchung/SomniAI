@@ -3,6 +3,7 @@ import gc
 import time
 from typing import Any, Dict
 
+import requests
 import torch
 from fastapi import HTTPException
 from PIL import Image
@@ -70,7 +71,6 @@ class ProcessGPU:
                 self.logger(f"[ProcessGPU] {model} already loaded.")
 
             self._models[model] = model
-            self.logger(f"")
             
             # props = torch.cuda.get_device_properties(gpu_id)
             # total_b = props.total_memory
@@ -86,7 +86,6 @@ class ProcessGPU:
                 self.logger(f"[ProcessGPU] {model} already loaded.")
 
             self._models[model] = model
-            self.logger(f"")
             
             # props = torch.cuda.get_device_properties(gpu_id)
             # total_b = props.total_memory
@@ -282,8 +281,7 @@ class ProcessGPU:
         async with self._model_lock:
             result = await loop.run_in_executor(None, self.inference.run_in_vlm, batch)
         async with self._air_result_lock:
-            await self._air_result_q.put((batch, result))
-            
+            await self._air_result_q.put((batch, result))            
     
     async def _run_side_inference(self, batch):
         
@@ -293,3 +291,5 @@ class ProcessGPU:
             result = await loop.run_in_executor(None, self.inference.run_in_vision, batch)
         async with self._side_result_lock:
             await self._side_result_q.put((batch, result))
+            
+        

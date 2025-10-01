@@ -1,3 +1,4 @@
+import types
 from typing import List, Tuple, Union
 
 import numpy as np
@@ -13,7 +14,6 @@ class BasePoseAdapter:
         
         self.model = None
         self._build()
-        self.model.to(cfg.DEVICE).eval()
         
         self.half = (self.cfg.DTYPE in (torch.float16, torch.bfloat16)) and self.cfg.DEVICE == "cuda"
 
@@ -36,7 +36,7 @@ class YOLOv8PoseAdapter(BasePoseAdapter):
         except Exception as e:
             raise ImportError("ultralytics 가 필요합니다: `pip install ultralytics`") from e
 
-        self.model = YOLO(self.cfg.MODEL_ID)
+        self.model = YOLO(self.cfg.MODEL_ID).to(self.cfg.DEVICE).eval()
 
     @torch.inference_mode()
     def predict(self, img: Image.Image):
@@ -63,6 +63,8 @@ class YOLOv8PoseAdapter(BasePoseAdapter):
         kpts_xyc[..., 0] *= w
         kpts_xyc[..., 1] *= h
         keypoints = [kp.cpu().numpy() for kp in kpts_xyc]  # List[N, K, 3]
+        
+        print(keypoints)
 
         # bboxes, scores
         bboxes = r.boxes.xyxy.cpu().numpy() if r.boxes is not None else np.zeros((0, 4), dtype=np.float32)
@@ -73,47 +75,50 @@ class YOLOv8PoseAdapter(BasePoseAdapter):
 
 @vision_register.register("MMPose")
 class MMPoseAdapter(BasePoseAdapter):
-    def build(self):
-        try:
-            from mmpose.apis import init_model
-        except Exception as e:
-            raise ImportError("mmpose가 필요합니다: `pip install mmpose -U`") from e
-
-        if not self.cfg.MODEL_CFG_PATH or not self.cfg.CHECKPOINT:
+            
+    def _build(self):
+        from mmpose.apis import MMPoseInferencer
+        
+        if not self.cfg.MODEL_CFG_PATH or not self.cfg.MODEL_ID:
             raise ValueError("MMPose는 cfg(.py/.yaml)와 checkpoint(.pth)가 필요합니다")
 
-        self.model = init_model(self.cfg.MODEL_CFG_PATH, self.cfg.CHECKPOINT, device=self.cfg.DEVICE)
+        self.model = MMPoseInferencer(pose2d=self.cfg.MODEL_CFG_PATH, pose2d_weights=self.cfg.MODEL_ID, device=self.cfg.DEVICE)
 
     @torch.inference_mode()
-    def predict(self, img : Image.Image):
-        from mmpose.apis import inference_topdown
-        from mmpose.structures import PoseDataSample
+    def predict(self, img : Image.Image) -> dict:
 
-        np_img = np.array(img)[:, :, ::-1]  # RGB->BGR
+        w, h = img[0].size         
+        img_np = np.array(img[0])
         
-        # Only One person
-        h, w = np_img.shape[:2]
-        pred_instances = [dict(bbox=np.array([0, 0, w, h], dtype=np.float32))]
-
-        result: List[PoseDataSample] = inference_topdown(self.model, np_img, pred_instances)
+        # model에 Image.Image 넣으면 에러 발생.
+        # PIL 대신에 numpy 사용.
+        result = self.model(img_np, show=False, return_vis=False)
 
         keypoints, scores, bboxes = [], [], []
         for ds in result:
-            if not hasattr(ds, "pred_instances"):
+
+            if not ds["predictions"]:
                 continue
-            inst = ds.pred_instances
-            if not hasattr(inst, "keypoints"):
+            inst = ds["predictions"][0][0]  
+            
+            if not inst["keypoints"]:
                 continue
-            kpts = inst.keypoints.numpy()  # [K, 2]
-            kcon = inst.keypoint_scores.numpy() if hasattr(inst, "keypoint_scores") else np.ones((kpts.shape[0],))
+            kpts = np.array(inst["keypoints"]) #[K, 2]
             # [K, 3] (x, y, conf)
+            kcon = np.array(inst["keypoint_scores"]) if inst["keypoint_scores"] else np.ones((kpts.shape[0],)) 
             kpts_xyc = np.concatenate([kpts, kcon[:, None]], axis=1)
             keypoints.append(kpts_xyc)
             scores.append(float(np.mean(kcon)))
-            if hasattr(inst, "bboxes") and inst.bboxes is not None:
-                bboxes.append(inst.bboxes.numpy()[0])
-            else:
+            
+            if inst["bbox"] : 
+                bboxes.append(np.array(inst["bbox"])[0]) 
+            
+            else: 
                 bboxes.append(np.array([0, 0, w, h], dtype=np.float32))
-
-        bboxes = np.stack(bboxes, axis=0) if bboxes else np.zeros((0, 4), dtype=np.float32)
-        return keypoints, scores, bboxes
+            
+            bboxes = np.stack(bboxes, axis=0) if bboxes else np.zeros((0, 4), dtype=np.float32)
+            
+            bbox_score = inst["bbox_score"]
+            result = ds
+            
+        return result, keypoints, scores, bboxes

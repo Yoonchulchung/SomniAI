@@ -37,8 +37,10 @@ VLM_MODEL_ID_MAP = {
 }
 
 VISION_MODEL_ID_MAP = {
-    "YOLO" : "yolov8n-pose.pt",
+    "YOLO" : "yolo11x-pose.pt", 
+            #"yolov8n-pose.pt",
             # yolov8s-pose.pt
+    "MMPose" : "https://download.openmmlab.com/mmpose/top_down/hrnet/hrnet_w48_coco_wholebody_384x288_dark-f5726563_20200918.pth",
 }
 
 

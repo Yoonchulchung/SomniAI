@@ -43,14 +43,14 @@ class GPUModelLoader(ModelLoaderInterface):
         return free_b >= self.free_mem_threshold
     
     def _load_vlm(self, model_name):
-        model = self.vlm_register.get(model_name)
-        model = model(self.cfg.AI.VLM)
+        self.vlm_register.get_cls(model_name)
+        model = self.vlm_register.set_inst(model_name, None, self.cfg.AI.VLM)
         return model
         
     def _load_vision(self, model_name):
         
-        model = self.vision_register.get(model_name)
-        model = model(self.cfg.AI.VISION)
+        self.vision_register.get_cls(model_name)
+        model = self.vision_register.set_inst(model_name, None, self.cfg.AI.VISION)
         return model
         
     def _load_llm(self, model_name, gpu_id):

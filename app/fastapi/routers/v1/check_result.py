@@ -2,6 +2,9 @@ import base64
 import io
 
 import cv2
+import httpx
+import numpy as np
+import torch
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse
 from PIL import Image
@@ -26,17 +29,26 @@ async def result_side(request: Request, dataset=Depends(get_DataSet)):
     if not message:
         return _nothing()
     
-  
-    out = dataset.draw_yolo_keypoints(
-    message["result"],
-    img,
-    draw_boxes=True,
-    keypoint_radius=3,
-    keypoint_thickness=2,
-    skeleton_thickness=2,
-    use_normalized=False,     # results.keypoints.xy 사용 시 False
-    kpt_conf_thresh=0.2,      # 낮은 신뢰의 관절은 생략
-    )
+
+    if cfg.AI.VISION.MODEL_NAME == "YOLO":
+      out = dataset.draw_yolo_keypoints(
+      message["result"],
+      img,
+      draw_boxes=True,
+      keypoint_radius=3,
+      keypoint_thickness=2,
+      skeleton_thickness=2,
+      use_normalized=False,
+      kpt_conf_thresh=0.2,
+      )
+    else:
+      out = dataset.draw_mmpose_keypoints(
+        cfg,
+        img,
+        message["result"]
+      )
+    
+    
     
     data_url = cv2_to_data_url(out, format="PNG")
     page = _show_image(data_url=data_url, message_html="NONE")
@@ -49,6 +61,12 @@ async def result_air(request: Request, ):
     
     img, message = await gpu.get_air_result()
     
+    # try:
+    #   async with httpx.AsyncClient() as client:
+    #       response = await client.get("http://localhost:3000/")
+    # except Exception as e:
+    #   print(e)
+      
     if not message:
         return _nothing()
     
@@ -161,13 +179,49 @@ def pil_to_data_url(img: Image.Image, fmt: str = "PNG") -> str:
     mime = "image/png" if fmt.upper() == "PNG" else f"image/{fmt.lower()}"
     return f"data:{mime};base64,{b64}"
   
+def _to_bgr_uint8(img) -> np.ndarray:
+
+    if isinstance(img, Image.Image):
+        img = np.array(img)  # RGB
+        if img.ndim == 2:  # grayscale
+            img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+        else:
+            img = img[:, :, ::-1]  # RGB->BGR
+
+    if isinstance(img, torch.Tensor):
+        img = img.detach().cpu().numpy()
+
+    if not isinstance(img, np.ndarray):
+        img = np.array(img)
+
+    if img.ndim == 2:
+        img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+    elif img.ndim == 3 and img.shape[2] == 4:
+        # BGRA/ RGBA -> BGR
+        img = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR) if img.dtype == np.uint8 else img[:, :, :3]
+
+    if img.dtype != np.uint8:
+        mx = float(np.nanmax(img)) if img.size else 0.0
+        if mx <= 1.0:
+            img = (np.clip(img, 0, 1) * 255.0).astype(np.uint8)
+        else:
+            img = np.clip(img, 0, 255).astype(np.uint8)
+
+    img = np.ascontiguousarray(img)
+    return img
+
+def cv2_to_data_url(img, format: str = "PNG") -> str:
+    
+    bgr = _to_bgr_uint8(img)
+
+    ext = format.lower()
+    if ext == "jpg":
+        ext = "jpeg"
+    ok, enc = cv2.imencode(f".{ext}", bgr)
+    if not ok:
+        raise RuntimeError(f"cv2.imencode failed for format .{ext}")
+
   
-def cv2_to_data_url(img_bgr, format: str = "png") -> str:
-      
-    success, encoded_img = cv2.imencode(f".{format}", img_bgr)
-    if not success:
-        raise ValueError("Could not encode image")
-
-    b64_bytes = base64.b64encode(encoded_img.tobytes()).decode("utf-8")
-
-    return f"data:image/{format};base64,{b64_bytes}"
+    b64 = base64.b64encode(enc.tobytes()).decode("ascii")
+    mime = "image/png" if ext == "png" else "image/jpeg"
+    return f"data:{mime};base64,{b64}"
