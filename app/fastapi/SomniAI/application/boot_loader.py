@@ -5,12 +5,12 @@ import torch
 from rich.console import Console
 from rich.panel import Panel
 
-from SomniAI.AI import Dataset, GPUModelLoader, Inference
-from SomniAI.AI.registry import vision_register, vlm_register
-from SomniAI.config import save_yaml
-from SomniAI.log import SomniAI_log
-from SomniAI.process import ProcessGPU
-from SomniAI.registry import get_cfg
+from SomniAI.application.AI import Dataset, GPUModelLoader, Inference
+from SomniAI.application.AI.registry import vision_register, vlm_register
+from SomniAI.application.config import save_yaml
+from SomniAI.application.log import SomniAI_log
+from SomniAI.application.process import ProcessGPU
+from SomniAI.application.registry import get_cfg
 
 
 async def bootstrap() -> ProcessGPU:

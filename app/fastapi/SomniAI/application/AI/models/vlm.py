@@ -1,15 +1,12 @@
 
 import re
-from textwrap import dedent
-from typing import List
 
-import numpy as np
 import torch
 import torch.nn as nn
 from PIL import Image
 from transformers import GenerationConfig
 
-from SomniAI.AI.registry import vlm_register
+from SomniAI.application.AI.registry import vlm_register
 
 
 class VLMAdapter(nn.Module):

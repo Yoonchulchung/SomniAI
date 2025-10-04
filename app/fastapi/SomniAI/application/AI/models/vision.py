@@ -1,11 +1,10 @@
-import types
 from typing import List, Tuple, Union
 
 import numpy as np
 import torch
 from PIL import Image
 
-from SomniAI.AI.registry import vision_register
+from SomniAI.application.AI.registry import vision_register
 
 
 class BasePoseAdapter:

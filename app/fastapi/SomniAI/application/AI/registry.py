@@ -1,8 +1,6 @@
 import threading
 from typing import Any, Callable, Dict, Optional
 
-from SomniAI.log import SomniAI_log
-
 
 class Registry:
     def __init__(self):

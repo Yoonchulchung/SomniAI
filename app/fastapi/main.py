@@ -5,9 +5,9 @@ from fastapi import FastAPI
 from hypercorn.asyncio import serve
 from hypercorn.config import Config
 
-import SomniAI.registry as registry
-from SomniAI.boot_loader import bootstrap, shutdown
-from SomniAI.config import load_config
+import SomniAI.application.registry as registry
+from SomniAI.application.boot_loader import bootstrap, shutdown
+from SomniAI.application.config import load_config
 
 parser = argparse.ArgumentParser(description="SomniAI FastAPI Server")
 parser.add_argument('config', type=str, help="FastAPI config path")
@@ -34,14 +34,13 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-from routers.v1 import check_result, health, main, ping, upload
+from SomniAI.interface import check_result, health, main, ping, upload
 
 app.include_router(health.router, prefix=SomniAI_cfg.FASTAPI.API_PREFIX, tags=["health"])
 app.include_router(upload.router, prefix=SomniAI_cfg.FASTAPI.API_PREFIX, tags=["upload"])
 app.include_router(ping.router, prefix=SomniAI_cfg.FASTAPI.API_PREFIX, tags=["ping"])
 app.include_router(check_result.router, prefix=SomniAI_cfg.FASTAPI.API_PREFIX, tags=["result"])
 app.include_router(main.router, tags=["main"])
-
 
 async def start():
     config = Config()

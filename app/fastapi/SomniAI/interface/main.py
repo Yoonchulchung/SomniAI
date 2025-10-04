@@ -2,7 +2,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 from fastapi.routing import APIRoute
 
-from SomniAI.registry import get_cfg
+from SomniAI.application.registry import get_cfg
 
 router = APIRouter()
 SomniAI_cfg = get_cfg()
