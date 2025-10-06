@@ -9,6 +9,8 @@ import SomniAI.application.registry as registry
 from SomniAI.application.boot_loader import bootstrap, shutdown
 from SomniAI.application.config import load_config
 
+from containers import Container
+
 parser = argparse.ArgumentParser(description="SomniAI FastAPI Server")
 parser.add_argument('config', type=str, help="FastAPI config path")
 args = parser.parse_args()
@@ -34,13 +36,15 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-from SomniAI.interface import check_result, health, main, ping, upload
+from SomniAI.infra import check_result, health, main, ping, upload
 
 app.include_router(health.router, prefix=SomniAI_cfg.FASTAPI.API_PREFIX, tags=["health"])
 app.include_router(upload.router, prefix=SomniAI_cfg.FASTAPI.API_PREFIX, tags=["upload"])
 app.include_router(ping.router, prefix=SomniAI_cfg.FASTAPI.API_PREFIX, tags=["ping"])
 app.include_router(check_result.router, prefix=SomniAI_cfg.FASTAPI.API_PREFIX, tags=["result"])
 app.include_router(main.router, tags=["main"])
+
+app.container = Container()
 
 async def start():
     config = Config()
@@ -50,7 +54,6 @@ async def start():
     config.loglevel = getattr(SomniAI_cfg.FASTAPI.LOG_LEVEL, "LOG_LEVEL", "info").lower()
 
     await serve(app, config)
-    
     
 if __name__ == "__main__":
     asyncio.run(start())

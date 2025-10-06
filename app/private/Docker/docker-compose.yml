@@ -1,0 +1,49 @@
+#############################################################
+# AEYE Web Docker Compose File
+# Created By Yoonchul Chung
+# Created At 2024.08.03
+# Welcome to Visit Github : https://github.com/Yoonchulchung
+#############################################################
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_ALLOW_EMPTY_PASSWORD: "no"
+    command: >
+      mysqld
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_0900_ai_ci
+      --default-authentication-plugin=mysql_native_password
+    volumes:
+      - ../database:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u${MYSQL_USER} -p${MYSQL_PASSWORD} || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    networks: 
+      - somniai_web
+  ai:
+    build:
+      context: ..
+      dockerfile: Docker/AI/Dockerfile
+    image: somniai:1.0
+    container_name:  somniai
+    ports:
+      - "6000:6000"
+    networks:
+      - somniai_web
+networks:
+  somniai_web:
+    driver: bridge

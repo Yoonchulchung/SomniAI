@@ -1,0 +1,33 @@
+time="2025-10-06T15:39:33+09:00" level=warning msg="/home/yoonchul/Documents/personal_work/SomniAI/app/private/Docker/docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion"
+time="2025-10-06T15:39:33+09:00" level=warning msg="Found orphan containers ([aeye_web_front postgres aeye_web_backend opticnet_container somniai_pose lab_apache lab_segmentation lab_classification lab_human3d lab_detection_old]) for this project. If you removed or renamed this service in your compose file, you can run this command with the --remove-orphans flag to clean it up."
+ Container somniai  Recreate
+ Container mysql  Recreate
+ Container somniai  Recreated
+ Container mysql  Recreated
+Attaching to mysql, somniai
+mysql    | 2025-10-06 15:39:33+09:00 [Note] [Entrypoint]: Entrypoint script for MySQL Server 8.0.43-1.el9 started.
+mysql    | 2025-10-06 15:39:34+09:00 [Note] [Entrypoint]: Switching to dedicated user 'mysql'
+mysql    | 2025-10-06 15:39:34+09:00 [Note] [Entrypoint]: Entrypoint script for MySQL Server 8.0.43-1.el9 started.
+mysql    | '/var/lib/mysql/mysql.sock' -> '/var/run/mysqld/mysqld.sock'
+mysql    | 2025-10-06T06:39:34.374947Z 0 [Warning] [MY-011068] [Server] The syntax '--skip-host-cache' is deprecated and will be removed in a future release. Please use SET GLOBAL host_cache_size=0 instead.
+mysql    | 2025-10-06T06:39:34.375957Z 0 [Warning] [MY-010918] [Server] 'default_authentication_plugin' is deprecated and will be removed in a future release. Please use authentication_policy instead.
+mysql    | 2025-10-06T06:39:34.375969Z 0 [System] [MY-010116] [Server] /usr/sbin/mysqld (mysqld 8.0.43) starting as process 1
+mysql    | 2025-10-06T06:39:34.383597Z 1 [System] [MY-013576] [InnoDB] InnoDB initialization has started.
+mysql    | 2025-10-06T06:39:34.726047Z 1 [System] [MY-013577] [InnoDB] InnoDB initialization has ended.
+[Ksomniai exited with code 0
+mysql    | 2025-10-06T06:39:34.927495Z 0 [Warning] [MY-010068] [Server] CA certificate ca.pem is self signed.
+mysql    | 2025-10-06T06:39:34.927512Z 0 [System] [MY-013602] [Server] Channel mysql_main configured to support TLS. Encrypted connections are now supported for this channel.
+mysql    | 2025-10-06T06:39:34.931069Z 0 [Warning] [MY-011810] [Server] Insecure configuration for --pid-file: Location '/var/run/mysqld' in the path is accessible to all OS users. Consider choosing a different directory.
+mysql    | 2025-10-06T06:39:34.944309Z 0 [System] [MY-011323] [Server] X Plugin ready for connections. Bind-address: '::' port: 33060, socket: /var/run/mysqld/mysqlx.sock
+mysql    | 2025-10-06T06:39:34.944358Z 0 [System] [MY-010931] [Server] /usr/sbin/mysqld: ready for connections. Version: '8.0.43'  socket: '/var/run/mysqld/mysqld.sock'  port: 3306  MySQL Community Server - GPL.
+mysql    | 2025-10-06T06:39:43.995955Z 8 [Warning] [MY-013360] [Server] Plugin mysql_native_password reported: ''mysql_native_password' is deprecated and will be removed in a future release. Please use caching_sha2_password instead'
+youthful_hellman  | mysql -p
+youthful_hellman  | [?2004lbash: mysql: command not found
+youthful_hellman  | [?2004h]0;root@b30e152ca9c5: /approot@b30e152ca9c5:/app# mysql -p
+youthful_hellman  | [?2004lbash: mysql: command not found
+youthful_hellman  | [?2004h]0;root@b30e152ca9c5: /approot@b30e152ca9c5:/app# ^C[?2004l[?2004h[?2004l
+youthful_hellman  | [?2004h]0;root@b30e152ca9c5: /approot@b30e152ca9c5:/app# xit
+youthful_hellman  | [?2004lbash: xit: command not found
+youthful_hellman  | [?2004h]0;root@b30e152ca9c5: /approot@b30e152ca9c5:/app# exit
+youthful_hellman  | [?2004lexit
+[Kyouthful_hellman exited with code 127
