@@ -45,6 +45,12 @@ VISION_MODEL_ID_MAP = {
 
 
 @dataclass
+class MQTTConfig:
+    ADDRESS: str = "localhost"
+    PORT: int = 1883
+    TOPIC : str = "somniai/pillow/esp32"
+
+@dataclass
 class FastAPIConfig:
     HOST: str = "localhost"
     PORT: int = 8000
@@ -95,6 +101,7 @@ class Config:
     FASTAPI: FastAPIConfig = field(default_factory=FastAPIConfig)
     HTTP: HTTPConfig = field(default_factory=HTTPConfig)
     AI: AIConfig = field(default_factory=AIConfig)
+    MQTT: MQTTConfig = field(default_factory=MQTTConfig)
 
     
 def _get_config_file(config_path : str):
@@ -134,6 +141,7 @@ def _parse_config(config_data : Union[Dict[str, Any], types.ModuleType, Config])
                 "FASTAPI": getattr(config_data, "FASTAPI", {}),
                 "HTTP": getattr(config_data, "HTTP", {}),
                 "AI": getattr(config_data, "AI", {}),
+                "MQTT" : getattr(config_data, "MQTT", {})
             }
             
     if not isinstance(config_data, dict):
@@ -143,6 +151,7 @@ def _parse_config(config_data : Union[Dict[str, Any], types.ModuleType, Config])
     fastapi_raw = _get(config_data, "FASTAPI", {}) or {}
     http_raw    = _get(config_data, "HTTP", {}) or {}
     ai_raw      = _get(config_data, "AI", {}) or {}
+    mqtt_raw    = _get(config_data, "MQTT", {}) or {}
     
     vlm_raw      = _get(ai_raw, "VLM", {}) or {}
     vision_raw      = _get(ai_raw, "VISION", {}) or {}
@@ -206,12 +215,19 @@ def _parse_config(config_data : Union[Dict[str, Any], types.ModuleType, Config])
         VLM=vlm,
         VISION=vision,
     )
+    
+    mqtt = MQTTConfig(
+        ADDRESS=_get(mqtt_raw, "ADDRESS", MQTTConfig.ADDRESS),
+        PORT= int(_get(mqtt_raw, "PORT", MQTTConfig.PORT)),
+        TOPIC=_get(mqtt_raw, "TOPIC", MQTTConfig.TOPIC),
+    )
 
     return Config(
         type=str(_get(config_data, "type", "develop")),
         FASTAPI=fastapi,
         HTTP=http,
         AI=ai,
+        MQTT=mqtt,
     )
     
     

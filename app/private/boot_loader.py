@@ -1,44 +1,34 @@
+import asyncio
 import os
 import socket
 
-import torch
 from rich.console import Console
 from rich.panel import Panel
 
-from SomniAI.application.AI import Dataset, GPUModelLoader, Inference
+from SomniAI.application.AI import GPUModelLoader, Inference
 from SomniAI.application.AI.registry import vision_register, vlm_register
 from SomniAI.application.config import save_yaml
-from SomniAI.application.log import SomniAI_log
-from SomniAI.application.process import ProcessGPU
+from SomniAI.application.logger import SomniAI_log
+from SomniAI.application.mqtt import SomniAIMQTT
+from SomniAI.application.process import Process
 from SomniAI.application.registry import get_cfg
 
 
-async def bootstrap() -> ProcessGPU:
+async def bootstrap() -> Process:
     # We build everything in bootstrap
     SomniAI_log("=" * 10, " SomniAI FastAPI Server ", "=" * 10)
     
-    if torch.cuda.is_available():
-        gpu_ids = list(i for i in range(torch.cuda.device_count()))
-    else:
-        gpu_ids = None
-
     SomniAI_cfg = get_cfg()
-    gpu = ProcessGPU(SomniAI_cfg.AI, 
-                     SomniAI_cfg.HTTP, 
-                     Inference(SomniAI_cfg.AI.VLM.PROMPT, SomniAI_cfg.AI.VLM.QUESTION, SomniAI_log), 
-                     Dataset(SomniAI_cfg.AI), 
-                     SomniAI_log)
+    process = Process(SomniAI_cfg,
+                  Inference(SomniAI_cfg.AI.VLM.PROMPT, SomniAI_cfg.AI.VLM.QUESTION, SomniAI_log), 
+                  SomniAIMQTT(SomniAI_cfg),
+                  SomniAI_log)
     
     model_loader = GPUModelLoader(SomniAI_cfg,
                                   SomniAI_cfg.AI.FREE_MEM_THRESHOLD,
                                   vlm_register=vlm_register,
                                   vision_register=vision_register, 
                                   logger=SomniAI_log)
-    
-    vlm_model = await model_loader.get_model(SomniAI_cfg.AI.VLM.MODEL_NAME)
-    vision_model = await model_loader.get_model(SomniAI_cfg.AI.VISION.MODEL_NAME)
-    await gpu.add_vlm_model(vlm_model)
-    await gpu.add_vision_model(vision_model)
     
     work_dir = "./work_dir"
     
@@ -49,7 +39,8 @@ async def bootstrap() -> ProcessGPU:
     
     _print_info(SomniAI_cfg, model_loader)
     
-    return gpu
+    asyncio.create_task(process.air_micro_scheduler())
+    asyncio.create_task(process.side_micro_scheduler())
 
 
 async def shutdown() -> None:

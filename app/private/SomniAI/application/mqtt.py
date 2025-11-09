@@ -1,17 +1,18 @@
 import asyncio
+
 import paho.mqtt.client as mqtt
 
-    
+
 class SomniAIMQTT:
     
-    def __init__(self):
+    def __init__(self, cfg):
         super().__init__()
         
         self.message_queue = asyncio.Queue()
-        self.BATCH_TIMEOUT = ...
-        self.BROKER_ADDRESS = "220.149.231.121"
-        self.PORT = 1883
-        self.TOPIC = "somniai/pillow/esp32"
+        self.BATCH_TIMEOUT = cfg.HTTP.BATCH_TIMEOUT
+        self.BROKER_ADDRESS = cfg.MQTT.ADDRESS
+        self.PORT = cfg.MQTT.PORT
+        self.TOPIC = cfg.MQTT.TOPIC
         self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, "SomniAI_Server")
     
     async def __aenter__(self):
@@ -38,7 +39,6 @@ class SomniAIMQTT:
         
         if not is_published:
             print("Failed to publish message.")
-            
             
             
 if __name__ == "__main__":
