@@ -12,8 +12,6 @@ FASTAPI:
 HTTP:
   BATCH_THRESHOLD : 256
   BATCH_TIMEOUT : 1.0 # 1sec
-  GO:
-    URL : http://172.0.0.1:3000/upload
 
 AI:
   FREE_MEM_THRESHOLD : 2 # GB
@@ -32,7 +30,7 @@ AI:
     PROMPT: |-
       Respond with exactly one of the following labels, without quotes or extra text:
       [Not lying on bed, Lying but not prone, Prone - Left, Prone - Center, Prone - Right]
-  VISION:
+  POSE:
     MODEL_NAME : MMPose
     MODEL_CFG_PATH : ./vision_models/mmpose/hrnet/td-hm_hrnet-w48_dark-8xb32-210e_coco-wholebody-384x288.py
     DEVICE : cuda:1
@@ -41,5 +39,7 @@ AI:
     CONF_THRES: 0.25
     IOU_THRES: 0.45
 
-
-  
+MQTT:
+  ADRESS : localhost
+  PORT : 1883
+  TOPIC : somniai/pillow/esp32

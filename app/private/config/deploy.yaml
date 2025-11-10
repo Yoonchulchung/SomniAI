@@ -3,7 +3,7 @@ type: deploy
 
 FASTAPI:
   HOST : 0.0.0.0
-  PORT : 5000
+  PORT : 8000
   API_PREFIX : /api/v1
   WORKERS : 1
   RELOAD : True
@@ -15,15 +15,31 @@ HTTP:
 
 AI:
   FREE_MEM_THRESHOLD : 2 # GB
-  INFERENCE_MODE : vlm
-  MODEL_NAME : BLIP
-  MODEL_ID: Salesforce/blip-image-captioning-base
-  TASK_TYPE : VQA
-  MAX_NEW_TOKENS : 32
-  DEVICE_MAP : auto
-  DTYPE : float16
-  VLM_QUESTION : What objects can you see?
-  VLM_PROMPOT : "Question: What objects are in this image? Answer:"
   NORM_MEAN : (0.485, 0.456, 0.406)
   NROM_STD : (0.229, 0.224, 0.225)
-  
+  VLM:
+    MODEL_NAME : Qwen2VL
+    DEVICE : cuda:0
+    DEVICE_MAP : auto
+    DTYPE : float16
+    TASK_TYPE : CAPTION
+    MAX_TOKENS : 32
+    QUESTION: >-
+      Is the person lying on the bed? If yes, are they lying face down (prone position) or not? If prone, are they
+      positioned to the left side of the pillow, the right side, or the center?
+    PROMPT: |-
+      Respond with exactly one of the following labels, without quotes or extra text:
+      [Not lying on bed, Lying but not prone, Prone - Left, Prone - Center, Prone - Right]
+  POSE:
+    MODEL_NAME : MMPose
+    MODEL_CFG_PATH : ./vision_models/mmpose/hrnet/td-hm_hrnet-w48_dark-8xb32-210e_coco-wholebody-384x288.py
+    DEVICE : cuda:1
+    DTYPE : float16
+    CHECKPOINT : ./
+    CONF_THRES: 0.25
+    IOU_THRES: 0.45
+
+MQTT:
+  ADRESS : localhost
+  PORT : 1883
+  TOPIC : somniai/pillow/esp32
