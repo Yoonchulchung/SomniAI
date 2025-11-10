@@ -9,7 +9,7 @@ from fastapi.responses import HTMLResponse
 from PIL import Image
 
 from SomniAI.application.AI.dataset import Dataset
-from SomniAI.application.process import ProcessGPU
+from SomniAI.application.process import Process
 from SomniAI.application.registry import get_cfg
 
 router = APIRouter()
@@ -22,7 +22,7 @@ async def get_DataSet():
 
 @router.get("/result-side")
 async def result_side(request: Request, dataset=Depends(get_DataSet)):
-    gpu = ProcessGPU.get_instance()
+    gpu = Process.get_instance()
     
     img, message = await gpu.get_side_result()
     if not message:
