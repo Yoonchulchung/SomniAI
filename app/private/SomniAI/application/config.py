@@ -36,7 +36,7 @@ VLM_MODEL_ID_MAP = {
             # Qwen/Qwen3Guard-Gen-4B
 }
 
-VISION_MODEL_ID_MAP = {
+POSE_MODEL_ID_MAP = {
     "YOLO" : "yolo11x-pose.pt", 
             #"yolov8n-pose.pt",
             # yolov8s-pose.pt
@@ -77,7 +77,7 @@ class VLMConfig:
     PROMPT : str = None
 
 @dataclass
-class VISIONConfig:
+class POSEConfig:
     MODEL_NAME: str = None
     MODEL_ID : str = None
     MODEL_CFG_PATH: str = None
@@ -93,7 +93,7 @@ class AIConfig:
     NORM_MEAN: tuple[float] = (0.485, 0.456, 0.406)
     NORM_STD:  tuple[float] = (0.229, 0.224, 0.225)
     VLM: VLMConfig = field(default_factory=VLMConfig)
-    VISION : VISIONConfig = field(default_factory=VISIONConfig)
+    POSE : POSEConfig = field(default_factory=POSEConfig)
     
 @dataclass
 class Config:
@@ -153,8 +153,8 @@ def _parse_config(config_data : Union[Dict[str, Any], types.ModuleType, Config])
     ai_raw      = _get(config_data, "AI", {}) or {}
     mqtt_raw    = _get(config_data, "MQTT", {}) or {}
     
-    vlm_raw      = _get(ai_raw, "VLM", {}) or {}
-    vision_raw      = _get(ai_raw, "VISION", {}) or {}
+    vlm_raw     = _get(ai_raw, "VLM", {}) or {}
+    pose_raw    = _get(ai_raw, "POSE", {}) or {}
 
 
     fastapi = FastAPIConfig(
@@ -191,21 +191,21 @@ def _parse_config(config_data : Union[Dict[str, Any], types.ModuleType, Config])
 
     )
     
-    dtype = DTYPE_MAP[_get(vision_raw, "DTYPE", VISIONConfig.DTYPE)]
+    dtype = DTYPE_MAP[_get(pose_raw, "DTYPE", POSEConfig.DTYPE)]
     
     if dtype == torch.bfloat16 and not bf16_avail:
         print("torch.bfloat16 is not supported")
         dtype = torch.float16
         
-    vision = VISIONConfig(
-        MODEL_NAME=_get(vision_raw, "MODEL_NAME", VISIONConfig.MODEL_NAME),
-        MODEL_ID=VISION_MODEL_ID_MAP[_get(vision_raw, "MODEL_NAME", VISIONConfig.MODEL_NAME)],
-        MODEL_CFG_PATH=_get(vision_raw, "MODEL_CFG_PATH", VISIONConfig.MODEL_CFG_PATH),
-        DEVICE=_get(vision_raw, "DEVICE", VISIONConfig.DEVICE),
+    pose = POSEConfig(
+        MODEL_NAME=_get(pose_raw, "MODEL_NAME", POSEConfig.MODEL_NAME),
+        MODEL_ID=POSE_MODEL_ID_MAP[_get(pose_raw, "MODEL_NAME", POSEConfig.MODEL_NAME)],
+        MODEL_CFG_PATH=_get(pose_raw, "MODEL_CFG_PATH", POSEConfig.MODEL_CFG_PATH),
+        DEVICE=_get(pose_raw, "DEVICE", POSEConfig.DEVICE),
         DTYPE=dtype,
-        CHECKPOINT=_get(vision_raw, "CHECKPOINT", VISIONConfig.CHECKPOINT),
-        CONF_THRES=float(_get(vision_raw, "CONF_THRES", VISIONConfig.CONF_THRES)),
-        IOU_THRES=float(_get(vision_raw, "IOU_THRES", VISIONConfig.IOU_THRES)),
+        CHECKPOINT=_get(pose_raw, "CHECKPOINT", POSEConfig.CHECKPOINT),
+        CONF_THRES=float(_get(pose_raw, "CONF_THRES", POSEConfig.CONF_THRES)),
+        IOU_THRES=float(_get(pose_raw, "IOU_THRES", POSEConfig.IOU_THRES)),
     )
     
     ai = AIConfig(
@@ -213,7 +213,7 @@ def _parse_config(config_data : Union[Dict[str, Any], types.ModuleType, Config])
         NORM_MEAN=_get(ai_raw, "NORM_MEAN", AIConfig.NORM_MEAN),
         NORM_STD=_get(ai_raw, "NORM_STD", AIConfig.NORM_STD),
         VLM=vlm,
-        VISION=vision,
+        POSE=pose,
     )
     
     mqtt = MQTTConfig(

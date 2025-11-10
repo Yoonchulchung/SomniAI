@@ -4,7 +4,7 @@ import numpy as np
 import torch
 from PIL import Image
 
-from SomniAI.application.AI.registry import vision_register
+from SomniAI.application.AI.registry import pose_register
 
 
 class BasePoseAdapter:
@@ -14,7 +14,7 @@ class BasePoseAdapter:
         self.model = None
         self._build()
         
-        self.half = (self.cfg.DTYPE in (torch.float16, torch.bfloat16)) and self.cfg.DEVICE == "cuda"
+        self.half = (self.cfg.AI.POSE.DTYPE in (torch.float16, torch.bfloat16)) and self.cfg.AI.POSE.DEVICE == "cuda"
 
     def _build(self):
         raise NotImplementedError
@@ -26,7 +26,7 @@ class BasePoseAdapter:
         raise NotImplementedError
 
 
-@vision_register.register("YOLO")
+@pose_register.register("YOLO")
 class YOLOv8PoseAdapter(BasePoseAdapter):
     
     def _build(self):
@@ -72,16 +72,16 @@ class YOLOv8PoseAdapter(BasePoseAdapter):
         return r, keypoints, list(scores), bboxes
     
 
-@vision_register.register("MMPose")
+@pose_register.register("MMPose")
 class MMPoseAdapter(BasePoseAdapter):
             
     def _build(self):
         from mmpose.apis import MMPoseInferencer
         
-        if not self.cfg.MODEL_CFG_PATH or not self.cfg.MODEL_ID:
+        if not self.cfg.AI.POSE.MODEL_CFG_PATH or not self.cfg.AI.POSE.MODEL_ID:
             raise ValueError("MMPose는 cfg(.py/.yaml)와 checkpoint(.pth)가 필요합니다")
 
-        self.model = MMPoseInferencer(pose2d=self.cfg.MODEL_CFG_PATH, pose2d_weights=self.cfg.MODEL_ID, device=self.cfg.DEVICE)
+        self.model = MMPoseInferencer(pose2d=self.cfg.AI.POSE.MODEL_CFG_PATH, pose2d_weights=self.cfg.AI.POSE.MODEL_ID, device=self.cfg.AI.POSE.DEVICE)
 
     @torch.inference_mode()
     def predict(self, img : Image.Image) -> dict:

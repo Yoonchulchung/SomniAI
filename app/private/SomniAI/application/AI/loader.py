@@ -1,98 +1,142 @@
-import gc
-from typing import Any, Callable
+from typing import Callable
 
 import torch
+from abc import abstractmethod
 
 
 class ModelLoaderInterface:
+    '''
+    AEYE AI 서버의 AI 모델 담당입니다. 싱글턴으로 정의하세요. 
+    AI 모델을 쉽게 변경하고 사용할 수 있도록 정의해주세요. 어떤 AI 모델을 요청할지 모르기 
+    때문에 모델 로드, 사용, 변경 중에 시스템이 멈춰서는 안됩니다. 모델의 책임은 여기에 
+    있습니다.
     
-    def get_model(self, model_name):
-        raise NotImplemented
+    AEYE AI 서버가 시작될 때 사용할 기본 AI 모델은 config에서 설정합니다. 
+    '''
+    
+    @abstractmethod
+    async def get_model(self, model_name : str) -> Callable:
+        '''
+        런타임에 AI 모델을 할당받을 수 있습니다. 시스템에 더 이상 모델을 추가시킬 수 없다면
+        모델을 반환해주지 않아요. 
+        '''
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_model_list(self) -> dict:
+        '''
+        사용 가능한 모델들을 확인할 수 있습니다. 반환 정보는 아래와 같아요.
+        {
+            "vision" : [],
+            "llm" : [],
+        }
+        '''
+        raise NotImplementedError
+    
+    @abstractmethod
+    def get_vlm(self, model_name : str = None) -> Callable:
+        '''
+        현재 기본으로 사용하고 있는 vlm 모델의 인스턴스를 할당받을 수 있습니다. 시스템이
+        더이상 모델을 추가시킬 수 없다면 모델을 반환해주지 않아요.
+        '''
+        raise NotImplementedError
+    
+    @abstractmethod
+    def get_vlm_name(self) -> str:
+        '''
+        현재 기본으로 사용하고 있는 llm 모델의 이름을 확인할 수 있습니다. 
+        '''
+        raise NotImplementedError
+    
+    @abstractmethod
+    def get_pose(self, model_name : str = None) -> Callable:
+        '''
+        현재 기본으로 사용하고 있는 pose 모델의 인스턴스를를 할당받을 수 있습니다. 시스템이
+        더이상 모델을 추가시킬 수 없다면 모델을 반환해주지 않아요.
+        '''
+        raise NotImplementedError
+    
+    @abstractmethod
+    def get_pose_name(self) -> str:
+        '''
+        현재 기본으로 사용하고 있는 pose 모델의 이름을 확인할 수 있습니다. 
+        '''
+        raise NotImplementedError
+    
 
 class GPUModelLoader(ModelLoaderInterface):
-    # Only GPU Load is allowed
 
-    def __init__(self, 
-                 cfg,
-                 free_mem_threshold : float = 2.0, # Bytes
-                 vision_register : Callable = None,
-                 vlm_register : Callable = None,
-                 logger : Callable = None,
-                 ):
+    def __init__(self, cfg, registry, logger):
         super().__init__()
         
         self.cfg = cfg
-        self.free_mem_threshold = free_mem_threshold
-    
-        self.vision_register = vision_register
-        self.vlm_register = vlm_register
+        
+        self.pose_registry = registry["pose_register"]
+        self.vlm_registry = registry["vlm_register"]
         
         self.logger = logger
         if not torch.cuda.is_available():
             raise ValueError("GPU is not available")
         
-    def _check_mem_ok(self, gpu_id) -> bool:
-        
-        try:
-            free_b, total_b = torch.cuda.mem_get_info()
-        except Exception:
-            props = torch.cuda.get_device_properties(gpu_id)
-            total_b = props.total_memory
-            free_b = max(0, total_b - torch.cuda.memory_reserved(gpu_id) - torch.cuda.memory_allocated(gpu_id))
-            self.logger(free_b)
-        return free_b >= self.free_mem_threshold
-    
-    def _load_vlm(self, model_name):
-        self.vlm_register.get_cls(model_name)
-        model = self.vlm_register.set_inst(model_name, None, self.cfg.AI.VLM)
-        return model
-        
-    def _load_vision(self, model_name):
-        
-        self.vision_register.get_cls(model_name)
-        model = self.vision_register.set_inst(model_name, None, self.cfg.AI.VISION)
-        return model
-        
-    def _load_llm(self, model_name, gpu_id):
-        ...
-    
-    def get_model_list(self):
-        return [self.vlm_register.list(), self.vision_register.list()]
+        self.pose_model_name = self.cfg.AI.POSE.MODEL_NAME
+        self.vlm_model_name  = self.cfg.AI.VLM.MODEL_NAME    
         
     async def get_model(self, model_name):
         
         self.logger(f"{model_name} is loading...")
-        in_vision = model_name in self.vision_register.list()
-        in_vlm    = model_name in self.vlm_register.list()
+        in_pose = model_name in self.pose_registry.list()
+        in_vlm  = model_name in self.vlm_registry.list()
         
-        if not (in_vision or in_vlm):
+        if not (in_pose or in_vlm):
             raise ValueError(
-                f"Unknown model_name: '{model_name}'.\n"
-                f"Available vision: {list(self.vision_register.list())}\n"
-                f"available vlm: {list(self.vlm_register.list())}\n"
+                f"Unknown model_name: '{model_name}'.",
+                f"Available model in pose : {self.pose_registry.list()}",
+                f"Available model in valm : {self.vlm_registry.list()}",
             )
 
         try:
-            if in_vlm:
-                model = self._load_vlm(model_name)
-            else :
-                model = self._load_vision(model_name)
+            if in_pose :
+                model = self.get_pose(model_name)
+                self.pose_model_name = model_name
+            else:
+                model = self.get_vlm(model_name)
+                self.vlm_model_name = model_name
             
             if model is None:
                 raise KeyError(f"Registry returned None for '{model_name}'")
 
-            if not self._check_mem_ok(0):
-                del model
-                gc.collect()
-                torch.cuda.empty_cache()
         except Exception as e:
-            try:
-                if model is not None:
-                    del model
-                gc.collect()
-                torch.cuda.empty_cache()
-            finally:
-                raise RuntimeError(f"Failed to instantiate '{model_name}'. {e}")
+            self.logger("Soemthing wrong while Loading Model in GPUModelLoader")
         
         self.logger(f"{model_name} is loaded!")
         return model
+    
+    def get_model_list(self) -> dict:
+        return {
+            "vision" : self.pose_registry.list(),
+            "llm" : self.vlm_registry.list(),
+        }
+    
+    def get_vlm(self, model_name=None):
+        
+        if model_name is None:
+            model_name = self.vlm_model_name
+            
+        model_cls = self.vlm_registry.get_cls(model_name)
+        model_inst = model_cls(self.cfg)
+        return model_inst
+        
+    def get_vlm_name(self) -> str:
+        return self.vlm_model_name
+    
+    def get_pose(self, model_name: str = None) -> Callable:
+        
+        if model_name is None:
+            model_name = self.pose_model_name
+            
+        model_cls = self.pose_registry.get_cls(model_name)
+        model_inst = model_cls(self.cfg)
+        return model_inst
+    
+    def get_pose_name(self) -> str:
+        return self.pose_model_name

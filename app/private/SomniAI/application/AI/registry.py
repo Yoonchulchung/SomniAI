@@ -40,6 +40,6 @@ class Registry:
     def list(self):
         return list(self._map.keys())
     
-vlm_register = Registry()
-vision_register = Registry()
+vlm_register  = Registry()
+pose_register = Registry()
 

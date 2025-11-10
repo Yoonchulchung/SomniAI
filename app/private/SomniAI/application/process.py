@@ -1,9 +1,9 @@
 import asyncio
 from abc import ABC, abstractmethod
 from typing import Any, Dict
-from PIL import Image
 
 import torch
+from PIL import Image
 
 
 class IProcess(ABC):
@@ -209,7 +209,7 @@ class Process:
         
         loop = asyncio.get_event_loop()
         async with self._model_lock:
-            result = await loop.run_in_executor(None, self.inference, img)
+            result = await loop.run_in_executor(None, self.inference.run_in_vision, img)
         
         self._save_result(result)
             

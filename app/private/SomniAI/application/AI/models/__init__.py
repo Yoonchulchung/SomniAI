@@ -1,4 +1,4 @@
-from .vision import MMPoseAdapter, YOLOv8PoseAdapter
+from .pose import MMPoseAdapter, YOLOv8PoseAdapter
 from .vlm import (
     BLIP2Adapter,
     BLIPCaptionAdapter,

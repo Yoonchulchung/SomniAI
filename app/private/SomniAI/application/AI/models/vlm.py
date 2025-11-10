@@ -21,11 +21,11 @@ class VLMAdapter(nn.Module):
         self.model.eval()
             
         self.gen_kw = {}
-        self.gen_kw["max_new_tokens"] = self.cfg.MAX_TOKENS
+        self.gen_kw["max_new_tokens"] = self.cfg.AI.VLM.MAX_TOKENS
     
-        if self.cfg.TASK_TYPE.upper() == "VQA":
+        if self.cfg.AI.VLM.TASK_TYPE.upper() == "VQA":
             self.inference = self.vqa
-        elif self.cfg.TASK_TYPE.upper() == "CAPTION":
+        elif self.cfg.AI.VLM.TASK_TYPE.upper() == "CAPTION":
             self.inference = self.caption
         else:
             raise ValueError("Invalid task")
@@ -52,10 +52,10 @@ class VLMAdapter(nn.Module):
         raise NotImplementedError
     
     def caption(self, image: Image.Image) -> str:
-        return self._gen(image, self.cfg.PROMPT)
+        return self._gen(image, self.cfg.AI.VLM.PROMPT)
 
     def vqa(self, image: Image.Image) -> str:
-        return self._gen(image, self.cfg.QUESTION)
+        return self._gen(image, self.cfg.AI.VLM.QUESTION)
     
     def forward(self, image: Image.Image) -> str:
         return self.inference(image)
@@ -70,24 +70,24 @@ class BLIPCaptionAdapter(VLMAdapter):
         from transformers import BlipForConditionalGeneration, BlipProcessor
         self.processor = BlipProcessor.from_pretrained(self.cfg.MODEL_ID, use_fast=True)
 
-        if self.cfg.DEVICE_MAP:
+        if self.cfg.AI.VLM.DEVICE_MAP:
             self.model = BlipForConditionalGeneration.from_pretrained(
-                self.cfg.MODEL_ID, 
-                device_map=self.cfg.DEVICE_MAP, 
+                self.cfg.AI.VLM.MODEL_ID, 
+                device_map=self.cfg.AI.VLM.DEVICE_MAP, 
                 torch_dtype=self.cfg.DTYPE,
                 offload_folder="./offload",
                 #load_in_4bit=True,
             )
         else:
             self.model = BlipForConditionalGeneration.from_pretrained(
-                self.cfg.MODEL_ID, 
+                self.cfg.AI.VLM.MODEL_ID, 
                 torch_dtype=self.cfg.DTYPE)
             self.model.to("cuda")
     
     @torch.inference_mode()
     def _gen(self, image : Image.Image, text : str) -> str:
         inputs = self.processor(image, text=text, return_tensors="pt")
-        if not self.cfg.DEVICE_MAP:
+        if not self.cfg.AI.VLM.DEVICE_MAP:
             inputs = {k: v.to("cuda") for k, v in inputs.items()}
         
         with torch.amp.autocast(device_type="cuda", dtype=self.cfg.DTYPE):
@@ -102,12 +102,12 @@ class BLIP2Adapter(VLMAdapter):
         
     def _build(self):
         from transformers import Blip2ForConditionalGeneration, Blip2Processor
-        self.processor = Blip2Processor.from_pretrained(self.cfg.MODEL_ID, use_fast=True)
+        self.processor = Blip2Processor.from_pretrained(self.cfg.AI.VLM.MODEL_ID, use_fast=True)
         
-        if self.cfg.DEVICE_MAP:
+        if self.cfg.AI.VLM.DEVICE_MAP:
             self.model = Blip2ForConditionalGeneration.from_pretrained(
-                self.cfg.MODEL_ID, 
-                torch_dtype=self.cfg.DTYPE,
+                self.cfg.AI.VLM.MODEL_ID, 
+                torch_dtype=self.cfg.AI.VLM.DTYPE,
                 device_map={
                     "vision_model": 0,
                     "qformer": 0,
@@ -118,8 +118,8 @@ class BLIP2Adapter(VLMAdapter):
                 })
         else:
             self.model = Blip2ForConditionalGeneration.from_pretrained(
-                self.cfg.MODEL_ID, 
-                torch_dtype=self.cfg.DTYPE)
+                self.cfg.AI.VLM.MODEL_ID, 
+                torch_dtype=self.cfg.AI.VLM.DTYPE)
             self.model.to("cuda")
 
     @torch.inference_mode()         
@@ -158,11 +158,11 @@ class GITCaptionAdapter(VLMAdapter):
         
     def _build(self, ):
         from transformers import AutoModelForCausalLM, AutoProcessor
-        self.processor = AutoProcessor.from_pretrained(self.cfg.MODEL_ID, use_fast=True)
+        self.processor = AutoProcessor.from_pretrained(self.cfg.AI.VLM.MODEL_ID, use_fast=True)
         
         self.model = AutoModelForCausalLM.from_pretrained(
-            self.cfg.MODEL_ID, 
-            torch_dtype=self.cfg.DTYPE)
+            self.cfg.AI.VLM.MODEL_ID, 
+            torch_dtype=self.cfg.AI.VLM.DTYPE)
         self.model.to("cuda")
 
     @torch.inference_mode()
@@ -186,10 +186,10 @@ class Llava15Adapter(VLMAdapter):
     
     def _build(self):
         from transformers import AutoProcessor, LlavaForConditionalGeneration
-        self.processor = AutoProcessor.from_pretrained(self.cfg.MODEL_ID, trust_remote_code=True, use_fast=True)
+        self.processor = AutoProcessor.from_pretrained(self.cfg.AI.VLM.MODEL_ID, trust_remote_code=True, use_fast=True)
     
         self.model = LlavaForConditionalGeneration.from_pretrained(
-            self.cfg.MODEL_ID,
+            self.cfg.AI.VLM.MODEL_ID,
             torch_dtype=self.cfg.DTYPE,
             device_map="cuda:0",       
             trust_remote_code=True,
@@ -218,14 +218,14 @@ class Qwen2VLAdapter(VLMAdapter):
             from transformers import AutoModelForCausalLM as QwenVLForCG
 
         self.processor = AutoProcessor.from_pretrained(
-            self.cfg.MODEL_ID,
+            self.cfg.AI.VLM.MODEL_ID,
             trust_remote_code=True,
             use_fast=True,
         )
 
         self.model = QwenVLForCG.from_pretrained(
-            self.cfg.MODEL_ID,
-            dtype=self.cfg.DTYPE,   
+            self.cfg.AI.VLM.MODEL_ID,
+            dtype=self.cfg.AI.VLM.DTYPE,   
             device_map="cuda:0",          
             trust_remote_code=True,
         )
@@ -269,9 +269,9 @@ class Qwen3GGAdapter(VLMAdapter):
     def _build(self):
         from transformers import AutoModelForCausalLM, AutoTokenizer
         
-        self.tokenizer = AutoTokenizer.from_pretrained(self.cfg.MODEL_ID)
+        self.tokenizer = AutoTokenizer.from_pretrained(self.cfg.AI.VLM.MODEL_ID)
         self.model = AutoModelForCausalLM.from_pretrained(
-            self.cfg.MODEL_ID,
+            self.cfg.AI.VLM.MODEL_ID,
             torch_dtype="auto",
             device_map="auto"
         )
