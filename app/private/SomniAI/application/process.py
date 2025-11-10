@@ -107,6 +107,8 @@ class Process:
         self._side_request_lock = asyncio.Lock()
         self.side_request_queue = asyncio.Queue()
         
+        self.result_queue = asyncio.Queue()
+        
         self._model_lock = asyncio.Lock()
         self.model_queeu = asyncio.Queue()
         
@@ -116,17 +118,17 @@ class Process:
         self.device = "cuda"
 
     
-    async def enqueue_request_side(self, dataset : dict) -> None:
-        if not isinstance(dataset["img"], Image.Image):
+    async def enqueue_request_side(self, dataset : Image.Image) -> None:
+        if not isinstance(dataset, Image.Image):
             raise ValueError(f"Please enqueue PIL.Image format.")
         
         async with self._air_request_lock:
             await self.air_request_queue.put(dataset)
             
         
-    async def enqueue_request_air(self, dataset : dict) -> None:
+    async def enqueue_request_air(self, dataset : Image.Image) -> None:
         
-        if not isinstance(dataset["img"], Image.Image):
+        if not isinstance(dataset, Image.Image):
             raise ValueError(f"Please enqueue PIL.Image format.")
         
         async with self._air_request_lock:
@@ -205,13 +207,16 @@ class Process:
             print("No items in batch.")
             return
         
-        img : torch.Tensor = item["img"].unsqueeze(0).to(self.device)
+        #img : torch.Tensor = item["img"].unsqueeze(0).to(self.device)
+        img = item
         
         loop = asyncio.get_event_loop()
         async with self._model_lock:
-            result = await loop.run_in_executor(None, self.inference.run_in_vision, img)
+            result = await loop.run_in_executor(None, self.inference, img)
         
-        self._save_result(result)
+        self.result_queue.put(result)
+        #await self._save_result(result)
             
-    def _save_result(self, result):
-        self.mqtt.save_result(result)
+    async def _save_result(self, result):
+        async with self.mqtt as mqtt_broker:
+            await mqtt_broker.send_to_message_broker(result["pose_output"])

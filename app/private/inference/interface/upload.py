@@ -23,8 +23,7 @@ async def upload_air(request : Request, files: Optional[List[UploadFile]] = File
     '''
     Please send bytes data. Do not send Pytorch Tensor format.
     '''
-
-    dataset = await parser.get_pil(request, files)
+    dataset = await parser.get_img(request, files)
     await process.enqueue_request_air(dataset)   
 
     return {"msg": "succeed to send data"}
@@ -36,8 +35,11 @@ async def upload_side(request : Request, files: Optional[List[UploadFile]] = Fil
     '''
     Please send bytes data. Do not send Pytorch Tensor format.
     '''
+    
+    print("!!")
 
-    dataset = await parser.get_pil(request, files)
+
+    dataset = await parser.get_img(request, files)
     await process.enqueue_request_side(dataset)
 
     return {"msg": "succeed to send data"}

@@ -42,22 +42,21 @@ class IInference(nn.Module):
     def forward(self, img : Image.Image):
         
         start = time.time()
-        cls_output = self._pose_infer(img)
-        llm_output = self._vlm_infer(cls_output)
+        pose_output = self._pose_infer(img)
+        vlm_output = self._vlm_infer(img)
         
         return {
-            "cls_output" : cls_output,
-            "llm_output" : llm_output["result"],
-            "diagnosis_summary": llm_output["diagnosis_summary"],
+            "pose_output" : pose_output,
+            "vlm_output" : vlm_output["result"],
             "model_info": {
-            "vision_model": self.model_loader.get_vision_name(),
-            "llm_model": self.model_loader.get_llm_name(),
-        },
-        "inference_meta": {
-            "timestamp": datetime.now(),
-            "duration_sec": time.time() - start,
-            "device": "cuda:0"
-        },
+                "vision_model": self.model_loader.get_pose_name(),
+                "llm_model": self.model_loader.get_vlm_name(),
+            },
+            "inference_meta": {
+                "timestamp": datetime.now(),
+                "duration_sec": time.time() - start,
+                "device": "cuda:0"
+            },
         }
     
     
@@ -92,24 +91,18 @@ class InferenceGPU(IInference):
         self._vlm_model = None
     
     
-    def _pose_infer(self, img : torch.Tensor) -> str:
+    def _pose_infer(self, img : Image.Image) -> str:
         
-        if not isinstance(img, torch.Tensor):
+        if not isinstance(img, Image.Image):
             raise ValueError("Wrong image type is inserted to Inference GPU")
         
-        with torch.no_grad():
-            pred = self.pose_model(img)
-            probs = torch.softmax(pred, dim=1)          
-            top_prob, top_idx = probs.max(dim=1)
-            pred_label = self.labels[top_idx.item()]
+        result, keypoints, scores, bboxes = self.pose_model.predict(img)
             
-        return pred_label
+        return result, keypoints, scores, bboxes
     
-    def _vlm_infer(self, pred):
-        result = self.langchain_search.search(f"{pred}의 진료 방법은 뭐야.")
-        llm_summary = self.langchain_search.search(f"{result}를 30자 이하로 요약해봐")
-        
+    def _vlm_infer(self, img : Image.Image):
+        result = self.vlm_model(img)
+    
         return {
             "result" : result,
-            "diagnosis_summary" : llm_summary,
         }

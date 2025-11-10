@@ -86,8 +86,8 @@ class MMPoseAdapter(BasePoseAdapter):
     @torch.inference_mode()
     def predict(self, img : Image.Image) -> dict:
 
-        w, h = img[0].size         
-        img_np = np.array(img[0])
+        w, h = img.size         
+        img_np = np.array(img)
         
         # model에 Image.Image 넣으면 에러 발생.
         # PIL 대신에 numpy 사용.
