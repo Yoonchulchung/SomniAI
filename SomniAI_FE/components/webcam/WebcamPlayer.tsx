@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Video, VideoOff, Camera } from 'lucide-react';
 
 interface WebcamPlayerProps {
-  videoRef: React.RefObject<HTMLVideoElement>;
+  videoRef: React.RefObject<HTMLVideoElement | null>;
   isStreaming: boolean;
   error: string | null;
   onStart: () => void;
