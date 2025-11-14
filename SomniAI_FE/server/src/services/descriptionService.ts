@@ -4,14 +4,13 @@
  */
 
 import prisma from '../config/database';
-import { DescriptionStatus } from '@prisma/client';
 
 export class DescriptionService {
   /**
    * Get all descriptions (published only for non-admin)
    */
   async getAll(isAdmin: boolean = false) {
-    const where = isAdmin ? {} : { status: DescriptionStatus.PUBLISHED };
+    const where = isAdmin ? {} : { status: 'PUBLISHED' };
 
     return await prisma.description.findMany({
       where,
@@ -52,7 +51,7 @@ export class DescriptionService {
     }
 
     // Non-admin can only see published descriptions
-    if (!isAdmin && description.status !== DescriptionStatus.PUBLISHED) {
+    if (!isAdmin && description.status !== 'PUBLISHED') {
       throw new Error('Description not found');
     }
 
@@ -72,7 +71,7 @@ export class DescriptionService {
         title: data.title,
         content: data.content,
         authorId: data.authorId,
-        status: DescriptionStatus.DRAFT,
+        status: 'DRAFT',
         version: 1,
       },
       include: {
@@ -149,7 +148,7 @@ export class DescriptionService {
       data: {
         descriptionId: id,
         title: existing.title,
-        content: existing.content,
+        content: existing.content as any,
         version: existing.version,
       },
     });
@@ -158,7 +157,7 @@ export class DescriptionService {
     return await prisma.description.update({
       where: { id },
       data: {
-        status: DescriptionStatus.PUBLISHED,
+        status: 'PUBLISHED',
         publishedAt: new Date(),
         version: existing.version + 1,
       },
@@ -194,7 +193,7 @@ export class DescriptionService {
     return await prisma.description.update({
       where: { id },
       data: {
-        status: DescriptionStatus.DRAFT,
+        status: 'DRAFT',
       },
       include: {
         author: {

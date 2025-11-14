@@ -23,7 +23,7 @@ export const authenticateToken = (
   req: AuthRequest,
   res: Response,
   next: NextFunction
-) => {
+): void => {
   try {
     // Get token from Authorization header or cookie
     const authHeader = req.headers['authorization'];
@@ -34,17 +34,19 @@ export const authenticateToken = (
         success: false,
         error: 'Authentication required',
       };
-      return res.status(401).json(response);
+      res.status(401).json(response);
+      return;
     }
 
     // Verify token
-    jwt.verify(token, config.JWT_SECRET, (err, decoded) => {
+    jwt.verify(token, config.JWT_SECRET, (err: any, decoded: any) => {
       if (err) {
         const response: ApiResponse = {
           success: false,
           error: 'Invalid or expired token',
         };
-        return res.status(403).json(response);
+        res.status(403).json(response);
+        return;
       }
 
       req.user = decoded as { id: string; email: string; role: string };
@@ -66,13 +68,14 @@ export const requireAdmin = (
   req: AuthRequest,
   res: Response,
   next: NextFunction
-) => {
+): void => {
   if (req.user?.role !== 'ADMIN') {
     const response: ApiResponse = {
       success: false,
       error: 'Admin access required',
     };
-    return res.status(403).json(response);
+    res.status(403).json(response);
+    return;
   }
 
   next();

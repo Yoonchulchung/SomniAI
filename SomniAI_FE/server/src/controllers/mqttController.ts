@@ -135,7 +135,7 @@ export class MqttController {
   /**
    * Get MQTT connection status
    */
-  async getStatus(req: Request, res: Response) {
+  async getStatus(_req: Request, res: Response) {
     const isConnected = mqttService.isConnected();
 
     const response: ApiResponse<{ connected: boolean }> = {
@@ -149,7 +149,7 @@ export class MqttController {
   /**
    * Get MQTT logs
    */
-  async getLogs(req: Request, res: Response) {
+  async getLogs(_req: Request, res: Response) {
     const logs = mqttService.getLogs();
 
     const response: ApiResponse = {
@@ -163,7 +163,7 @@ export class MqttController {
   /**
    * Clear MQTT logs
    */
-  async clearLogs(req: Request, res: Response) {
+  async clearLogs(_req: Request, res: Response) {
     mqttService.clearLogs();
 
     const response: ApiResponse = {

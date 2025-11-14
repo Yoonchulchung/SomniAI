@@ -31,14 +31,14 @@ export class AuthController {
         message: 'User registered successfully',
       };
 
-      res.status(201).json(response);
+      return res.status(201).json(response);
     } catch (error) {
       const response: ApiResponse = {
         success: false,
         error: error instanceof Error ? error.message : 'Registration failed',
       };
 
-      res.status(400).json(response);
+      return res.status(400).json(response);
     }
   }
 
@@ -72,21 +72,21 @@ export class AuthController {
         message: 'Login successful',
       };
 
-      res.json(response);
+      return res.json(response);
     } catch (error) {
       const response: ApiResponse = {
         success: false,
         error: error instanceof Error ? error.message : 'Login failed',
       };
 
-      res.status(401).json(response);
+      return res.status(401).json(response);
     }
   }
 
   /**
    * Logout user
    */
-  async logout(req: Request, res: Response) {
+  async logout(_req: Request, res: Response) {
     res.clearCookie('token');
 
     const response: ApiResponse = {
@@ -94,7 +94,7 @@ export class AuthController {
       message: 'Logout successful',
     };
 
-    res.json(response);
+    return res.json(response);
   }
 
   /**
@@ -117,14 +117,14 @@ export class AuthController {
         data: user,
       };
 
-      res.json(response);
+      return res.json(response);
     } catch (error) {
       const response: ApiResponse = {
         success: false,
         error: 'Failed to get user info',
       };
 
-      res.status(500).json(response);
+      return res.status(500).json(response);
     }
   }
 }

@@ -22,14 +22,14 @@ export class DescriptionController {
         data: descriptions,
       };
 
-      res.json(response);
+      return res.json(response);
     } catch (error) {
       const response: ApiResponse = {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to fetch descriptions',
       };
 
-      res.status(500).json(response);
+      return res.status(500).json(response);
     }
   }
 
@@ -48,14 +48,14 @@ export class DescriptionController {
         data: description,
       };
 
-      res.json(response);
+      return res.json(response);
     } catch (error) {
       const response: ApiResponse = {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to fetch description',
       };
 
-      res.status(404).json(response);
+      return res.status(404).json(response);
     }
   }
 
@@ -94,14 +94,14 @@ export class DescriptionController {
         message: 'Description created successfully',
       };
 
-      res.status(201).json(response);
+      return res.status(201).json(response);
     } catch (error) {
       const response: ApiResponse = {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to create description',
       };
 
-      res.status(500).json(response);
+      return res.status(500).json(response);
     }
   }
 
@@ -133,7 +133,7 @@ export class DescriptionController {
         message: 'Description updated successfully',
       };
 
-      res.json(response);
+      return res.json(response);
     } catch (error) {
       const response: ApiResponse = {
         success: false,
@@ -141,7 +141,7 @@ export class DescriptionController {
       };
 
       const statusCode = error instanceof Error && error.message === 'Unauthorized' ? 403 : 500;
-      res.status(statusCode).json(response);
+      return res.status(statusCode).json(response);
     }
   }
 
@@ -168,7 +168,7 @@ export class DescriptionController {
         message: 'Description published successfully',
       };
 
-      res.json(response);
+      return res.json(response);
     } catch (error) {
       const response: ApiResponse = {
         success: false,
@@ -176,7 +176,7 @@ export class DescriptionController {
       };
 
       const statusCode = error instanceof Error && error.message === 'Unauthorized' ? 403 : 500;
-      res.status(statusCode).json(response);
+      return res.status(statusCode).json(response);
     }
   }
 
@@ -203,7 +203,7 @@ export class DescriptionController {
         message: 'Description unpublished successfully',
       };
 
-      res.json(response);
+      return res.json(response);
     } catch (error) {
       const response: ApiResponse = {
         success: false,
@@ -211,7 +211,7 @@ export class DescriptionController {
       };
 
       const statusCode = error instanceof Error && error.message === 'Unauthorized' ? 403 : 500;
-      res.status(statusCode).json(response);
+      return res.status(statusCode).json(response);
     }
   }
 
@@ -237,7 +237,7 @@ export class DescriptionController {
         message: 'Description deleted successfully',
       };
 
-      res.json(response);
+      return res.json(response);
     } catch (error) {
       const response: ApiResponse = {
         success: false,
@@ -245,7 +245,7 @@ export class DescriptionController {
       };
 
       const statusCode = error instanceof Error && error.message === 'Unauthorized' ? 403 : 500;
-      res.status(statusCode).json(response);
+      return res.status(statusCode).json(response);
     }
   }
 
@@ -271,7 +271,7 @@ export class DescriptionController {
         data: history,
       };
 
-      res.json(response);
+      return res.json(response);
     } catch (error) {
       const response: ApiResponse = {
         success: false,
@@ -279,7 +279,7 @@ export class DescriptionController {
       };
 
       const statusCode = error instanceof Error && error.message === 'Unauthorized' ? 403 : 500;
-      res.status(statusCode).json(response);
+      return res.status(statusCode).json(response);
     }
   }
 }

@@ -75,7 +75,7 @@ export class AuthService {
         role: user.role,
       },
       config.JWT_SECRET,
-      { expiresIn: config.JWT_EXPIRES_IN }
+      { expiresIn: config.JWT_EXPIRES_IN } as jwt.SignOptions
     );
 
     return {
