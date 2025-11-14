@@ -222,16 +222,18 @@ kill -9 <PID>
 ```
 Error loading shared library libssl.so.1.1: No such file or directory
 PrismaClientInitializationError: Unable to require libquery_engine
+또는
+ERROR: unable to select packages: openssl1.1-compat (no such package)
 ```
 
-**원인**: Alpine Linux 이미지에 OpenSSL 1.1이 없음
+**원인**: Alpine Linux 이미지에 Prisma 실행에 필요한 OpenSSL 및 libc 라이브러리가 없음
 
 **해결**: 이미 docker-compose.dev.yml에 자동 설치 설정되어 있음
 ```yaml
-command: sh -c "apk add --no-cache openssl1.1-compat && npm install && npx prisma generate && npm run dev"
+command: sh -c "apk add --no-cache openssl-dev libc6-compat && npm install && npx prisma generate && npm run dev"
 ```
 
-컨테이너 재시작 시 자동으로 OpenSSL이 설치됩니다:
+컨테이너 재시작 시 자동으로 필요한 라이브러리가 설치됩니다:
 ```bash
 ./run.sh dev
 ```
@@ -240,7 +242,7 @@ command: sh -c "apk add --no-cache openssl1.1-compat && npm install && npx prism
 ```bash
 # 백엔드 컨테이너 내부에서
 docker exec -it somniai-backend sh
-apk add --no-cache openssl1.1-compat
+apk add --no-cache openssl-dev libc6-compat
 npx prisma generate
 npm run dev
 ```
