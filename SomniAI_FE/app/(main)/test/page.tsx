@@ -5,12 +5,12 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
-import { ArrowLeft, Send, Code, Trash2, Copy, Check } from 'lucide-react';
+import { ArrowLeft, Send, Code, Trash2, Copy, Check, Terminal } from 'lucide-react';
 
 interface Response {
   status: number;
@@ -18,6 +18,13 @@ interface Response {
   headers: Record<string, string>;
   data: any;
   duration: number;
+}
+
+interface LogEntry {
+  timestamp: number;
+  level: 'info' | 'success' | 'error' | 'warn';
+  message: string;
+  details?: any;
 }
 
 export default function TestPage() {
@@ -29,11 +36,33 @@ export default function TestPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const logsEndRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll logs to bottom
+  useEffect(() => {
+    if (logsEndRef.current) {
+      logsEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [logs]);
+
+  // Add log entry
+  const addLog = (level: LogEntry['level'], message: string, details?: any) => {
+    const log: LogEntry = {
+      timestamp: Date.now(),
+      level,
+      message,
+      details,
+    };
+    setLogs((prev) => [...prev, log].slice(-100)); // Keep last 100 logs
+  };
 
   const sendRequest = async () => {
     setLoading(true);
     setError(null);
     setResponse(null);
+
+    addLog('info', `요청 준비: ${method} ${url}`);
 
     try {
       // Parse headers
@@ -41,7 +70,9 @@ export default function TestPage() {
       if (headers.trim()) {
         try {
           parsedHeaders = JSON.parse(headers);
+          addLog('info', '헤더 파싱 완료', { count: Object.keys(parsedHeaders).length });
         } catch (e) {
+          addLog('error', '헤더 JSON 파싱 실패');
           throw new Error('Invalid JSON in headers');
         }
       }
@@ -51,12 +82,15 @@ export default function TestPage() {
       if (['POST', 'PUT', 'PATCH'].includes(method) && body.trim()) {
         try {
           parsedBody = JSON.parse(body);
+          addLog('info', '요청 본문 파싱 완료');
         } catch (e) {
+          addLog('error', '요청 본문 JSON 파싱 실패');
           throw new Error('Invalid JSON in body');
         }
       }
 
       const startTime = Date.now();
+      addLog('info', '요청 전송 중...');
 
       // Send request
       const fetchOptions: RequestInit = {
@@ -71,14 +105,18 @@ export default function TestPage() {
       const res = await fetch(url, fetchOptions);
       const duration = Date.now() - startTime;
 
+      addLog('success', `응답 수신: ${res.status} ${res.statusText}`, { duration: `${duration}ms` });
+
       // Parse response
       const contentType = res.headers.get('content-type');
       let data: any;
 
       if (contentType?.includes('application/json')) {
         data = await res.json();
+        addLog('info', 'JSON 응답 파싱 완료');
       } else {
         data = await res.text();
+        addLog('info', '텍스트 응답 수신');
       }
 
       // Get response headers
@@ -94,8 +132,12 @@ export default function TestPage() {
         data,
         duration,
       });
+
+      addLog('success', '요청 완료', { status: res.status, duration: `${duration}ms` });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Request failed');
+      const errorMessage = err instanceof Error ? err.message : 'Request failed';
+      addLog('error', `요청 실패: ${errorMessage}`);
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -107,6 +149,12 @@ export default function TestPage() {
     setBody('{\n  "message": "Hello World"\n}');
     setResponse(null);
     setError(null);
+    addLog('info', '설정 초기화됨');
+  };
+
+  const clearLogs = () => {
+    setLogs([]);
+    addLog('info', '로그가 삭제되었습니다');
   };
 
   const copyResponse = () => {
@@ -377,6 +425,81 @@ export default function TestPage() {
                     </div>
                   </div>
                 )}
+              </CardContent>
+            </Card>
+
+            {/* Logs Panel */}
+            <Card elevated className="mt-6">
+              <CardHeader
+                title="활동 로그"
+                subtitle={`${logs.length}개의 로그`}
+                icon={<Terminal className="w-6 h-6 text-purple-600" />}
+              />
+              <CardContent>
+                <div className="mb-3 flex items-center justify-between">
+                  {logs.length > 0 && (
+                    <button
+                      onClick={clearLogs}
+                      className="text-xs text-gray-500 hover:text-gray-700"
+                    >
+                      로그 삭제
+                    </button>
+                  )}
+                </div>
+                <div className="bg-gray-900 rounded-lg p-3 max-h-80 overflow-y-auto font-mono text-xs">
+                  {logs.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      <Terminal className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                      <p className="text-xs">활동 로그가 없습니다</p>
+                      <p className="text-xs mt-1">요청을 보내면 로그가 표시됩니다</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      {logs.map((log, index) => {
+                        const levelColors = {
+                          info: 'text-blue-400',
+                          success: 'text-green-400',
+                          warn: 'text-yellow-400',
+                          error: 'text-red-400',
+                        };
+
+                        const levelIcons = {
+                          info: 'ℹ',
+                          success: '✓',
+                          warn: '⚠',
+                          error: '✗',
+                        };
+
+                        return (
+                          <div key={index} className="flex gap-2 items-start py-0.5">
+                            <span className="text-gray-500 whitespace-nowrap text-[10px]">
+                              {new Date(log.timestamp).toLocaleTimeString('ko-KR', {
+                                hour12: false,
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                second: '2-digit',
+                              })}
+                            </span>
+                            <span className={`${levelColors[log.level]} font-bold`}>
+                              {levelIcons[log.level]}
+                            </span>
+                            <div className="flex-1">
+                              <span className="text-gray-200">{log.message}</span>
+                              {log.details && (
+                                <div className="text-gray-400 text-[10px] mt-0.5 ml-2 border-l-2 border-gray-700 pl-2">
+                                  {typeof log.details === 'string'
+                                    ? log.details
+                                    : JSON.stringify(log.details)}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                      <div ref={logsEndRef} />
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
           </div>
