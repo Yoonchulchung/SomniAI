@@ -29,6 +29,7 @@ export default function MonitorPage() {
   const [lastSentTime, setLastSentTime] = useState<number>(0);
   const [streamInterval, setStreamInterval] = useState<NodeJS.Timeout | null>(null);
   const [transmissionLogs, setTransmissionLogs] = useState<TransmissionLog[]>([]);
+  const [clientIp, setClientIp] = useState<string>('Loading...');
   const logsEndRef = useRef<HTMLDivElement>(null);
 
   const webcam = useWebcam({
@@ -100,6 +101,26 @@ export default function MonitorPage() {
       logsEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [transmissionLogs]);
+
+  // Fetch client IP on mount
+  useEffect(() => {
+    const fetchClientIp = async () => {
+      try {
+        const response = await fetch('http://localhost:4000/api/system/client-ip');
+        const data = await response.json();
+        if (data.success) {
+          setClientIp(data.data.ip);
+        } else {
+          setClientIp('Unknown');
+        }
+      } catch (error) {
+        console.error('[Monitor] Failed to fetch client IP:', error);
+        setClientIp('Error');
+      }
+    };
+
+    fetchClientIp();
+  }, []);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -196,6 +217,20 @@ export default function MonitorPage() {
                     <div className="flex justify-between text-xs text-gray-500 mt-1">
                       <span>1 FPS</span>
                       <span>30 FPS</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <label className="block text-xs font-semibold text-blue-700 mb-1">
+                          클라이언트 IP 주소
+                        </label>
+                        <div className="text-sm font-mono text-blue-900">{clientIp}</div>
+                      </div>
+                      <div className="text-blue-600">
+                        <Activity className="w-5 h-5" />
+                      </div>
                     </div>
                   </div>
 

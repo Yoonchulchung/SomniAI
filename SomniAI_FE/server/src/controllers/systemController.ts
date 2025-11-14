@@ -76,6 +76,50 @@ export class SystemController {
       return res.status(500).json(response);
     }
   }
+
+  /**
+   * Get client IP address
+   */
+  async getClientIp(req: Request, res: Response) {
+    try {
+      // Try to get IP from x-forwarded-for header (if behind proxy)
+      const forwarded = req.headers['x-forwarded-for'];
+      let clientIp: string;
+
+      if (forwarded) {
+        // x-forwarded-for can be comma-separated list, get first one
+        clientIp = typeof forwarded === 'string' ? forwarded.split(',')[0].trim() : forwarded[0];
+      } else {
+        // Fallback to req.ip or socket remote address
+        clientIp = req.ip || req.socket.remoteAddress || 'Unknown';
+      }
+
+      // Clean up IPv6 localhost format
+      if (clientIp === '::1' || clientIp === '::ffff:127.0.0.1') {
+        clientIp = '127.0.0.1';
+      }
+
+      const response: ApiResponse = {
+        success: true,
+        data: {
+          ip: clientIp,
+          headers: {
+            'x-forwarded-for': req.headers['x-forwarded-for'],
+            'x-real-ip': req.headers['x-real-ip'],
+          },
+        },
+      };
+
+      return res.json(response);
+    } catch (error) {
+      const response: ApiResponse = {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to get client IP',
+      };
+
+      return res.status(500).json(response);
+    }
+  }
 }
 
 export default new SystemController();
