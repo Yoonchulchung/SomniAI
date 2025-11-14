@@ -23,8 +23,8 @@ RUN npm run build
 
 # Create entrypoint script
 RUN echo '#!/bin/sh' > /entrypoint.sh && \
-    echo 'echo "Running database migrations..."' >> /entrypoint.sh && \
-    echo 'npx prisma migrate deploy || echo "Migration failed, continuing..."' >> /entrypoint.sh && \
+    echo 'echo "Syncing database schema..."' >> /entrypoint.sh && \
+    echo 'npx prisma db push --skip-generate || echo "Database sync failed, continuing..."' >> /entrypoint.sh && \
     echo 'echo "Starting server..."' >> /entrypoint.sh && \
     echo 'exec npm start' >> /entrypoint.sh && \
     chmod +x /entrypoint.sh
