@@ -1,0 +1,154 @@
+services:
+  # Nginx - Reverse Proxy & Load Balancer
+  nginx:
+    image: nginx:alpine
+    container_name: somniai-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/logs:/var/log/nginx
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - somniai-network
+    restart: unless-stopped
+
+  # Next.js Frontend - Development Mode
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+      target: development  # Use development stage if multi-stage build
+    container_name: somniai-frontend
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://localhost/api
+      - WATCHPACK_POLLING=true  # Enable polling for file changes
+    ports:
+      - "3000:3000"
+    volumes:
+      # Mount source code for hot reload
+      - ./app:/app/app:cached
+      - ./components:/app/components:cached
+      - ./lib:/app/lib:cached
+      - ./public:/app/public:cached
+      - ./styles:/app/styles:cached
+      - ./.next:/app/.next:cached
+      - ./next.config.ts:/app/next.config.ts:cached
+      - ./tsconfig.json:/app/tsconfig.json:cached
+      - ./tailwind.config.ts:/app/tailwind.config.ts:cached
+      - ./postcss.config.mjs:/app/postcss.config.mjs:cached
+      # Preserve node_modules in container
+      - /app/node_modules
+    networks:
+      - somniai-network
+    restart: unless-stopped
+    depends_on:
+      - backend
+    command: npm run dev
+
+  # Node.js Backend API - Development Mode
+  backend:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: somniai-backend
+    environment:
+      - NODE_ENV=development
+      - PORT=4000
+      - REDIS_URL=redis://redis:6379
+      - MQTT_BROKER=mqtt://mosquitto:1883
+      - CORS_ORIGIN=http://localhost
+      - DATABASE_URL=postgresql://somniai:somniai@postgres:5432/somniai
+      - JWT_SECRET=${JWT_SECRET:-somniai-jwt-secret-change-in-production}
+      - JWT_EXPIRES_IN=7d
+    ports:
+      - "4000:4000"
+    volumes:
+      # Mount source code for hot reload
+      - ./server/src:/app/src:cached
+      - ./server/prisma:/app/prisma:cached
+      - ./server/tsconfig.json:/app/tsconfig.json:cached
+      - ./server/.env:/app/.env:cached
+      # Preserve node_modules and dist in container
+      - /app/node_modules
+      - /app/dist
+    networks:
+      - somniai-network
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mosquitto:
+        condition: service_started
+    command: npm run dev
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: somniai-postgres
+    environment:
+      - POSTGRES_USER=somniai
+      - POSTGRES_PASSWORD=somniai
+      - POSTGRES_DB=somniai
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - somniai-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U somniai"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis - Cache & Session Store
+  redis:
+    image: redis:7-alpine
+    container_name: somniai-redis
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - somniai-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  # Mosquitto MQTT Broker
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: somniai-mosquitto
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./mosquitto/config:/mosquitto/config
+      - ./mosquitto/data:/mosquitto/data
+      - ./mosquitto/log:/mosquitto/log
+    networks:
+      - somniai-network
+    restart: unless-stopped
+
+networks:
+  somniai-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
+    driver: local
+  redis-data:
+    driver: local

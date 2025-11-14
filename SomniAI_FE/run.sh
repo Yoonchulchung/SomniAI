@@ -16,6 +16,7 @@ NC='\033[0m' # No Color
 
 # Configuration
 DEPLOYMENT_MODE="${DEPLOYMENT_MODE:-docker}"  # docker or k8s
+DEV_MODE="${DEV_MODE:-false}"  # Enable development mode with volume mounts
 NAMESPACE="${NAMESPACE:-somniai}"
 
 ###############################################################################
@@ -130,16 +131,29 @@ build_docker_images() {
 deploy_docker() {
     print_step "Deploying with Docker Compose..."
 
+    # Determine which compose file to use
+    local COMPOSE_FILE="docker-compose.yml"
+    if [ "$DEV_MODE" == "true" ]; then
+        COMPOSE_FILE="docker-compose.dev.yml"
+        print_step "Using development mode with volume mounts..."
+    else
+        print_step "Using production mode..."
+    fi
+
     # Stop existing containers
     print_step "Stopping existing containers..."
-    docker-compose down 2>/dev/null || true
+    docker-compose -f $COMPOSE_FILE down 2>/dev/null || true
 
-    # Build images
-    build_docker_images
+    # Build images (skip in dev mode for faster startup)
+    if [ "$DEV_MODE" != "true" ]; then
+        build_docker_images
+    else
+        print_step "Skipping image build in development mode..."
+    fi
 
     # Start services
     print_step "Starting services..."
-    docker-compose up -d
+    docker-compose -f $COMPOSE_FILE up -d
 
     print_success "Docker services started"
 
@@ -248,8 +262,19 @@ show_status() {
     print_header
 
     if [ "$DEPLOYMENT_MODE" == "docker" ]; then
-        echo -e "${GREEN}Deployment Mode: Docker Compose${NC}\n"
-        docker-compose ps
+        if [ "$DEV_MODE" == "true" ]; then
+            echo -e "${GREEN}Deployment Mode: Docker Compose (Development)${NC}
+"
+        else
+            echo -e "${GREEN}Deployment Mode: Docker Compose (Production)${NC}
+"
+        fi
+        
+        local COMPOSE_FILE="docker-compose.yml"
+        if [ "$DEV_MODE" == "true" ]; then
+            COMPOSE_FILE="docker-compose.dev.yml"
+        fi
+        docker-compose -f $COMPOSE_FILE ps
 
         echo -e "\n${BLUE}Service URLs:${NC}"
         echo -e "  Frontend:  ${GREEN}http://localhost${NC}"
@@ -285,7 +310,13 @@ cleanup() {
     print_step "Cleaning up..."
 
     if [ "$DEPLOYMENT_MODE" == "docker" ]; then
-        docker-compose down -v
+        # Determine which compose file to use
+        local COMPOSE_FILE="docker-compose.yml"
+        if [ "$DEV_MODE" == "true" ]; then
+            COMPOSE_FILE="docker-compose.dev.yml"
+        fi
+        
+        docker-compose -f $COMPOSE_FILE down -v
         print_success "Docker services stopped and volumes removed"
     elif [ "$DEPLOYMENT_MODE" == "k8s" ]; then
         kubectl delete namespace $NAMESPACE
@@ -335,7 +366,11 @@ main() {
 
         logs)
             if [ "$DEPLOYMENT_MODE" == "docker" ]; then
-                docker-compose logs -f
+                local COMPOSE_FILE="docker-compose.yml"
+                if [ "$DEV_MODE" == "true" ]; then
+                    COMPOSE_FILE="docker-compose.dev.yml"
+                fi
+                docker-compose -f $COMPOSE_FILE logs -f
             else
                 kubectl logs -n $NAMESPACE -l app=${2:-backend} -f
             fi
@@ -358,12 +393,19 @@ main() {
             echo ""
             echo "Environment Variables:"
             echo "  DEPLOYMENT_MODE - 'docker' or 'k8s' (default: docker)"
+            echo "  DEV_MODE        - 'true' or 'false' (default: false) - Enable development mode"
             echo "  NAMESPACE       - Kubernetes namespace (default: somniai)"
             echo ""
             echo "Examples:"
-            echo "  ./run.sh start                    # Start with Docker"
+            echo "  ./run.sh start                      # Start with Docker (production)"
+            echo "  DEV_MODE=true ./run.sh start        # Start with Docker (development)"
             echo "  DEPLOYMENT_MODE=k8s ./run.sh start  # Start with Kubernetes"
-            echo "  ./run.sh logs backend              # Show backend logs (K8s)"
+            echo "  ./run.sh logs                       # Show logs"
+            echo ""
+            echo "Development Mode Features:"
+            echo "  - Source code mounted as volumes (hot reload)"
+            echo "  - Faster startup (skips image build)"
+            echo "  - NODE_ENV=development"
             exit 1
             ;;
     esac
