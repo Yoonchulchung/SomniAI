@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # Nginx - Reverse Proxy & Load Balancer
   nginx:
@@ -89,7 +87,7 @@ services:
   redis:
     image: redis:7-alpine
     container_name: somniai-redis
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-}
+    command: redis-server --appendonly yes
     ports:
       - "6379:6379"
     volumes:
