@@ -1,5 +1,5 @@
 import React, {useEffect, useRef, useState } from 'react'
-import { StyleSheet, View, Text } from 'react-native'
+import { StyleSheet, View, Text, TextInput, TouchableOpacity, Modal } from 'react-native'
 import { Camera, runAtTargetFps, useCameraDevice, useFrameProcessor } from 'react-native-vision-camera'
 import { useIsFocused } from '@react-navigation/core'
 import { NativeModules, Platform } from 'react-native'
@@ -42,6 +42,10 @@ export function CameraPage(): React.ReactElement {
     const camera = useRef<Camera>(null)
     const isFocused = useIsFocused()
 
+    const [serverUrl, setServerUrl] = useState('http://192.168.0.69:8000/')
+    const [tempUrl, setTempUrl] = useState('http://192.168.0.69:8000/')
+    const [showSettings, setShowSettings] = useState(false)
+
     const [stats, setStats] = useState<TransmissionStats>({
         totalSent: 0,
         successCount: 0,
@@ -77,13 +81,36 @@ export function CameraPage(): React.ReactElement {
             const buffer = frame.toArrayBuffer()
             // Send Data to Server through Native Language
             try {
-                moji.sendFrame(buffer, 'http://192.168.0.69:8000/')
+                moji.sendFrame(buffer, serverUrl)
             } catch (error) {
                 console.error("Failed to send frame:", error)
             }
         }
     })
-    }, [])
+    }, [serverUrl])
+
+    const handleSaveUrl = () => {
+        let url = tempUrl.trim()
+
+        // Add http:// if not present
+        if (!url.startsWith('http://') && !url.startsWith('https://')) {
+            url = 'http://' + url
+        }
+
+        // Add trailing slash if not present
+        if (!url.endsWith('/')) {
+            url = url + '/'
+        }
+
+        setServerUrl(url)
+        setTempUrl(url)
+        setShowSettings(false)
+
+        // Reset stats when changing URL
+        moji.resetStats()
+
+        console.log('Server URL updated to:', url)
+    }
 
     // Status indicator color based on success rate
     const getStatusColor = () => {
@@ -115,6 +142,17 @@ export function CameraPage(): React.ReactElement {
                         frameProcessor={frameProcessor}
                     />
                 )}
+
+                {/* Settings Button Overlay */}
+                <TouchableOpacity
+                    style={styles.settingsButton}
+                    onPress={() => {
+                        setTempUrl(serverUrl)
+                        setShowSettings(true)
+                    }}
+                >
+                    <Text style={styles.settingsButtonText}>⚙️</Text>
+                </TouchableOpacity>
             </View>
 
             <View style={styles.statsContainer} >
@@ -123,6 +161,12 @@ export function CameraPage(): React.ReactElement {
             </View>
 
             <View style={styles.detailsContainer} >
+                <View style={styles.statRow}>
+                    <Text style={styles.statLabel}>Server:</Text>
+                    <Text style={styles.statValue} numberOfLines={1} ellipsizeMode="middle">
+                        {serverUrl}
+                    </Text>
+                </View>
                 <View style={styles.statRow}>
                     <Text style={styles.statLabel}>Sent:</Text>
                     <Text style={styles.statValue}>{stats.totalSent}</Text>
@@ -144,6 +188,52 @@ export function CameraPage(): React.ReactElement {
                     <Text style={styles.statValue}>{stats.lastResponseTimeMs}ms</Text>
                 </View>
             </View>
+
+            {/* Settings Modal */}
+            <Modal
+                visible={showSettings}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={() => setShowSettings(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.modalTitle}>Server Settings</Text>
+
+                        <Text style={styles.inputLabel}>Server URL:</Text>
+                        <TextInput
+                            style={styles.input}
+                            value={tempUrl}
+                            onChangeText={setTempUrl}
+                            placeholder="http://192.168.0.69:8000/"
+                            placeholderTextColor="#666"
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                            keyboardType="url"
+                        />
+
+                        <Text style={styles.helperText}>
+                            Example: 192.168.0.69:8000 or http://server.com:8000/
+                        </Text>
+
+                        <View style={styles.modalButtons}>
+                            <TouchableOpacity
+                                style={[styles.button, styles.cancelButton]}
+                                onPress={() => setShowSettings(false)}
+                            >
+                                <Text style={styles.buttonText}>Cancel</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={[styles.button, styles.saveButton]}
+                                onPress={handleSaveUrl}
+                            >
+                                <Text style={styles.buttonText}>Save</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
         </View>
     )
 }
@@ -158,6 +248,24 @@ const styles = StyleSheet.create({
         flex: 5,
         backgroundColor : 'black',
         overflow : 'hidden',
+    },
+
+    settingsButton: {
+        position: 'absolute',
+        top: 20,
+        right: 20,
+        width: 50,
+        height: 50,
+        borderRadius: 25,
+        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 2,
+        borderColor: 'rgba(255, 255, 255, 0.3)',
+    },
+
+    settingsButtonText: {
+        fontSize: 24,
     },
 
     statsContainer: {
@@ -185,7 +293,7 @@ const styles = StyleSheet.create({
     },
 
     detailsContainer: {
-        flex: 1,
+        flex: 1.2,
         backgroundColor: '#1a1a1a',
         paddingHorizontal: 20,
         paddingVertical: 10,
@@ -196,17 +304,98 @@ const styles = StyleSheet.create({
     statRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginVertical: 4,
+        marginVertical: 3,
     },
 
     statLabel: {
         color: '#888',
         fontSize: 14,
+        flex: 1,
     },
 
     statValue: {
         color: 'white',
         fontSize: 14,
+        fontWeight: '600',
+        flex: 2,
+        textAlign: 'right',
+    },
+
+    // Modal styles
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
+    },
+
+    modalContent: {
+        backgroundColor: '#2a2a2a',
+        borderRadius: 16,
+        padding: 24,
+        width: '100%',
+        maxWidth: 400,
+        borderWidth: 1,
+        borderColor: '#444',
+    },
+
+    modalTitle: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: 'white',
+        marginBottom: 20,
+        textAlign: 'center',
+    },
+
+    inputLabel: {
+        color: '#aaa',
+        fontSize: 14,
+        marginBottom: 8,
+        fontWeight: '600',
+    },
+
+    input: {
+        backgroundColor: '#1a1a1a',
+        borderWidth: 1,
+        borderColor: '#444',
+        borderRadius: 8,
+        padding: 12,
+        color: 'white',
+        fontSize: 16,
+        marginBottom: 8,
+    },
+
+    helperText: {
+        color: '#666',
+        fontSize: 12,
+        marginBottom: 24,
+        fontStyle: 'italic',
+    },
+
+    modalButtons: {
+        flexDirection: 'row',
+        gap: 12,
+    },
+
+    button: {
+        flex: 1,
+        padding: 14,
+        borderRadius: 8,
+        alignItems: 'center',
+    },
+
+    cancelButton: {
+        backgroundColor: '#444',
+    },
+
+    saveButton: {
+        backgroundColor: '#4CAF50',
+    },
+
+    buttonText: {
+        color: 'white',
+        fontSize: 16,
         fontWeight: '600',
     },
 })
