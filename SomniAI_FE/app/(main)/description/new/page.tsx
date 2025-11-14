@@ -15,12 +15,12 @@ import Link from 'next/link';
 
 export default function NewDescriptionPage() {
   const router = useRouter();
-  const { isAdmin } = useAuth();
+  const { user } = useAuth();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState<any>({});
   const [saving, setSaving] = useState(false);
 
-  if (!isAdmin) {
+  if (!user) {
     router.push('/description');
     return null;
   }

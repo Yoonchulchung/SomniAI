@@ -114,7 +114,7 @@ export default function DescriptionPage() {
     }
   };
 
-  const canEdit = isAdmin && user?.id === description?.author.id;
+  const canEdit = isAdmin || user?.id === description?.author.id;
 
   if (loading) {
     return (

@@ -24,7 +24,7 @@ interface Description {
 }
 
 export default function DescriptionListPage() {
-  const { isAdmin } = useAuth();
+  const { user } = useAuth();
   const [descriptions, setDescriptions] = useState<Description[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -55,7 +55,7 @@ export default function DescriptionListPage() {
           <p className="text-gray-600">프로젝트 설명 및 문서</p>
         </div>
 
-        {isAdmin && (
+        {user && (
           <Link
             href="/description/new"
             className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
@@ -76,7 +76,7 @@ export default function DescriptionListPage() {
           <CardContent className="text-center py-12">
             <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <p className="text-gray-600">No descriptions yet</p>
-            {isAdmin && (
+            {user && (
               <Link
                 href="/description/new"
                 className="inline-block mt-4 text-blue-600 hover:underline"
