@@ -34,3 +34,29 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# environment variables
+.env
+.env.local
+.env.development
+.env.production
+server/.env
+server/.env.local
+
+# backend server
+server/node_modules
+server/dist
+server/*.log
+
+# logs
+*.log
+nginx/logs/*.log
+mosquitto/log/*.log
+
+# redis & mqtt data
+mosquitto/data/*
+mosquitto/log/*
+nginx/logs/*
+
+# docker
+docker-compose.override.yml
