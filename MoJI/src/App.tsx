@@ -11,6 +11,7 @@ import { Camera } from 'react-native-vision-camera';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StyleSheet, Text, StatusBar } from 'react-native';
 import { AppProvider } from './context/AppContext';
+import { ThemeProvider } from './context/ThemeContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ToastContainer } from './components/Toast';
 import { HomeScreenOptimized } from './screens/HomeScreenOptimized';
@@ -131,18 +132,20 @@ export function App(): React.ReactElement {
           componentStack: errorInfo.componentStack,
         });
       }}>
-      <AppProvider>
-        <GestureHandlerRootView style={styles.root}>
-          <StatusBar
-            barStyle="dark-content"
-            backgroundColor={theme.colors.background.primary}
-          />
-          <NavigationContainer>
-            <TabNavigator />
-          </NavigationContainer>
-          <ToastContainer />
-        </GestureHandlerRootView>
-      </AppProvider>
+      <ThemeProvider defaultTheme="light" followSystem={false}>
+        <AppProvider>
+          <GestureHandlerRootView style={styles.root}>
+            <StatusBar
+              barStyle="dark-content"
+              backgroundColor={theme.colors.background.primary}
+            />
+            <NavigationContainer>
+              <TabNavigator />
+            </NavigationContainer>
+            <ToastContainer />
+          </GestureHandlerRootView>
+        </AppProvider>
+      </ThemeProvider>
     </ErrorBoundary>
   );
 }

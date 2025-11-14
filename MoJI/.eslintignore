@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+android/
+ios/
+build/
+dist/
+.expo/
+
+# Generated files
+*.log
+coverage/
+.gradle/
+
+# Configuration
+.husky/
+metro.config.js
+babel.config.js

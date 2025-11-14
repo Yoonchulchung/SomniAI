@@ -1,8 +1,17 @@
 /**
  * Design System and Theme
  * Enterprise-grade design tokens and styling system
+ *
+ * NEW: Now supports both light and dark themes!
+ * Import lightTheme/darkTheme from './themes' or use ThemeProvider
+ * This file exports legacy theme for backward compatibility
  */
 
+// Export new theme system
+export * from './colors';
+export * from './themes';
+
+// Legacy exports for backward compatibility
 export const colors = {
   // Primary
   primary: {
