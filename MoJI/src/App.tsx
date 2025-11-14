@@ -15,7 +15,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import { MQTTProvider } from './context/MQTTContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ToastContainer } from './components/Toast';
-import { HomeScreenOptimized } from './screens/HomeScreenOptimized';
+import { HomeScreenImproved } from './screens/HomeScreenImproved';
 import { MonitorScreen } from './screens/MonitorScreen';
 import { AnalyticsScreen } from './screens/AnalyticsScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
@@ -63,7 +63,7 @@ const TabNavigator: React.FC = () => {
       initialRouteName="Home">
       <Tab.Screen
         name="Home"
-        component={HomeScreenOptimized}
+        component={HomeScreenImproved}
         options={{
           tabBarLabel: 'Home',
           tabBarIcon: ({ color }) => (
