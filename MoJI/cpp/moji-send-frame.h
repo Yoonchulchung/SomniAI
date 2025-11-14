@@ -21,7 +21,13 @@ using namespace facebook;
 class MoJISend {
 
     public:
-        static jsi::Value MoJISendFrame(jsi::Runtime& runtime, const jsi::Value& thisValue, 
+        static jsi::Value MoJISendFrame(jsi::Runtime& runtime, const jsi::Value& thisValue,
+            const jsi::Value* arguments, size_t count);
+
+        static jsi::Value MoJIGetStats(jsi::Runtime& runtime, const jsi::Value& thisValue,
+            const jsi::Value* arguments, size_t count);
+
+        static jsi::Value MoJIResetStats(jsi::Runtime& runtime, const jsi::Value& thisValue,
             const jsi::Value* arguments, size_t count);
 };
 

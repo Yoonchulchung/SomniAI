@@ -37,11 +37,30 @@ jsi::Value MoJIPlugin::get(jsi::Runtime& runtime, const jsi::PropNameID& propNam
             runtime, jsi::PropNameID::forAscii(runtime, "sendFrame"), 2, MoJISend::MoJISendFrame);
     }
 
+    if (propName == "getStats") {
+        /*  usage:
+            MoJIPlugin.getStats()
+            Returns: { totalSent, successCount, failureCount, successRate, lastResponseTimeMs }
+        */
+        return jsi::Function::createFromHostFunction(
+            runtime, jsi::PropNameID::forAscii(runtime, "getStats"), 0, MoJISend::MoJIGetStats);
+    }
+
+    if (propName == "resetStats") {
+        /*  usage:
+            MoJIPlugin.resetStats()
+        */
+        return jsi::Function::createFromHostFunction(
+            runtime, jsi::PropNameID::forAscii(runtime, "resetStats"), 0, MoJISend::MoJIResetStats);
+    }
+
     return jsi::Value::undefined();
 }
 
 std::vector<jsi::PropNameID> MoJIPlugin::getPropertyNames(jsi::Runtime& runtime) {
     std::vector<jsi::PropNameID> props;
     props.push_back(jsi::PropNameID::forUtf8(runtime, "sendFrame"));
+    props.push_back(jsi::PropNameID::forUtf8(runtime, "getStats"));
+    props.push_back(jsi::PropNameID::forUtf8(runtime, "resetStats"));
     return props;
 }

@@ -1,27 +1,77 @@
 #include "send-http.h"
+#include <iostream>
+#include <thread>
+#include <chrono>
 
-bool SendHTTP::sendBufferOverHTTP(const uint8_t* bufferData, size_t bufferSize, 
-                const std::string& url) {
-                    CURL* curl = curl_easy_init();
-                    if (!curl) return false;
-                    
-                    struct curl_slist* headers = nullptr;
-                    headers = curl_slist_append(headers, "Content-Type: application/octet-stream");
+bool SendHTTP::sendBufferOverHTTP(const uint8_t* bufferData, size_t bufferSize,
+                const std::string& url, int maxRetries) {
 
+                    int attempt = 0;
                     CURLcode res;
+                    long response_code = 0;
 
-                    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-                    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-                    curl_easy_setopt(curl, CURLOPT_POST, 1L);
-                    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, bufferData);
-                    curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, bufferSize);
+                    while (attempt < maxRetries) {
+                        CURL* curl = curl_easy_init();
+                        if (!curl) {
+                            std::cerr << "[SendHTTP] Failed to initialize CURL" << std::endl;
+                            return false;
+                        }
 
-                    res = curl_easy_perform(curl);
-                    
-                    curl_slist_free_all(headers);
-                    curl_easy_cleanup(curl);
+                        struct curl_slist* headers = nullptr;
+                        headers = curl_slist_append(headers, "Content-Type: application/octet-stream");
 
-                    return (res == CURLE_OK);
+                        // Set curl options
+                        curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+                        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+                        curl_easy_setopt(curl, CURLOPT_POST, 1L);
+                        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, bufferData);
+                        curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, bufferSize);
+
+                        // Set timeouts
+                        curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);           // 10 seconds total timeout
+                        curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 5L);     // 5 seconds connection timeout
+
+                        // SSL verification
+                        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
+                        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2L);
+
+                        // Disable verbose output in production
+                        curl_easy_setopt(curl, CURLOPT_VERBOSE, 0L);
+
+                        // Perform the request
+                        res = curl_easy_perform(curl);
+
+                        if (res == CURLE_OK) {
+                            // Check HTTP response code
+                            curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
+
+                            curl_slist_free_all(headers);
+                            curl_easy_cleanup(curl);
+
+                            if (response_code == 200) {
+                                std::cout << "[SendHTTP] Success: HTTP " << response_code << std::endl;
+                                return true;
+                            } else {
+                                std::cerr << "[SendHTTP] Error: HTTP " << response_code << " (attempt " << (attempt + 1) << "/" << maxRetries << ")" << std::endl;
+                            }
+                        } else {
+                            std::cerr << "[SendHTTP] Error: " << curl_easy_strerror(res) << " (attempt " << (attempt + 1) << "/" << maxRetries << ")" << std::endl;
+                        }
+
+                        curl_slist_free_all(headers);
+                        curl_easy_cleanup(curl);
+
+                        attempt++;
+
+                        // Exponential backoff before retry
+                        if (attempt < maxRetries) {
+                            int backoff_ms = 100 * (1 << attempt); // 200ms, 400ms, 800ms...
+                            std::this_thread::sleep_for(std::chrono::milliseconds(backoff_ms));
+                        }
+                    }
+
+                    std::cerr << "[SendHTTP] Failed after " << maxRetries << " attempts" << std::endl;
+                    return false;
                 }
 
 bool SendHTTP::sendBufferOverUDP(const uint8_t* bufferData, size_t bufferSize, 
