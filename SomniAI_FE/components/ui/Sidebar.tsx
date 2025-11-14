@@ -7,7 +7,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Video, BarChart3, Radio, Settings, Menu, X } from 'lucide-react';
+import { Home, Video, BarChart3, Radio, FileText, Settings, Menu, X } from 'lucide-react';
 import { useState } from 'react';
 
 const menuItems = [
@@ -38,6 +38,13 @@ const menuItems = [
     icon: Radio,
     color: 'text-orange-600',
     bgColor: 'bg-orange-50',
+  },
+  {
+    title: 'Description',
+    href: '/description',
+    icon: FileText,
+    color: 'text-indigo-600',
+    bgColor: 'bg-indigo-50',
   },
   {
     title: 'Settings',

@@ -80,6 +80,21 @@ spec:
             configMapKeyRef:
               name: somniai-config
               key: RATE_LIMIT_MAX_REQUESTS
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: somniai-secrets
+              key: DATABASE_URL
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: somniai-secrets
+              key: JWT_SECRET
+        - name: JWT_EXPIRES_IN
+          valueFrom:
+            configMapKeyRef:
+              name: somniai-config
+              key: JWT_EXPIRES_IN
         resources:
           requests:
             memory: "256Mi"

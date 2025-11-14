@@ -9,6 +9,10 @@ data:
   PORT: "4000"
   API_PREFIX: "/api"
 
+  # Database Configuration
+  POSTGRES_DB: "somniai"
+  JWT_EXPIRES_IN: "7d"
+
   # Redis Configuration
   REDIS_URL: "redis://redis-service:6379"
   REDIS_TTL: "3600"

@@ -47,14 +47,43 @@ services:
       - REDIS_URL=redis://redis:6379
       - MQTT_BROKER=mqtt://mosquitto:1883
       - CORS_ORIGIN=http://localhost
+      - DATABASE_URL=postgresql://somniai:somniai@postgres:5432/somniai
+      - JWT_SECRET=${JWT_SECRET:-somniai-jwt-secret-change-in-production}
+      - JWT_EXPIRES_IN=7d
     ports:
       - "4000:4000"
     networks:
       - somniai-network
     restart: unless-stopped
     depends_on:
-      - redis
-      - mosquitto
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mosquitto:
+        condition: service_started
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: somniai-postgres
+    environment:
+      - POSTGRES_USER=somniai
+      - POSTGRES_PASSWORD=somniai
+      - POSTGRES_DB=somniai
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - somniai-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U somniai"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # Redis - Cache & Session Store
   redis:
@@ -94,5 +123,7 @@ networks:
     driver: bridge
 
 volumes:
+  postgres-data:
+    driver: local
   redis-data:
     driver: local
