@@ -12,12 +12,14 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StyleSheet, Text, StatusBar } from 'react-native';
 import { AppProvider } from './context/AppContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { MQTTProvider } from './context/MQTTContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ToastContainer } from './components/Toast';
 import { HomeScreenOptimized } from './screens/HomeScreenOptimized';
 import { MonitorScreen } from './screens/MonitorScreen';
 import { AnalyticsScreen } from './screens/AnalyticsScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
+import { MQTTScreen } from './screens/MQTTScreen';
 import { theme } from './theme';
 import { appLogger } from './utils/logger';
 import { performanceMonitor } from './utils/performance';
@@ -93,6 +95,17 @@ const TabNavigator: React.FC = () => {
         }}
       />
       <Tab.Screen
+        name="MQTT"
+        component={MQTTScreen}
+        options={{
+          tabBarLabel: 'MQTT',
+          tabBarIcon: ({ color }) => (
+            <Text style={{ fontSize: 24, color }}>📡</Text>
+          ),
+          tabBarAccessibilityLabel: 'MQTT Tab',
+        }}
+      />
+      <Tab.Screen
         name="Settings"
         component={SettingsScreen}
         options={{
@@ -133,18 +146,20 @@ export function App(): React.ReactElement {
         });
       }}>
       <ThemeProvider defaultTheme="light" followSystem={false}>
-        <AppProvider>
-          <GestureHandlerRootView style={styles.root}>
-            <StatusBar
-              barStyle="dark-content"
-              backgroundColor={theme.colors.background.primary}
-            />
-            <NavigationContainer>
-              <TabNavigator />
-            </NavigationContainer>
-            <ToastContainer />
-          </GestureHandlerRootView>
-        </AppProvider>
+        <MQTTProvider maxMessages={100}>
+          <AppProvider>
+            <GestureHandlerRootView style={styles.root}>
+              <StatusBar
+                barStyle="dark-content"
+                backgroundColor={theme.colors.background.primary}
+              />
+              <NavigationContainer>
+                <TabNavigator />
+              </NavigationContainer>
+              <ToastContainer />
+            </GestureHandlerRootView>
+          </AppProvider>
+        </MQTTProvider>
       </ThemeProvider>
     </ErrorBoundary>
   );

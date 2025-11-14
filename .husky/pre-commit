@@ -1,6 +1,9 @@
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
 
+# Navigate to MoJI directory
+cd MoJI || exit 1
+
 # Run lint-staged on staged files
 npx lint-staged
 
