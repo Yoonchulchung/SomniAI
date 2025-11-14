@@ -1,15 +1,25 @@
-import React, { useState } from 'react';
+/**
+ * Settings Screen - Improved UI
+ * Modern settings interface with card-based layout
+ */
+
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
   Switch,
   TextInput,
   Alert,
+  Animated,
+  TouchableOpacity,
 } from 'react-native';
 import { MMKV } from 'react-native-mmkv';
+import { useTheme } from '../context/ThemeContext';
+import { Card, CardHeader, CardSection } from '../components/Card';
+import { Button } from '../components/Button';
+import { Badge } from '../components/Badge';
 
 const storage = new MMKV();
 
@@ -25,6 +35,9 @@ const STORAGE_KEYS = {
 };
 
 export function SettingsScreen() {
+  const { theme } = useTheme();
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
   const [serverUrl, setServerUrl] = useState(
     storage.getString(STORAGE_KEYS.SERVER_URL) || 'http://192.168.0.100:8000'
   );
@@ -47,6 +60,14 @@ export function SettingsScreen() {
   const [notification, setNotification] = useState(
     storage.getBoolean(STORAGE_KEYS.NOTIFICATION) ?? true
   );
+
+  useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 600,
+      useNativeDriver: true,
+    }).start();
+  }, []);
 
   const handleSaveServerUrl = () => {
     storage.set(STORAGE_KEYS.SERVER_URL, serverUrl);
@@ -91,200 +112,271 @@ export function SettingsScreen() {
 
   const fpsOptions = [1, 5, 10, 15, 20, 30];
 
+  const SettingItem: React.FC<{
+    label: string;
+    description: string;
+    value: boolean;
+    onValueChange: (value: boolean) => void;
+    icon?: string;
+  }> = ({ label, description, value, onValueChange, icon }) => (
+    <View style={[styles.settingItem, { borderBottomColor: theme.colors.border.light }]}>
+      <View style={styles.settingInfo}>
+        {icon && <Text style={styles.settingIcon}>{icon}</Text>}
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.settingLabel, { color: theme.colors.text.primary }]}>
+            {label}
+          </Text>
+          <Text style={[styles.settingDescription, { color: theme.colors.text.secondary }]}>
+            {description}
+          </Text>
+        </View>
+      </View>
+      <Switch
+        value={value}
+        onValueChange={onValueChange}
+        trackColor={{
+          false: theme.colors.gray[300],
+          true: theme.colors.primary[300],
+        }}
+        thumbColor={value ? theme.colors.primary[500] : theme.colors.gray[100]}
+      />
+    </View>
+  );
+
   return (
-    <ScrollView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.title}>설정</Text>
-        <Text style={styles.subtitle}>앱 설정 및 환경 구성</Text>
-      </View>
-
-      {/* Connection Settings */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>연결 설정</Text>
-
-        <View style={styles.card}>
-          <Text style={styles.label}>서버 URL</Text>
-          <TextInput
-            style={styles.input}
-            value={serverUrl}
-            onChangeText={setServerUrl}
-            placeholder="http://192.168.0.100:8000"
-            autoCapitalize="none"
-            autoCorrect={false}
-            keyboardType="url"
-          />
-          <TouchableOpacity
-            style={styles.button}
-            onPress={handleSaveServerUrl}>
-            <Text style={styles.buttonText}>저장</Text>
-          </TouchableOpacity>
+    <ScrollView
+      style={[styles.container, { backgroundColor: theme.colors.background.secondary }]}>
+      <Animated.View style={{ opacity: fadeAnim }}>
+        {/* Header */}
+        <View style={[styles.header, { backgroundColor: theme.colors.background.primary }]}>
+          <Text style={[styles.title, { color: theme.colors.text.primary }]}>설정</Text>
+          <Text style={[styles.subtitle, { color: theme.colors.text.secondary }]}>
+            앱 설정 및 환경 구성
+          </Text>
         </View>
 
-        <View style={styles.settingItem}>
-          <View style={styles.settingInfo}>
-            <Text style={styles.settingLabel}>자동 재연결</Text>
-            <Text style={styles.settingDescription}>
-              연결이 끊어지면 자동으로 재연결 시도
-            </Text>
-          </View>
-          <Switch
-            value={autoReconnect}
-            onValueChange={(value) =>
-              handleToggle(STORAGE_KEYS.AUTO_RECONNECT, value, setAutoReconnect)
-            }
-          />
-        </View>
-      </View>
+        {/* Connection Settings */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text.secondary }]}>
+            연결 설정
+          </Text>
 
-      {/* Performance Settings */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>성능 설정</Text>
-
-        <View style={styles.card}>
-          <Text style={styles.label}>FPS (초당 프레임)</Text>
-          <View style={styles.fpsSelector}>
-            {fpsOptions.map((option) => (
-              <TouchableOpacity
-                key={option}
+          <Card style={{ marginBottom: theme.spacing.md }}>
+            <CardHeader title="서버 URL" icon="🌐" />
+            <CardSection>
+              <TextInput
                 style={[
-                  styles.fpsOption,
-                  fps === option && styles.fpsOptionActive,
+                  styles.input,
+                  {
+                    borderColor: theme.colors.border.default,
+                    color: theme.colors.text.primary,
+                    backgroundColor: theme.colors.background.secondary,
+                  },
                 ]}
-                onPress={() => handleFpsChange(option)}>
-                <Text
-                  style={[
-                    styles.fpsOptionText,
-                    fps === option && styles.fpsOptionTextActive,
-                  ]}>
-                  {option}
+                value={serverUrl}
+                onChangeText={setServerUrl}
+                placeholder="http://192.168.0.100:8000"
+                placeholderTextColor={theme.colors.text.tertiary}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="url"
+              />
+              <Button
+                title="저장"
+                onPress={handleSaveServerUrl}
+                variant="primary"
+                size="md"
+                fullWidth
+                icon="💾"
+              />
+            </CardSection>
+          </Card>
+
+          <Card>
+            <SettingItem
+              icon="🔄"
+              label="자동 재연결"
+              description="연결이 끊어지면 자동으로 재연결 시도"
+              value={autoReconnect}
+              onValueChange={(value) =>
+                handleToggle(STORAGE_KEYS.AUTO_RECONNECT, value, setAutoReconnect)
+              }
+            />
+          </Card>
+        </View>
+
+        {/* Performance Settings */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text.secondary }]}>
+            성능 설정
+          </Text>
+
+          <Card style={{ marginBottom: theme.spacing.md }}>
+            <CardHeader title="FPS (초당 프레임)" icon="🎬" />
+            <CardSection>
+              <View style={styles.fpsSelector}>
+                {fpsOptions.map((option) => (
+                  <TouchableOpacity
+                    key={option}
+                    style={[
+                      styles.fpsOption,
+                      {
+                        borderColor: theme.colors.border.default,
+                        backgroundColor:
+                          fps === option
+                            ? theme.colors.primary[500]
+                            : theme.colors.background.secondary,
+                      },
+                    ]}
+                    onPress={() => handleFpsChange(option)}>
+                    <Text
+                      style={[
+                        styles.fpsOptionText,
+                        {
+                          color:
+                            fps === option
+                              ? theme.colors.text.inverse
+                              : theme.colors.text.primary,
+                        },
+                      ]}>
+                      {option}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              {batterySaver && (
+                <View style={styles.warningContainer}>
+                  <Badge label="배터리 세이버 활성화" variant="warning" size="sm" dot />
+                  <Text style={[styles.warningText, { color: theme.colors.warning[700] }]}>
+                    최대 5 FPS로 제한됩니다
+                  </Text>
+                </View>
+              )}
+            </CardSection>
+          </Card>
+
+          <Card style={{ marginBottom: theme.spacing.sm }}>
+            <SettingItem
+              icon="🔋"
+              label="배터리 세이버 모드"
+              description="FPS를 5로 제한하여 배터리 소모 감소"
+              value={batterySaver}
+              onValueChange={(value) =>
+                handleToggle(STORAGE_KEYS.BATTERY_SAVER, value, setBatterySaver)
+              }
+            />
+          </Card>
+
+          <Card>
+            <SettingItem
+              icon="⏸️"
+              label="백그라운드 자동 일시정지"
+              description="앱이 백그라운드로 전환되면 전송 일시정지"
+              value={autoPause}
+              onValueChange={(value) =>
+                handleToggle(STORAGE_KEYS.AUTO_PAUSE, value, setAutoPause)
+              }
+            />
+          </Card>
+        </View>
+
+        {/* UI Settings */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text.secondary }]}>
+            화면 설정
+          </Text>
+
+          <Card>
+            <SettingItem
+              icon="📊"
+              label="통계 정보 표시"
+              description="모니터 화면에서 실시간 통계 표시"
+              value={statsVisible}
+              onValueChange={(value) =>
+                handleToggle(STORAGE_KEYS.STATS_VISIBLE, value, setStatsVisible)
+              }
+            />
+          </Card>
+        </View>
+
+        {/* Notification Settings */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text.secondary }]}>
+            알림 설정
+          </Text>
+
+          <Card style={{ marginBottom: theme.spacing.sm }}>
+            <SettingItem
+              icon="🔔"
+              label="알림 사용"
+              description="연결 상태 변경 시 알림 표시"
+              value={notification}
+              onValueChange={(value) =>
+                handleToggle(STORAGE_KEYS.NOTIFICATION, value, setNotification)
+              }
+            />
+          </Card>
+
+          <Card>
+            <SettingItem
+              icon="📳"
+              label="진동 피드백"
+              description="연결/연결 해제 시 진동으로 알림"
+              value={vibration}
+              onValueChange={(value) =>
+                handleToggle(STORAGE_KEYS.VIBRATION, value, setVibration)
+              }
+            />
+          </Card>
+        </View>
+
+        {/* App Info */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text.secondary }]}>
+            앱 정보
+          </Text>
+
+          <Card>
+            <CardHeader title="MoJI" icon="📱" />
+            <CardSection>
+              <View style={[styles.infoRow, { borderBottomColor: theme.colors.border.light }]}>
+                <Text style={[styles.infoLabel, { color: theme.colors.text.secondary }]}>
+                  버전
                 </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-          {batterySaver && (
-            <Text style={styles.warningText}>
-              ⚠️ 배터리 세이버 모드 활성화 시 최대 5 FPS로 제한됩니다
-            </Text>
-          )}
+                <Badge label="1.0.0" variant="info" size="sm" />
+              </View>
+              <View style={[styles.infoRow, { borderBottomColor: theme.colors.border.light }]}>
+                <Text style={[styles.infoLabel, { color: theme.colors.text.secondary }]}>
+                  빌드
+                </Text>
+                <Badge label="2025.11.14" variant="default" size="sm" />
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={[styles.infoLabel, { color: theme.colors.text.secondary }]}>
+                  개발
+                </Text>
+                <Text style={[styles.infoValue, { color: theme.colors.text.primary }]}>
+                  SomniAI Team
+                </Text>
+              </View>
+            </CardSection>
+          </Card>
         </View>
 
-        <View style={styles.settingItem}>
-          <View style={styles.settingInfo}>
-            <Text style={styles.settingLabel}>배터리 세이버 모드</Text>
-            <Text style={styles.settingDescription}>
-              FPS를 5로 제한하여 배터리 소모 감소
-            </Text>
-          </View>
-          <Switch
-            value={batterySaver}
-            onValueChange={(value) =>
-              handleToggle(STORAGE_KEYS.BATTERY_SAVER, value, setBatterySaver)
-            }
+        {/* Reset Button */}
+        <View style={styles.section}>
+          <Button
+            title="설정 초기화"
+            onPress={handleResetSettings}
+            variant="danger"
+            size="lg"
+            fullWidth
+            icon="🔄"
           />
         </View>
 
-        <View style={styles.settingItem}>
-          <View style={styles.settingInfo}>
-            <Text style={styles.settingLabel}>백그라운드 자동 일시정지</Text>
-            <Text style={styles.settingDescription}>
-              앱이 백그라운드로 전환되면 전송 일시정지
-            </Text>
-          </View>
-          <Switch
-            value={autoPause}
-            onValueChange={(value) =>
-              handleToggle(STORAGE_KEYS.AUTO_PAUSE, value, setAutoPause)
-            }
-          />
-        </View>
-      </View>
-
-      {/* UI Settings */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>화면 설정</Text>
-
-        <View style={styles.settingItem}>
-          <View style={styles.settingInfo}>
-            <Text style={styles.settingLabel}>통계 정보 표시</Text>
-            <Text style={styles.settingDescription}>
-              모니터 화면에서 실시간 통계 표시
-            </Text>
-          </View>
-          <Switch
-            value={statsVisible}
-            onValueChange={(value) =>
-              handleToggle(STORAGE_KEYS.STATS_VISIBLE, value, setStatsVisible)
-            }
-          />
-        </View>
-      </View>
-
-      {/* Notification Settings */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>알림 설정</Text>
-
-        <View style={styles.settingItem}>
-          <View style={styles.settingInfo}>
-            <Text style={styles.settingLabel}>알림 사용</Text>
-            <Text style={styles.settingDescription}>
-              연결 상태 변경 시 알림 표시
-            </Text>
-          </View>
-          <Switch
-            value={notification}
-            onValueChange={(value) =>
-              handleToggle(STORAGE_KEYS.NOTIFICATION, value, setNotification)
-            }
-          />
-        </View>
-
-        <View style={styles.settingItem}>
-          <View style={styles.settingInfo}>
-            <Text style={styles.settingLabel}>진동 피드백</Text>
-            <Text style={styles.settingDescription}>
-              연결/연결 해제 시 진동으로 알림
-            </Text>
-          </View>
-          <Switch
-            value={vibration}
-            onValueChange={(value) =>
-              handleToggle(STORAGE_KEYS.VIBRATION, value, setVibration)
-            }
-          />
-        </View>
-      </View>
-
-      {/* App Info */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>앱 정보</Text>
-
-        <View style={styles.infoCard}>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>버전</Text>
-            <Text style={styles.infoValue}>1.0.0</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>빌드</Text>
-            <Text style={styles.infoValue}>2025.11.14</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>개발</Text>
-            <Text style={styles.infoValue}>SomniAI Team</Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Reset Button */}
-      <View style={styles.section}>
-        <TouchableOpacity
-          style={styles.resetButton}
-          onPress={handleResetSettings}>
-          <Text style={styles.resetButtonText}>설정 초기화</Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={{ height: 40 }} />
+        <View style={{ height: 40 }} />
+      </Animated.View>
     </ScrollView>
   );
 }
@@ -292,175 +384,111 @@ export function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
   },
   header: {
-    padding: 20,
-    paddingTop: 40,
-    backgroundColor: '#fff',
+    paddingHorizontal: 20,
+    paddingTop: 50,
+    paddingBottom: 24,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#333',
+    fontSize: 32,
+    fontWeight: '800',
+    marginBottom: 6,
   },
   subtitle: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 4,
+    fontSize: 15,
+    fontWeight: '400',
   },
   section: {
-    marginTop: 24,
+    marginTop: 8,
+    marginBottom: 16,
     paddingHorizontal: 16,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#666',
-    marginBottom: 12,
+    fontSize: 13,
+    fontWeight: '700',
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  card: {
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 12,
+    letterSpacing: 1,
     marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 8,
+    marginLeft: 4,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 14,
-    color: '#333',
-    marginBottom: 12,
-  },
-  button: {
-    backgroundColor: '#2196F3',
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 'bold',
+    borderRadius: 12,
+    padding: 14,
+    fontSize: 15,
+    marginBottom: 16,
+    fontWeight: '500',
   },
   fpsSelector: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 8,
+    gap: 10,
+    marginBottom: 12,
   },
   fpsOption: {
     flex: 1,
-    minWidth: 50,
-    paddingVertical: 10,
+    minWidth: 48,
+    paddingVertical: 12,
     paddingHorizontal: 16,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
+    borderWidth: 2,
+    borderRadius: 10,
     alignItems: 'center',
-  },
-  fpsOptionActive: {
-    backgroundColor: '#2196F3',
-    borderColor: '#2196F3',
+    justifyContent: 'center',
   },
   fpsOptionText: {
-    fontSize: 14,
-    color: '#666',
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '700',
   },
-  fpsOptionTextActive: {
-    color: '#fff',
+  warningContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 4,
   },
   warningText: {
     fontSize: 12,
-    color: '#FF9800',
-    marginTop: 8,
+    fontWeight: '500',
   },
   settingItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
   },
   settingInfo: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
     marginRight: 16,
+    gap: 12,
+  },
+  settingIcon: {
+    fontSize: 24,
   },
   settingLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
     marginBottom: 4,
   },
   settingDescription: {
-    fontSize: 12,
-    color: '#999',
-  },
-  infoCard: {
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    fontSize: 13,
+    lineHeight: 18,
   },
   infoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 12,
+    alignItems: 'center',
+    paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
   },
   infoLabel: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: 15,
+    fontWeight: '500',
   },
   infoValue: {
-    fontSize: 14,
-    color: '#333',
+    fontSize: 15,
     fontWeight: '600',
-  },
-  resetButton: {
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#F44336',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  resetButtonText: {
-    color: '#F44336',
-    fontSize: 16,
-    fontWeight: 'bold',
   },
 });

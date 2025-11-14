@@ -44,20 +44,25 @@ const TabNavigator: React.FC = () => {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: theme.colors.primary[500],
-        tabBarInactiveTintColor: theme.colors.gray[500],
+        tabBarActiveTintColor: theme.colors.primary[600],
+        tabBarInactiveTintColor: theme.colors.gray[400],
         tabBarStyle: {
           backgroundColor: theme.colors.background.primary,
-          borderTopWidth: 1,
-          borderTopColor: theme.colors.border.light,
-          height: 60,
-          paddingBottom: 8,
-          paddingTop: 8,
-          ...theme.shadows.md,
+          borderTopWidth: 0,
+          height: 70,
+          paddingBottom: 12,
+          paddingTop: 12,
+          paddingHorizontal: 8,
+          ...theme.shadows.lg,
+          elevation: 8,
         },
         tabBarLabelStyle: {
-          fontSize: theme.typography.fontSize.sm,
-          fontWeight: theme.typography.fontWeight.semibold,
+          fontSize: 11,
+          fontWeight: '700',
+          marginTop: 4,
+        },
+        tabBarIconStyle: {
+          marginTop: 4,
         },
       }}
       initialRouteName="Home">
@@ -66,8 +71,8 @@ const TabNavigator: React.FC = () => {
         component={HomeScreenImproved}
         options={{
           tabBarLabel: 'Home',
-          tabBarIcon: ({ color }) => (
-            <Text style={{ fontSize: 24, color }}>🏠</Text>
+          tabBarIcon: ({ focused }) => (
+            <Text style={{ fontSize: focused ? 26 : 24 }}>🏠</Text>
           ),
           tabBarAccessibilityLabel: 'Home Tab',
         }}
@@ -77,8 +82,8 @@ const TabNavigator: React.FC = () => {
         component={MonitorScreen}
         options={{
           tabBarLabel: 'Monitor',
-          tabBarIcon: ({ color }) => (
-            <Text style={{ fontSize: 24, color }}>📹</Text>
+          tabBarIcon: ({ focused }) => (
+            <Text style={{ fontSize: focused ? 26 : 24 }}>📹</Text>
           ),
           tabBarAccessibilityLabel: 'Monitor Tab',
         }}
@@ -88,8 +93,8 @@ const TabNavigator: React.FC = () => {
         component={AnalyticsScreen}
         options={{
           tabBarLabel: 'Analytics',
-          tabBarIcon: ({ color }) => (
-            <Text style={{ fontSize: 24, color }}>📊</Text>
+          tabBarIcon: ({ focused }) => (
+            <Text style={{ fontSize: focused ? 26 : 24 }}>📊</Text>
           ),
           tabBarAccessibilityLabel: 'Analytics Tab',
         }}
@@ -99,8 +104,8 @@ const TabNavigator: React.FC = () => {
         component={MQTTScreen}
         options={{
           tabBarLabel: 'MQTT',
-          tabBarIcon: ({ color }) => (
-            <Text style={{ fontSize: 24, color }}>📡</Text>
+          tabBarIcon: ({ focused }) => (
+            <Text style={{ fontSize: focused ? 26 : 24 }}>📡</Text>
           ),
           tabBarAccessibilityLabel: 'MQTT Tab',
         }}
@@ -110,8 +115,8 @@ const TabNavigator: React.FC = () => {
         component={SettingsScreen}
         options={{
           tabBarLabel: 'Settings',
-          tabBarIcon: ({ color }) => (
-            <Text style={{ fontSize: 24, color }}>⚙️</Text>
+          tabBarIcon: ({ focused }) => (
+            <Text style={{ fontSize: focused ? 26 : 24 }}>⚙️</Text>
           ),
           tabBarAccessibilityLabel: 'Settings Tab',
         }}
