@@ -1,0 +1,89 @@
+name: MoJI Android Build Test
+
+on:
+  push:
+    branches:
+      - claude/find-improvement-points-011CV68yhm1e7isjf7GTqYdi
+    paths:
+      - 'MoJI/**'
+      - '.github/workflows/moji-android-build.yml'
+  pull_request:
+    branches:
+      - claude/find-improvement-points-011CV68yhm1e7isjf7GTqYdi
+
+permissions:
+  contents: read
+
+jobs:
+  build-android:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: MoJI/package-lock.json
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Cache Gradle
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            MoJI/android/.gradle
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Cache Node modules
+        uses: actions/cache@v3
+        with:
+          path: MoJI/node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('MoJI/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install Node dependencies
+        working-directory: MoJI
+        run: npm ci || npm install
+
+      - name: Make gradlew executable
+        working-directory: MoJI/android
+        run: chmod +x gradlew
+
+      - name: Build Debug APK
+        working-directory: MoJI/android
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
+        env:
+          ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+
+      - name: Upload Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: moji-debug-apk
+          path: MoJI/android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 7
+
+      - name: Build info
+        if: success()
+        run: |
+          echo "✅ Build successful!"
+          echo "📱 APK location: MoJI/android/app/build/outputs/apk/debug/app-debug.apk"
+          ls -lh MoJI/android/app/build/outputs/apk/debug/app-debug.apk || true

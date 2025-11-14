@@ -154,13 +154,78 @@ echo "[INFO] Curl and OpenSSL for android is installed!"
 #======================================================
 # Build MoJI Application
 #======================================================
+# Check and set Java 17
+echo "[INFO] Checking Java version..."
+
 JAVA_VERSION_OUTPUT=$(java -version 2>&1 | head -n 1)
 JAVA_VERSION=$(echo "$JAVA_VERSION_OUTPUT" | sed -E 's/.*"([0-9]+).*/\1/')
+
 if [ "$JAVA_VERSION" -ne 17 ]; then
-    echo "[ERROR] Java 17 is required, but found $JAVA_VERSION"
-    exit 1
+    echo "[WARN] Current Java version is $JAVA_VERSION, but Java 17 is required"
+    echo "[INFO] Attempting to switch to Java 17..."
+
+    JAVA_17_FOUND=false
+
+    case "$OS_NAME" in
+        linux)
+            # Try to find Java 17 installation
+            if [ -d "/usr/lib/jvm/java-17-openjdk-amd64" ]; then
+                export JAVA_HOME="/usr/lib/jvm/java-17-openjdk-amd64"
+                export PATH="$JAVA_HOME/bin:$PATH"
+                JAVA_17_FOUND=true
+                echo "[INFO] Switched to Java 17 at $JAVA_HOME"
+            elif [ -d "/usr/lib/jvm/jdk-17" ]; then
+                export JAVA_HOME="/usr/lib/jvm/jdk-17"
+                export PATH="$JAVA_HOME/bin:$PATH"
+                JAVA_17_FOUND=true
+                echo "[INFO] Switched to Java 17 at $JAVA_HOME"
+            elif command -v update-java-alternatives &>/dev/null; then
+                # Try to switch using update-java-alternatives
+                JAVA_17_PATH=$(update-java-alternatives -l 2>/dev/null | grep 'java-17' | head -1 | awk '{print $3}')
+                if [ -n "$JAVA_17_PATH" ]; then
+                    export JAVA_HOME="$JAVA_17_PATH"
+                    export PATH="$JAVA_HOME/bin:$PATH"
+                    JAVA_17_FOUND=true
+                    echo "[INFO] Switched to Java 17 at $JAVA_HOME"
+                fi
+            fi
+            ;;
+
+        darwin)
+            # macOS: Use /usr/libexec/java_home
+            if /usr/libexec/java_home -v 17 &>/dev/null; then
+                export JAVA_HOME=$(/usr/libexec/java_home -v 17)
+                export PATH="$JAVA_HOME/bin:$PATH"
+                JAVA_17_FOUND=true
+                echo "[INFO] Switched to Java 17 at $JAVA_HOME"
+            fi
+            ;;
+    esac
+
+    if [ "$JAVA_17_FOUND" = false ]; then
+        echo "[ERROR] Java 17 is not installed on this system"
+        echo ""
+        if [ "$OS_NAME" = "darwin" ]; then
+            echo "Install with: brew install openjdk@17"
+            echo "Then run: sudo ln -sfn /opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk /Library/Java/JavaVirtualMachines/openjdk-17.jdk"
+        elif [ "$OS_NAME" = "linux" ]; then
+            echo "Install with: sudo apt install -y openjdk-17-jdk"
+        fi
+        exit 1
+    fi
+
+    # Verify the switch worked
+    JAVA_VERSION_OUTPUT=$(java -version 2>&1 | head -n 1)
+    JAVA_VERSION=$(echo "$JAVA_VERSION_OUTPUT" | sed -E 's/.*"([0-9]+).*/\1/')
+
+    if [ "$JAVA_VERSION" -ne 17 ]; then
+        echo "[ERROR] Failed to switch to Java 17 (still using version $JAVA_VERSION)"
+        exit 1
+    fi
 fi
+
 echo "[INFO] Java version is OK ($JAVA_VERSION)"
+echo "[INFO] JAVA_HOME: ${JAVA_HOME:-not set}"
 
 NODE_VERSION=$(node -v || echo "0")
 NPM_VERSION=$(npm -v || echo "0")
