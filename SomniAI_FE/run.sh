@@ -350,6 +350,26 @@ main() {
             show_status
             ;;
 
+        dev)
+            # Set development mode
+            export DEV_MODE=true
+
+            check_prerequisites
+            setup_environment
+            install_dependencies
+
+            if [ "$DEPLOYMENT_MODE" == "docker" ]; then
+                deploy_docker
+            elif [ "$DEPLOYMENT_MODE" == "k8s" ]; then
+                deploy_kubernetes
+            else
+                print_error "Invalid DEPLOYMENT_MODE: $DEPLOYMENT_MODE"
+                exit 1
+            fi
+
+            show_status
+            ;;
+
         stop)
             cleanup
             ;;
@@ -381,10 +401,11 @@ main() {
             ;;
 
         *)
-            echo "Usage: $0 {start|stop|status|restart|logs|build}"
+            echo "Usage: $0 {start|stop|dev|status|restart|logs|build}"
             echo ""
             echo "Commands:"
-            echo "  start    - Install dependencies and start all services"
+            echo "  start    - Install dependencies and start all services (production)"
+            echo "  dev      - Start all services in development mode (hot reload)"
             echo "  stop     - Stop and cleanup all services"
             echo "  status   - Show current status"
             echo "  restart  - Restart all services"
@@ -398,7 +419,8 @@ main() {
             echo ""
             echo "Examples:"
             echo "  ./run.sh start                      # Start with Docker (production)"
-            echo "  DEV_MODE=true ./run.sh start        # Start with Docker (development)"
+            echo "  ./run.sh dev                        # Start with Docker (development)"
+            echo "  DEV_MODE=true ./run.sh start        # Start with Docker (development - alternative)"
             echo "  DEPLOYMENT_MODE=k8s ./run.sh start  # Start with Kubernetes"
             echo "  ./run.sh logs                       # Show logs"
             echo ""
