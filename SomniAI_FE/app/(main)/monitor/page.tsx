@@ -106,7 +106,7 @@ export default function MonitorPage() {
   useEffect(() => {
     const fetchClientIp = async () => {
       try {
-        const response = await fetch('http://localhost:4000/api/system/client-ip');
+        const response = await fetch('/api/system/client-ip');
         const data = await response.json();
         if (data.success) {
           setClientIp(data.data.ip);

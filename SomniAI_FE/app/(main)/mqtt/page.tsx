@@ -99,7 +99,7 @@ export default function MQTTPage() {
 
   const handleClearServerLogs = async () => {
     try {
-      const response = await fetch('http://localhost:4000/api/mqtt/logs', {
+      const response = await fetch('/api/mqtt/logs', {
         method: 'DELETE',
       });
       if (response.ok) {
@@ -114,7 +114,7 @@ export default function MQTTPage() {
   useEffect(() => {
     if (activeTab !== 'serverlogs') return;
 
-    const eventSource = new EventSource('http://localhost:4000/api/mqtt/logs/stream');
+    const eventSource = new EventSource('/api/mqtt/logs/stream');
 
     eventSource.onmessage = (event) => {
       try {

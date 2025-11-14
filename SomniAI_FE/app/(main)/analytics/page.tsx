@@ -51,7 +51,7 @@ export default function AnalyticsPage() {
   // Fetch system health data
   const fetchSystemHealth = async () => {
     try {
-      const response = await fetch('http://localhost:4000/api/system/health');
+      const response = await fetch('/api/system/health');
       const data = await response.json();
       if (data.success) {
         setSystemHealth(data.data);

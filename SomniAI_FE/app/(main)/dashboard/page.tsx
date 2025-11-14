@@ -43,7 +43,7 @@ export default function DashboardPage() {
   // Check backend connection
   const checkBackendConnection = async () => {
     try {
-      const response = await fetch('http://localhost:4000/api/health', {
+      const response = await fetch('/api/health', {
         method: 'GET',
         signal: AbortSignal.timeout(5000), // 5 second timeout
       });
@@ -65,7 +65,7 @@ export default function DashboardPage() {
   const checkServicesStatus = async () => {
     try {
       addLog('info', '서비스 상태 확인 시작...');
-      const response = await fetch('http://localhost:4000/api/system/services', {
+      const response = await fetch('/api/system/services', {
         method: 'GET',
         signal: AbortSignal.timeout(5000),
       });

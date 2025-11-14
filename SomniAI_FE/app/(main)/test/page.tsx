@@ -29,7 +29,7 @@ interface LogEntry {
 
 export default function TestPage() {
   const [method, setMethod] = useState<'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'>('GET');
-  const [url, setUrl] = useState('http://localhost:4000/api/health');
+  const [url, setUrl] = useState('/api/health');
   const [headers, setHeaders] = useState('{\n  "Content-Type": "application/json"\n}');
   const [body, setBody] = useState('{\n  "message": "Hello World"\n}');
   const [response, setResponse] = useState<Response | null>(null);
@@ -44,7 +44,7 @@ export default function TestPage() {
   useEffect(() => {
     const fetchClientIp = async () => {
       try {
-        const response = await fetch('http://localhost:4000/api/system/client-ip');
+        const response = await fetch('/api/system/client-ip');
         const data = await response.json();
         if (data.success) {
           setClientIp(data.data.ip);
@@ -166,7 +166,7 @@ export default function TestPage() {
 
   const clearAll = () => {
     setMethod('GET');
-    setUrl('http://localhost:4000/api/health');
+    setUrl('/api/health');
     setHeaders('{\n  "Content-Type": "application/json"\n}');
     setBody('{\n  "message": "Hello World"\n}');
     setResponse(null);
@@ -258,7 +258,7 @@ export default function TestPage() {
                       value={url}
                       onChange={(e) => setUrl(e.target.value)}
                       className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                      placeholder="http://localhost:4000/api/..."
+                      placeholder="/api/..."
                     />
                   </div>
 
@@ -335,7 +335,7 @@ export default function TestPage() {
                   <button
                     onClick={() => {
                       setMethod('GET');
-                      setUrl('http://localhost:4000/api/health');
+                      setUrl('/api/health');
                       setHeaders('{\n  "Content-Type": "application/json"\n}');
                     }}
                     className="w-full text-left px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
@@ -346,7 +346,7 @@ export default function TestPage() {
                   <button
                     onClick={() => {
                       setMethod('GET');
-                      setUrl('http://localhost:4000/api/system/health');
+                      setUrl('/api/system/health');
                       setHeaders('{\n  "Content-Type": "application/json"\n}');
                     }}
                     className="w-full text-left px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
@@ -357,7 +357,7 @@ export default function TestPage() {
                   <button
                     onClick={() => {
                       setMethod('GET');
-                      setUrl('http://localhost:4000/api/mqtt/status');
+                      setUrl('/api/mqtt/status');
                       setHeaders('{\n  "Content-Type": "application/json"\n}');
                     }}
                     className="w-full text-left px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
@@ -368,7 +368,7 @@ export default function TestPage() {
                   <button
                     onClick={() => {
                       setMethod('POST');
-                      setUrl('http://localhost:4000/api/mqtt/publish');
+                      setUrl('/api/mqtt/publish');
                       setHeaders('{\n  "Content-Type": "application/json"\n}');
                       setBody('{\n  "topic": "test/topic",\n  "message": "Hello MQTT",\n  "qos": 0\n}');
                     }}
