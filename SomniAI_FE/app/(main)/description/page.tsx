@@ -11,7 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { descriptionAPI } from '@/lib/api';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
-import { Plus, FileText, Lock } from 'lucide-react';
+import { Plus, FileText } from 'lucide-react';
 
 interface Description {
   id: string;
@@ -102,7 +102,7 @@ export default function DescriptionListPage() {
                     </h3>
                     {desc.status === 'DRAFT' && (
                       <Badge
-                        label={<Lock className="w-3 h-3" />}
+                        label="DRAFT"
                         variant="default"
                         size="sm"
                       />
