@@ -1,0 +1,48 @@
+# ====================================================================
+# MoJI Remote Build Configuration
+# ====================================================================
+# Copy this file to remote-build.config and update with your settings:
+#   cp remote-build.config.example remote-build.config
+#
+# Then edit remote-build.config with your server details.
+# ====================================================================
+
+# Server connection details
+SERVER_HOST="your-server.com"          # Server hostname or IP
+SERVER_USER="username"                  # SSH username
+SERVER_PORT=22                          # SSH port (default: 22)
+
+# Path to the project on the server
+# This should be the path to the SomniAI repository root
+SERVER_PROJECT_PATH="/home/username/SomniAI"
+
+# Local output directory for downloaded APKs
+# Default: ./build-output (relative to MoJI directory)
+LOCAL_OUTPUT_DIR="./build-output"
+
+# Sync method: "true" for Git, "false" for rsync
+# Git sync: Requires git repository on both local and server
+# rsync: Copies files directly (use if server doesn't have git)
+USE_GIT_SYNC="true"
+
+# ====================================================================
+# Example configurations:
+# ====================================================================
+
+# Example 1: Using IP address with custom SSH port
+# SERVER_HOST="192.168.1.100"
+# SERVER_USER="developer"
+# SERVER_PORT=2222
+# SERVER_PROJECT_PATH="/home/developer/projects/SomniAI"
+
+# Example 2: Using domain name
+# SERVER_HOST="build.mycompany.com"
+# SERVER_USER="jenkins"
+# SERVER_PORT=22
+# SERVER_PROJECT_PATH="/var/lib/jenkins/workspace/SomniAI"
+
+# Example 3: Using rsync instead of git
+# USE_GIT_SYNC="false"
+# SERVER_HOST="192.168.1.50"
+# SERVER_USER="builder"
+# SERVER_PROJECT_PATH="/opt/builds/SomniAI"
