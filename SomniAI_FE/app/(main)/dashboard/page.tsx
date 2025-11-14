@@ -5,11 +5,43 @@
 
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
-import { Activity, TrendingUp, Zap, Users } from 'lucide-react';
+import { Activity, TrendingUp, Zap, Users, Server } from 'lucide-react';
 
 export default function DashboardPage() {
+  const [backendStatus, setBackendStatus] = useState<'connected' | 'disconnected' | 'checking'>('checking');
+  const [lastChecked, setLastChecked] = useState<Date | null>(null);
+
+  // Check backend connection
+  const checkBackendConnection = async () => {
+    try {
+      const response = await fetch('http://localhost:4000/api/health', {
+        method: 'GET',
+        signal: AbortSignal.timeout(5000), // 5 second timeout
+      });
+
+      if (response.ok) {
+        setBackendStatus('connected');
+      } else {
+        setBackendStatus('disconnected');
+      }
+      setLastChecked(new Date());
+    } catch (error) {
+      console.error('Backend health check failed:', error);
+      setBackendStatus('disconnected');
+      setLastChecked(new Date());
+    }
+  };
+
+  // Check on mount and every 10 seconds
+  useEffect(() => {
+    checkBackendConnection();
+    const interval = setInterval(checkBackendConnection, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
   const stats = [
     { label: '활성 스트림', value: '1', change: '+0%', icon: Activity, color: 'text-blue-600' },
     { label: 'MQTT 메시지', value: '247', change: '+12%', icon: Zap, color: 'text-green-600' },
@@ -21,8 +53,30 @@ export default function DashboardPage() {
     <div className="p-8">
       {/* Page Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
-        <p className="text-gray-600">시스템 상태 및 통계 개요</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
+            <p className="text-gray-600">시스템 상태 및 통계 개요</p>
+          </div>
+          {/* Backend Status Badge */}
+          <div className="flex items-center gap-3">
+            <div className="text-right">
+              <div className="text-sm font-semibold text-gray-700">백엔드 서버</div>
+              {lastChecked && (
+                <div className="text-xs text-gray-500">
+                  마지막 확인: {lastChecked.toLocaleTimeString('ko-KR')}
+                </div>
+              )}
+            </div>
+            {backendStatus === 'checking' ? (
+              <Badge label="확인 중..." variant="default" />
+            ) : backendStatus === 'connected' ? (
+              <Badge label="연결됨" variant="success" dot />
+            ) : (
+              <Badge label="연결 끊김" variant="error" />
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Content */}
