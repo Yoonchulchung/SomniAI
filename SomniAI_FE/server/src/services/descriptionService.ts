@@ -10,10 +10,8 @@ export class DescriptionService {
    * Get all descriptions (published only for non-admin)
    */
   async getAll(isAdmin: boolean = false) {
-    const where = isAdmin ? {} : { status: 'PUBLISHED' };
-
     return await prisma.description.findMany({
-      where,
+      where: isAdmin ? undefined : { status: 'PUBLISHED' },
       include: {
         author: {
           select: {
