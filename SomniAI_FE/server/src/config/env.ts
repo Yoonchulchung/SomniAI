@@ -12,6 +12,9 @@ export const config = {
   PORT: parseInt(process.env.PORT || '4000', 10),
   API_PREFIX: process.env.API_PREFIX || '/api',
 
+  // Database
+  DATABASE_URL: process.env.DATABASE_URL || 'postgresql://somniai:somniai@localhost:5432/somniai',
+
   // Redis
   REDIS_URL: process.env.REDIS_URL || 'redis://redis:6379',
   REDIS_TTL: parseInt(process.env.REDIS_TTL || '3600', 10), // 1 hour default
@@ -28,6 +31,10 @@ export const config = {
   // Rate Limiting
   RATE_LIMIT_WINDOW_MS: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000', 10), // 1 minute
   RATE_LIMIT_MAX_REQUESTS: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100', 10),
+
+  // JWT
+  JWT_SECRET: process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production',
+  JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '7d',
 } as const;
 
 export default config;

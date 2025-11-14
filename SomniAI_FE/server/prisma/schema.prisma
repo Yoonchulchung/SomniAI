@@ -1,0 +1,70 @@
+// Prisma Schema for SomniAI
+// Database: PostgreSQL
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User model for authentication
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  username  String   @unique
+  role      Role     @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  descriptions Description[]
+
+  @@map("users")
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+// Description model - Notion-like document
+model Description {
+  id          String            @id @default(cuid())
+  title       String
+  content     Json              // Stores editor content as JSON
+  status      DescriptionStatus @default(DRAFT)
+  version     Int               @default(1)
+  publishedAt DateTime?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  // History tracking
+  history DescriptionHistory[]
+
+  @@map("descriptions")
+}
+
+enum DescriptionStatus {
+  DRAFT
+  PUBLISHED
+}
+
+// Description version history
+model DescriptionHistory {
+  id        String   @id @default(cuid())
+  title     String
+  content   Json
+  version   Int
+  createdAt DateTime @default(now())
+
+  descriptionId String
+  description   Description @relation(fields: [descriptionId], references: [id], onDelete: Cascade)
+
+  @@map("description_history")
+}

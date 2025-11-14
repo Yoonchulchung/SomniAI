@@ -9,9 +9,11 @@ import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
 import morgan from 'morgan';
+import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
 import { config } from './config/env';
 import { connectRedis, disconnectRedis } from './config/redis';
+import { connectDatabase, disconnectDatabase } from './config/database';
 import mqttService from './services/mqttService';
 import routes from './routes';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
@@ -59,6 +61,9 @@ class Server {
     // Body parsing
     this.app.use(express.json({ limit: '10mb' }));
     this.app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+    // Cookie parsing
+    this.app.use(cookieParser());
   }
 
   private initializeRoutes() {
@@ -75,6 +80,8 @@ class Server {
           health: `${config.API_PREFIX}/health`,
           stats: `${config.API_PREFIX}/stats`,
           mqtt: `${config.API_PREFIX}/mqtt`,
+          auth: `${config.API_PREFIX}/auth`,
+          descriptions: `${config.API_PREFIX}/descriptions`,
         },
       });
     });
@@ -90,6 +97,10 @@ class Server {
 
   public async start() {
     try {
+      // Connect to Database
+      console.log('🔌 Connecting to Database...');
+      await connectDatabase();
+
       // Connect to Redis
       console.log('🔌 Connecting to Redis...');
       await connectRedis();
@@ -112,6 +123,7 @@ class Server {
 ║  Environment: ${config.NODE_ENV.padEnd(23)} ║
 ║  Port: ${PORT.toString().padEnd(30)} ║
 ║  API Prefix: ${config.API_PREFIX.padEnd(24)} ║
+║  Database: Connected ✓               ║
 ║  Redis: Connected ✓                  ║
 ║  MQTT: Connected ✓                   ║
 ╚═══════════════════════════════════════╝
@@ -129,6 +141,7 @@ class Server {
     try {
       await mqttService.disconnect();
       await disconnectRedis();
+      await disconnectDatabase();
       console.log('✓ Server stopped gracefully');
       process.exit(0);
     } catch (error) {
