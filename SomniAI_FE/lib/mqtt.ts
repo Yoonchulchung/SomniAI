@@ -178,7 +178,7 @@ class MQTTService {
         topic,
         payloadString,
         {
-          qos: options?.qos || this.config?.qos || 0,
+          qos: options?.qos || 0,
           retain: options?.retained || false,
         },
         (error) => {
