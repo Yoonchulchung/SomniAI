@@ -180,11 +180,25 @@ export default function MonitorPage() {
 
             {/* Server Streaming Control */}
             <Card elevated className="mt-6">
-              <CardHeader
-                title="서버 전송"
-                subtitle="프레임을 서버로 전송"
-                icon={<Zap className="w-6 h-6 text-orange-600" />}
-              />
+              {/* Custom Header with IP */}
+              <div className="flex items-center justify-between p-6 border-b border-gray-100">
+                <div className="flex items-center gap-3">
+                  <div className="text-2xl">
+                    <Zap className="w-6 h-6 text-orange-600" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-bold text-gray-900">서버 전송</h3>
+                    <p className="text-sm text-gray-600 mt-1">프레임을 서버로 전송</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+                  <Activity className="w-4 h-4 text-blue-600" />
+                  <div>
+                    <div className="text-[10px] font-semibold text-blue-700 leading-tight">Client IP</div>
+                    <div className="text-xs font-mono text-blue-900 font-semibold">{clientIp}</div>
+                  </div>
+                </div>
+              </div>
               <CardContent>
                 <div className="space-y-4">
                   <div>
@@ -217,20 +231,6 @@ export default function MonitorPage() {
                     <div className="flex justify-between text-xs text-gray-500 mt-1">
                       <span>1 FPS</span>
                       <span>30 FPS</span>
-                    </div>
-                  </div>
-
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <label className="block text-xs font-semibold text-blue-700 mb-1">
-                          클라이언트 IP 주소
-                        </label>
-                        <div className="text-sm font-mono text-blue-900">{clientIp}</div>
-                      </div>
-                      <div className="text-blue-600">
-                        <Activity className="w-5 h-5" />
-                      </div>
                     </div>
                   </div>
 
