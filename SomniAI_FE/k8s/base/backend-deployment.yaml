@@ -1,0 +1,126 @@
+---
+# Backend API Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: somniai
+  labels:
+    app: backend
+spec:
+  replicas: 2  # Multiple replicas for high availability
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+      - name: backend
+        image: somniai-backend:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 4000
+          name: http
+        env:
+        - name: NODE_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: somniai-config
+              key: NODE_ENV
+        - name: PORT
+          valueFrom:
+            configMapKeyRef:
+              name: somniai-config
+              key: PORT
+        - name: API_PREFIX
+          valueFrom:
+            configMapKeyRef:
+              name: somniai-config
+              key: API_PREFIX
+        - name: REDIS_URL
+          valueFrom:
+            configMapKeyRef:
+              name: somniai-config
+              key: REDIS_URL
+        - name: REDIS_TTL
+          valueFrom:
+            configMapKeyRef:
+              name: somniai-config
+              key: REDIS_TTL
+        - name: MQTT_BROKER
+          valueFrom:
+            configMapKeyRef:
+              name: somniai-config
+              key: MQTT_BROKER
+        - name: MQTT_CLIENT_ID
+          valueFrom:
+            configMapKeyRef:
+              name: somniai-config
+              key: MQTT_CLIENT_ID
+        - name: CORS_ORIGIN
+          valueFrom:
+            configMapKeyRef:
+              name: somniai-config
+              key: CORS_ORIGIN
+        - name: RATE_LIMIT_WINDOW_MS
+          valueFrom:
+            configMapKeyRef:
+              name: somniai-config
+              key: RATE_LIMIT_WINDOW_MS
+        - name: RATE_LIMIT_MAX_REQUESTS
+          valueFrom:
+            configMapKeyRef:
+              name: somniai-config
+              key: RATE_LIMIT_MAX_REQUESTS
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /api/health
+            port: 4000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /api/health
+            port: 4000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 2
+      restartPolicy: Always
+
+---
+# Backend Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-service
+  namespace: somniai
+  labels:
+    app: backend
+spec:
+  type: ClusterIP
+  ports:
+  - port: 4000
+    targetPort: 4000
+    protocol: TCP
+    name: http
+  selector:
+    app: backend
+  sessionAffinity: ClientIP

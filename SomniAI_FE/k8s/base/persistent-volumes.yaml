@@ -1,0 +1,95 @@
+---
+# Redis Persistent Volume
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: redis-pv
+  namespace: somniai
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: manual
+  hostPath:
+    path: /data/somniai/redis
+
+---
+# Redis Persistent Volume Claim
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: redis-pvc
+  namespace: somniai
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: manual
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+# Mosquitto Data Persistent Volume
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: mosquitto-data-pv
+  namespace: somniai
+spec:
+  capacity:
+    storage: 500Mi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: manual
+  hostPath:
+    path: /data/somniai/mosquitto/data
+
+---
+# Mosquitto Data PVC
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mosquitto-data-pvc
+  namespace: somniai
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: manual
+  resources:
+    requests:
+      storage: 500Mi
+
+---
+# Mosquitto Log Persistent Volume
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: mosquitto-log-pv
+  namespace: somniai
+spec:
+  capacity:
+    storage: 200Mi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: manual
+  hostPath:
+    path: /data/somniai/mosquitto/log
+
+---
+# Mosquitto Log PVC
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mosquitto-log-pvc
+  namespace: somniai
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: manual
+  resources:
+    requests:
+      storage: 200Mi
