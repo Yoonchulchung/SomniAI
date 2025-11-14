@@ -12,7 +12,7 @@ export class StatsController {
   /**
    * Get current system statistics
    */
-  async getStats(req: Request, res: Response) {
+  async getStats(_req: Request, res: Response) {
     const mqttMessageCount = await mqttService.getMessageCount();
     const activeStreams = await cacheService.get<number>('stats:active_streams') || 1;
     const totalFrames = await cacheService.get<number>('stats:total_frames') || 1200;
@@ -60,7 +60,7 @@ export class StatsController {
   /**
    * Increment frame counter
    */
-  async incrementFrames(req: Request, res: Response) {
+  async incrementFrames(_req: Request, res: Response) {
     const count = await cacheService.increment('stats:total_frames');
 
     const response: ApiResponse<{ count: number }> = {

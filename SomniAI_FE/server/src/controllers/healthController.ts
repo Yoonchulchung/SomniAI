@@ -11,7 +11,7 @@ export class HealthController {
   /**
    * Health check endpoint
    */
-  async health(req: Request, res: Response) {
+  async health(_req: Request, res: Response) {
     const response: ApiResponse = {
       success: true,
       message: 'Server is healthy',
@@ -27,7 +27,7 @@ export class HealthController {
   /**
    * System status endpoint
    */
-  async status(req: Request, res: Response) {
+  async status(_req: Request, res: Response) {
     const redisConnected = redisClient.isReady;
     const mqttConnected = mqttService.isConnected();
 

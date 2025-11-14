@@ -71,7 +71,7 @@ class Server {
     this.app.use(config.API_PREFIX, routes);
 
     // Root endpoint
-    this.app.get('/', (req, res) => {
+    this.app.get('/', (_req, res) => {
       res.json({
         success: true,
         message: 'SomniAI API Server',

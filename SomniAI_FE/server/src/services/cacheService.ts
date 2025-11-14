@@ -4,7 +4,6 @@
  */
 
 import redisClient from '../config/redis';
-import { CacheOptions } from '../types';
 import { config } from '../config/env';
 
 export class CacheService {

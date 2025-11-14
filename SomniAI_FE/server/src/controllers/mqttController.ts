@@ -30,14 +30,14 @@ export class MqttController {
         message: 'Message published successfully',
       };
 
-      res.json(response);
+      return res.json(response);
     } catch (error) {
       const response: ApiResponse = {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to publish message',
       };
 
-      res.status(500).json(response);
+      return res.status(500).json(response);
     }
   }
 
@@ -63,14 +63,14 @@ export class MqttController {
         message: `Subscribed to topic: ${topic}`,
       };
 
-      res.json(response);
+      return res.json(response);
     } catch (error) {
       const response: ApiResponse = {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to subscribe',
       };
 
-      res.status(500).json(response);
+      return res.status(500).json(response);
     }
   }
 
@@ -96,14 +96,14 @@ export class MqttController {
         message: `Unsubscribed from topic: ${topic}`,
       };
 
-      res.json(response);
+      return res.json(response);
     } catch (error) {
       const response: ApiResponse = {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to unsubscribe',
       };
 
-      res.status(500).json(response);
+      return res.status(500).json(response);
     }
   }
 
