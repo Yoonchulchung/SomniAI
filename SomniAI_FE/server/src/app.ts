@@ -105,13 +105,23 @@ class Server {
       console.log('🔌 Connecting to Redis...');
       await connectRedis();
 
-      // Connect to MQTT
-      console.log('🔌 Connecting to MQTT broker...');
-      await mqttService.connect();
+      // Connect to MQTT (optional - don't fail if MQTT is unavailable)
+      let mqttConnected = false;
+      try {
+        console.log('🔌 Connecting to MQTT broker...');
+        await Promise.race([
+          mqttService.connect(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('MQTT connection timeout')), 10000))
+        ]);
 
-      // Subscribe to default topics
-      await mqttService.subscribe('somniai/#');
-      await mqttService.subscribe('test/topic');
+        // Subscribe to default topics
+        await mqttService.subscribe('somniai/#');
+        await mqttService.subscribe('test/topic');
+        mqttConnected = true;
+        console.log('✓ MQTT connected successfully');
+      } catch (mqttError) {
+        console.warn('⚠ MQTT connection failed, continuing without MQTT:', mqttError);
+      }
 
       // Start server
       const PORT = config.PORT;
@@ -125,7 +135,7 @@ class Server {
 ║  API Prefix: ${config.API_PREFIX.padEnd(24)} ║
 ║  Database: Connected ✓               ║
 ║  Redis: Connected ✓                  ║
-║  MQTT: Connected ✓                   ║
+║  MQTT: ${mqttConnected ? 'Connected ✓' : 'Unavailable ⚠'}             ║
 ╚═══════════════════════════════════════╝
         `);
       });
