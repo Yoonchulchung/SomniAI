@@ -5,14 +5,21 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useWebcam } from '@/hooks/useWebcam';
 import { WebcamPlayer } from '@/components/webcam/WebcamPlayer';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
-import { ArrowLeft, Settings as SettingsIcon, Activity, Clock, Zap } from 'lucide-react';
+import { ArrowLeft, Settings as SettingsIcon, Activity, Clock, Zap, Terminal } from 'lucide-react';
+
+interface TransmissionLog {
+  timestamp: number;
+  level: 'info' | 'success' | 'error' | 'warn';
+  message: string;
+  details?: any;
+}
 
 export default function MonitorPage() {
   const [serverUrl, setServerUrl] = useState('http://192.168.0.100:8000/upload');
@@ -21,6 +28,8 @@ export default function MonitorPage() {
   const [framesSent, setFramesSent] = useState(0);
   const [lastSentTime, setLastSentTime] = useState<number>(0);
   const [streamInterval, setStreamInterval] = useState<NodeJS.Timeout | null>(null);
+  const [transmissionLogs, setTransmissionLogs] = useState<TransmissionLog[]>([]);
+  const logsEndRef = useRef<HTMLDivElement>(null);
 
   const webcam = useWebcam({
     width: 1280,
@@ -28,6 +37,17 @@ export default function MonitorPage() {
     facingMode: 'user',
     fps: 30,
   });
+
+  // Add log entry
+  const addLog = (level: TransmissionLog['level'], message: string, details?: any) => {
+    const log: TransmissionLog = {
+      timestamp: Date.now(),
+      level,
+      message,
+      details,
+    };
+    setTransmissionLogs((prev) => [...prev, log].slice(-100)); // Keep last 100 logs
+  };
 
   // Start streaming to server
   const startServerStreaming = () => {
@@ -38,13 +58,25 @@ export default function MonitorPage() {
 
     setStreamingToServer(true);
     setFramesSent(0);
+    addLog('info', `서버 전송 시작: ${serverUrl}`, { fps });
 
     const interval = setInterval(async () => {
       try {
+        const startTime = Date.now();
         await webcam.sendFrame(serverUrl);
-        setFramesSent((prev) => prev + 1);
+        const duration = Date.now() - startTime;
+
+        setFramesSent((prev) => {
+          const newCount = prev + 1;
+          if (newCount % 10 === 0) {
+            addLog('success', `프레임 ${newCount}개 전송 완료`, { duration: `${duration}ms` });
+          }
+          return newCount;
+        });
         setLastSentTime(Date.now());
       } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류';
+        addLog('error', `프레임 전송 실패: ${errorMessage}`, { url: serverUrl });
         console.error('[Monitor] Failed to send frame:', error);
       }
     }, 1000 / fps);
@@ -59,7 +91,15 @@ export default function MonitorPage() {
       setStreamInterval(null);
     }
     setStreamingToServer(false);
+    addLog('info', '서버 전송 중지', { totalFrames: framesSent });
   };
+
+  // Auto-scroll logs to bottom
+  useEffect(() => {
+    if (logsEndRef.current) {
+      logsEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [transmissionLogs]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -262,6 +302,81 @@ export default function MonitorPage() {
                 </CardContent>
               </Card>
             )}
+
+            {/* Transmission Logs */}
+            <Card elevated>
+              <CardHeader
+                title="전송 로그"
+                subtitle={`${transmissionLogs.length}개의 로그`}
+                icon={<Terminal className="w-6 h-6 text-purple-600" />}
+              />
+              <CardContent>
+                <div className="mb-3 flex items-center justify-between">
+                  {transmissionLogs.length > 0 && (
+                    <button
+                      onClick={() => setTransmissionLogs([])}
+                      className="text-xs text-gray-500 hover:text-gray-700"
+                    >
+                      로그 삭제
+                    </button>
+                  )}
+                </div>
+                <div className="bg-gray-900 rounded-lg p-3 max-h-80 overflow-y-auto font-mono text-xs">
+                  {transmissionLogs.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      <Terminal className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                      <p className="text-xs">전송 로그가 없습니다</p>
+                      <p className="text-xs mt-1">서버 전송을 시작하면 로그가 표시됩니다</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      {transmissionLogs.map((log, index) => {
+                        const levelColors = {
+                          info: 'text-blue-400',
+                          success: 'text-green-400',
+                          warn: 'text-yellow-400',
+                          error: 'text-red-400',
+                        };
+
+                        const levelIcons = {
+                          info: 'ℹ',
+                          success: '✓',
+                          warn: '⚠',
+                          error: '✗',
+                        };
+
+                        return (
+                          <div key={index} className="flex gap-2 items-start py-0.5">
+                            <span className="text-gray-500 whitespace-nowrap text-[10px]">
+                              {new Date(log.timestamp).toLocaleTimeString('ko-KR', {
+                                hour12: false,
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                second: '2-digit',
+                              })}
+                            </span>
+                            <span className={`${levelColors[log.level]} font-bold`}>
+                              {levelIcons[log.level]}
+                            </span>
+                            <div className="flex-1">
+                              <span className="text-gray-200">{log.message}</span>
+                              {log.details && (
+                                <div className="text-gray-400 text-[10px] mt-0.5 ml-2 border-l-2 border-gray-700 pl-2">
+                                  {typeof log.details === 'string'
+                                    ? log.details
+                                    : JSON.stringify(log.details)}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                      <div ref={logsEndRef} />
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </main>
