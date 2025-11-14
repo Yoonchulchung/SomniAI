@@ -216,6 +216,35 @@ lsof -i :4000
 kill -9 <PID>
 ```
 
+### Prisma/Database 연결 오류
+
+**증상**: 백엔드 로그에 다음 오류 표시
+```
+Error loading shared library libssl.so.1.1: No such file or directory
+PrismaClientInitializationError: Unable to require libquery_engine
+```
+
+**원인**: Alpine Linux 이미지에 OpenSSL 1.1이 없음
+
+**해결**: 이미 docker-compose.dev.yml에 자동 설치 설정되어 있음
+```yaml
+command: sh -c "apk add --no-cache openssl1.1-compat && npm install && npx prisma generate && npm run dev"
+```
+
+컨테이너 재시작 시 자동으로 OpenSSL이 설치됩니다:
+```bash
+./run.sh dev
+```
+
+**수동 해결** (필요한 경우):
+```bash
+# 백엔드 컨테이너 내부에서
+docker exec -it somniai-backend sh
+apk add --no-cache openssl1.1-compat
+npx prisma generate
+npm run dev
+```
+
 ## 성능 최적화
 
 ### Docker Desktop 설정 (macOS/Windows)
