@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit",
     "start": "react-native start",
     "test": "jest",
-    "prepare": "husky install"
+    "prepare": "cd .. && husky install .husky || true",
+    "postinstall": "[ -d ../.git ] && cd .. && husky install .husky || echo 'Skipping husky (not in git repo)'"
   },
   "dependencies": {
     "@react-native-camera-roll/camera-roll": "^7.8.3",

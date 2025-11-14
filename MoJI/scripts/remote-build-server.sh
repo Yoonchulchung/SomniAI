@@ -53,7 +53,7 @@ echo -e "Node:         ${BLUE}$(node --version 2>/dev/null || echo 'not found')$
 echo -e "Java:         ${BLUE}$(java -version 2>&1 | head -1 || echo 'not found')${NC}"
 echo -e "${GREEN}========================================${NC}\n"
 
-cd "$PROJECT_ROOT/MoJI"
+cd "$PROJECT_ROOT"
 
 # Step 0: Setup Android SDK
 echo -e "${YELLOW}[0/5] Configuring Android SDK...${NC}"
