@@ -10,7 +10,7 @@ import Link from 'next/link';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
-import { ArrowLeft, Send, Code, Trash2, Copy, Check, Terminal } from 'lucide-react';
+import { ArrowLeft, Send, Code, Trash2, Copy, Check, Terminal, Activity } from 'lucide-react';
 
 interface Response {
   status: number;
@@ -37,7 +37,28 @@ export default function TestPage() {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [clientIp, setClientIp] = useState<string>('Loading...');
   const logsEndRef = useRef<HTMLDivElement>(null);
+
+  // Fetch client IP on mount
+  useEffect(() => {
+    const fetchClientIp = async () => {
+      try {
+        const response = await fetch('http://localhost:4000/api/system/client-ip');
+        const data = await response.json();
+        if (data.success) {
+          setClientIp(data.data.ip);
+        } else {
+          setClientIp('Unknown');
+        }
+      } catch (error) {
+        console.error('[Test] Failed to fetch client IP:', error);
+        setClientIp('Error');
+      }
+    };
+
+    fetchClientIp();
+  }, []);
 
   // Auto-scroll logs to bottom
   useEffect(() => {
@@ -151,6 +172,7 @@ export default function TestPage() {
     setResponse(null);
     setError(null);
     setLogs([]);
+    setLoading(false); // Reset loading state
   };
 
   const clearLogs = () => {
@@ -192,14 +214,30 @@ export default function TestPage() {
       </header>
 
       <main className="max-w-7xl mx-auto px-6 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Request Panel */}
-          <div className="space-y-6">
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Request Panel */}
+            <div className="space-y-6">
             <Card elevated>
-              <CardHeader
-                title="요청 설정"
-                icon={<Code className="w-6 h-6 text-indigo-600" />}
-              />
+              {/* Custom header with IP display */}
+              <div className="flex items-center justify-between p-6 border-b border-gray-100">
+                <div className="flex items-center gap-3">
+                  <div className="text-2xl">
+                    <Code className="w-6 h-6 text-indigo-600" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-bold text-gray-900">요청 설정</h3>
+                    <p className="text-sm text-gray-600 mt-1">API 요청 구성 및 전송</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+                  <Activity className="w-4 h-4 text-blue-600" />
+                  <div>
+                    <div className="text-[10px] font-semibold text-blue-700 leading-tight">Client IP</div>
+                    <div className="text-xs font-mono text-blue-900 font-semibold">{clientIp}</div>
+                  </div>
+                </div>
+              </div>
               <CardContent>
                 <div className="space-y-4">
                   {/* Method and URL */}
@@ -344,165 +382,166 @@ export default function TestPage() {
             </Card>
           </div>
 
-          {/* Response Panel */}
-          <div>
-            <Card elevated>
-              <CardHeader
-                title="응답"
-                icon={<Code className="w-6 h-6 text-green-600" />}
-              />
-              <CardContent>
-                {!response && !loading && (
-                  <div className="text-center py-12 text-gray-400">
-                    <Send className="w-16 h-16 mx-auto mb-3 opacity-50" />
-                    <p>요청을 보내면 응답이 여기에 표시됩니다</p>
-                  </div>
-                )}
-
-                {loading && (
-                  <div className="text-center py-12">
-                    <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-3"></div>
-                    <p className="text-gray-600">요청 전송 중...</p>
-                  </div>
-                )}
-
-                {response && (
-                  <div className="space-y-4">
-                    {/* Status */}
-                    <div className="flex items-center justify-between pb-3 border-b border-gray-200">
-                      <div className="flex items-center gap-3">
-                        <span className={`text-2xl font-bold ${getStatusColor(response.status)}`}>
-                          {response.status}
-                        </span>
-                        <span className="text-gray-600">{response.statusText}</span>
-                      </div>
-                      <Badge
-                        label={`${response.duration}ms`}
-                        variant={response.duration < 100 ? 'success' : response.duration < 500 ? 'default' : 'warning'}
-                      />
-                    </div>
-
-                    {/* Response Headers */}
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <h3 className="text-sm font-semibold text-gray-700">Headers</h3>
-                      </div>
-                      <div className="bg-gray-50 rounded-lg p-3 max-h-40 overflow-y-auto">
-                        <pre className="text-xs font-mono text-gray-700">
-                          {JSON.stringify(response.headers, null, 2)}
-                        </pre>
-                      </div>
-                    </div>
-
-                    {/* Response Body */}
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <h3 className="text-sm font-semibold text-gray-700">Body</h3>
-                        <button
-                          onClick={copyResponse}
-                          className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1"
-                        >
-                          {copied ? (
-                            <>
-                              <Check className="w-3 h-3" />
-                              Copied!
-                            </>
-                          ) : (
-                            <>
-                              <Copy className="w-3 h-3" />
-                              Copy
-                            </>
-                          )}
-                        </button>
-                      </div>
-                      <div className="bg-gray-900 rounded-lg p-4 max-h-96 overflow-y-auto">
-                        <pre className="text-sm font-mono text-gray-200">
-                          {typeof response.data === 'string'
-                            ? response.data
-                            : JSON.stringify(response.data, null, 2)}
-                        </pre>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Logs Panel */}
-            <Card elevated className="mt-6">
-              <CardHeader
-                title="활동 로그"
-                subtitle={`${logs.length}개의 로그`}
-                icon={<Terminal className="w-6 h-6 text-purple-600" />}
-              />
-              <CardContent>
-                <div className="mb-3 flex items-center justify-between">
-                  {logs.length > 0 && (
-                    <button
-                      onClick={clearLogs}
-                      className="text-xs text-gray-500 hover:text-gray-700"
-                    >
-                      로그 삭제
-                    </button>
-                  )}
-                </div>
-                <div className="bg-gray-900 rounded-lg p-3 max-h-80 overflow-y-auto font-mono text-xs">
-                  {logs.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500">
-                      <Terminal className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                      <p className="text-xs">활동 로그가 없습니다</p>
-                      <p className="text-xs mt-1">요청을 보내면 로그가 표시됩니다</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-1">
-                      {logs.map((log, index) => {
-                        const levelColors = {
-                          info: 'text-blue-400',
-                          success: 'text-green-400',
-                          warn: 'text-yellow-400',
-                          error: 'text-red-400',
-                        };
-
-                        const levelIcons = {
-                          info: 'ℹ',
-                          success: '✓',
-                          warn: '⚠',
-                          error: '✗',
-                        };
-
-                        return (
-                          <div key={index} className="flex gap-2 items-start py-0.5">
-                            <span className="text-gray-500 whitespace-nowrap text-[10px]">
-                              {new Date(log.timestamp).toLocaleTimeString('ko-KR', {
-                                hour12: false,
-                                hour: '2-digit',
-                                minute: '2-digit',
-                                second: '2-digit',
-                              })}
-                            </span>
-                            <span className={`${levelColors[log.level]} font-bold`}>
-                              {levelIcons[log.level]}
-                            </span>
-                            <div className="flex-1">
-                              <span className="text-gray-200">{log.message}</span>
-                              {log.details && (
-                                <div className="text-gray-400 text-[10px] mt-0.5 ml-2 border-l-2 border-gray-700 pl-2">
-                                  {typeof log.details === 'string'
-                                    ? log.details
-                                    : JSON.stringify(log.details)}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                      <div ref={logsEndRef} />
+            {/* Response Panel */}
+            <div>
+              <Card elevated>
+                <CardHeader
+                  title="응답"
+                  icon={<Code className="w-6 h-6 text-green-600" />}
+                />
+                <CardContent>
+                  {!response && !loading && (
+                    <div className="text-center py-12 text-gray-400">
+                      <Send className="w-16 h-16 mx-auto mb-3 opacity-50" />
+                      <p>요청을 보내면 응답이 여기에 표시됩니다</p>
                     </div>
                   )}
-                </div>
-              </CardContent>
-            </Card>
+
+                  {loading && (
+                    <div className="text-center py-12">
+                      <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-3"></div>
+                      <p className="text-gray-600">요청 전송 중...</p>
+                    </div>
+                  )}
+
+                  {response && (
+                    <div className="space-y-4">
+                      {/* Status */}
+                      <div className="flex items-center justify-between pb-3 border-b border-gray-200">
+                        <div className="flex items-center gap-3">
+                          <span className={`text-2xl font-bold ${getStatusColor(response.status)}`}>
+                            {response.status}
+                          </span>
+                          <span className="text-gray-600">{response.statusText}</span>
+                        </div>
+                        <Badge
+                          label={`${response.duration}ms`}
+                          variant={response.duration < 100 ? 'success' : response.duration < 500 ? 'default' : 'warning'}
+                        />
+                      </div>
+
+                      {/* Response Headers */}
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <h3 className="text-sm font-semibold text-gray-700">Headers</h3>
+                        </div>
+                        <div className="bg-gray-50 rounded-lg p-3 max-h-40 overflow-y-auto">
+                          <pre className="text-xs font-mono text-gray-700">
+                            {JSON.stringify(response.headers, null, 2)}
+                          </pre>
+                        </div>
+                      </div>
+
+                      {/* Response Body */}
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <h3 className="text-sm font-semibold text-gray-700">Body</h3>
+                          <button
+                            onClick={copyResponse}
+                            className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1"
+                          >
+                            {copied ? (
+                              <>
+                                <Check className="w-3 h-3" />
+                                Copied!
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="w-3 h-3" />
+                                Copy
+                              </>
+                            )}
+                          </button>
+                        </div>
+                        <div className="bg-gray-900 rounded-lg p-4 max-h-96 overflow-y-auto">
+                          <pre className="text-sm font-mono text-gray-200">
+                            {typeof response.data === 'string'
+                              ? response.data
+                              : JSON.stringify(response.data, null, 2)}
+                          </pre>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           </div>
+
+          {/* Logs Panel - Full Width */}
+          <Card elevated>
+            <CardHeader
+              title="활동 로그"
+              subtitle={`${logs.length}개의 로그`}
+              icon={<Terminal className="w-6 h-6 text-purple-600" />}
+            />
+            <CardContent>
+              <div className="mb-3 flex items-center justify-between">
+                {logs.length > 0 && (
+                  <button
+                    onClick={clearLogs}
+                    className="text-xs text-gray-500 hover:text-gray-700"
+                  >
+                    로그 삭제
+                  </button>
+                )}
+              </div>
+              <div className="bg-gray-900 rounded-lg p-4 max-h-96 overflow-y-auto font-mono text-xs">
+                {logs.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <Terminal className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                    <p className="text-xs">활동 로그가 없습니다</p>
+                    <p className="text-xs mt-1">요청을 보내면 로그가 표시됩니다</p>
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    {logs.map((log, index) => {
+                      const levelColors = {
+                        info: 'text-blue-400',
+                        success: 'text-green-400',
+                        warn: 'text-yellow-400',
+                        error: 'text-red-400',
+                      };
+
+                      const levelIcons = {
+                        info: 'ℹ',
+                        success: '✓',
+                        warn: '⚠',
+                        error: '✗',
+                      };
+
+                      return (
+                        <div key={index} className="flex gap-2 items-start py-0.5">
+                          <span className="text-gray-500 whitespace-nowrap text-[10px]">
+                            {new Date(log.timestamp).toLocaleTimeString('ko-KR', {
+                              hour12: false,
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              second: '2-digit',
+                            })}
+                          </span>
+                          <span className={`${levelColors[log.level]} font-bold`}>
+                            {levelIcons[log.level]}
+                          </span>
+                          <div className="flex-1">
+                            <span className="text-gray-200">{log.message}</span>
+                            {log.details && (
+                              <div className="text-gray-400 text-[10px] mt-0.5 ml-2 border-l-2 border-gray-700 pl-2">
+                                {typeof log.details === 'string'
+                                  ? log.details
+                                  : JSON.stringify(log.details)}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                    <div ref={logsEndRef} />
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </main>
     </div>
