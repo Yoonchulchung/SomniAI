@@ -144,17 +144,17 @@ export default function TestPage() {
   };
 
   const clearAll = () => {
+    setMethod('GET');
     setUrl('http://localhost:4000/api/health');
     setHeaders('{\n  "Content-Type": "application/json"\n}');
     setBody('{\n  "message": "Hello World"\n}');
     setResponse(null);
     setError(null);
-    addLog('info', '설정 초기화됨');
+    setLogs([]);
   };
 
   const clearLogs = () => {
     setLogs([]);
-    addLog('info', '로그가 삭제되었습니다');
   };
 
   const copyResponse = () => {
