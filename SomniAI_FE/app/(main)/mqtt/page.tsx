@@ -20,12 +20,20 @@ interface ServerLog {
   details?: any;
 }
 
+interface ConnectionLog {
+  timestamp: number;
+  level: 'info' | 'warn' | 'error' | 'success';
+  message: string;
+}
+
 export default function MQTTPage() {
   const mqtt = useMQTT();
   const [activeTab, setActiveTab] = useState<'connection' | 'publish' | 'subscribe' | 'messages' | 'serverlogs'>('connection');
   const [serverLogs, setServerLogs] = useState<ServerLog[]>([]);
   const [autoScroll, setAutoScroll] = useState(true);
   const logsEndRef = useRef<HTMLDivElement>(null);
+  const [connectionLogs, setConnectionLogs] = useState<ConnectionLog[]>([]);
+  const connectionLogsEndRef = useRef<HTMLDivElement>(null);
 
   // Connection form
   const [host, setHost] = useState('localhost');
@@ -44,7 +52,17 @@ export default function MQTTPage() {
   const [subTopic, setSubTopic] = useState('test/#');
   const [subQos, setSubQos] = useState<0 | 1 | 2>(0);
 
+  const addConnectionLog = (level: ConnectionLog['level'], message: string) => {
+    const log: ConnectionLog = {
+      timestamp: Date.now(),
+      level,
+      message,
+    };
+    setConnectionLogs((prev) => [...prev, log].slice(-50)); // Keep last 50 logs
+  };
+
   const handleConnect = async () => {
+    addConnectionLog('info', `연결 시도: ws://${host}:${port}`);
     try {
       await mqtt.connect({
         host,
@@ -55,6 +73,8 @@ export default function MQTTPage() {
         protocol: 'ws',
       });
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류';
+      addConnectionLog('error', `연결 실패: ${errorMessage}`);
       console.error('Connection failed:', error);
     }
   };
@@ -125,6 +145,33 @@ export default function MQTTPage() {
       logsEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [serverLogs, autoScroll]);
+
+  // Track connection state changes
+  useEffect(() => {
+    if (mqtt.connectionState === 'connected') {
+      addConnectionLog('success', 'MQTT 브로커에 연결되었습니다');
+    } else if (mqtt.connectionState === 'connecting') {
+      addConnectionLog('info', '브로커에 연결 중...');
+    } else if (mqtt.connectionState === 'reconnecting') {
+      addConnectionLog('warn', '브로커에 재연결 중...');
+    } else if (mqtt.connectionState === 'disconnected') {
+      addConnectionLog('info', '브로커 연결이 해제되었습니다');
+    }
+  }, [mqtt.connectionState]);
+
+  // Track connection errors
+  useEffect(() => {
+    if (mqtt.error) {
+      addConnectionLog('error', `오류 발생: ${mqtt.error.message}`);
+    }
+  }, [mqtt.error]);
+
+  // Auto-scroll connection logs
+  useEffect(() => {
+    if (connectionLogsEndRef.current) {
+      connectionLogsEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [connectionLogs]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-orange-50">
@@ -253,10 +300,72 @@ export default function MQTTPage() {
                     연결
                   </Button>
                 ) : (
-                  <Button onClick={() => mqtt.disconnect()} variant="danger" fullWidth>
+                  <Button onClick={() => {
+                    addConnectionLog('info', '연결 해제 요청');
+                    mqtt.disconnect();
+                  }} variant="danger" fullWidth>
                     연결 해제
                   </Button>
                 )}
+
+                {/* Connection Logs */}
+                <div className="mt-6">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-semibold text-gray-700">연결 로그</h3>
+                    {connectionLogs.length > 0 && (
+                      <button
+                        onClick={() => setConnectionLogs([])}
+                        className="text-xs text-gray-500 hover:text-gray-700"
+                      >
+                        로그 삭제
+                      </button>
+                    )}
+                  </div>
+                  <div className="bg-gray-900 rounded-lg p-3 max-h-64 overflow-y-auto font-mono text-xs">
+                    {connectionLogs.length === 0 ? (
+                      <div className="text-center py-6 text-gray-500">
+                        <p>연결 로그가 없습니다</p>
+                        <p className="text-xs mt-1">브로커에 연결을 시도하면 로그가 표시됩니다</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-1">
+                        {connectionLogs.map((log, index) => {
+                          const levelColors = {
+                            info: 'text-blue-400',
+                            success: 'text-green-400',
+                            warn: 'text-yellow-400',
+                            error: 'text-red-400',
+                          };
+
+                          const levelIcons = {
+                            info: 'ℹ',
+                            success: '✓',
+                            warn: '⚠',
+                            error: '✗',
+                          };
+
+                          return (
+                            <div key={index} className="flex gap-2 items-start">
+                              <span className="text-gray-500 whitespace-nowrap">
+                                {new Date(log.timestamp).toLocaleTimeString('ko-KR', {
+                                  hour12: false,
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                  second: '2-digit',
+                                })}
+                              </span>
+                              <span className={`${levelColors[log.level]} font-bold`}>
+                                {levelIcons[log.level]}
+                              </span>
+                              <span className="text-gray-200 flex-1">{log.message}</span>
+                            </div>
+                          );
+                        })}
+                        <div ref={connectionLogsEndRef} />
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
