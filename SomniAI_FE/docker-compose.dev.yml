@@ -18,11 +18,9 @@ services:
 
   # Next.js Frontend - Development Mode
   frontend:
-    build:
-      context: .
-      dockerfile: Dockerfile.frontend
-      target: development  # Use development stage if multi-stage build
+    image: node:20-alpine
     container_name: somniai-frontend
+    working_dir: /app
     environment:
       - NODE_ENV=development
       - NEXT_PUBLIC_API_URL=http://localhost/api
@@ -30,32 +28,23 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      # Mount source code for hot reload
-      - ./app:/app/app:cached
-      - ./components:/app/components:cached
-      - ./lib:/app/lib:cached
-      - ./public:/app/public:cached
-      - ./styles:/app/styles:cached
-      - ./.next:/app/.next:cached
-      - ./next.config.ts:/app/next.config.ts:cached
-      - ./tsconfig.json:/app/tsconfig.json:cached
-      - ./tailwind.config.ts:/app/tailwind.config.ts:cached
-      - ./postcss.config.mjs:/app/postcss.config.mjs:cached
-      # Preserve node_modules in container
+      # Mount entire project for hot reload
+      - .:/app:cached
+      # Preserve node_modules in container (anonymous volume)
       - /app/node_modules
+      - /app/.next
     networks:
       - somniai-network
     restart: unless-stopped
     depends_on:
       - backend
-    command: npm run dev
+    command: sh -c "npm install && npm run dev"
 
   # Node.js Backend API - Development Mode
   backend:
-    build:
-      context: ./server
-      dockerfile: Dockerfile
+    image: node:20-alpine
     container_name: somniai-backend
+    working_dir: /app
     environment:
       - NODE_ENV=development
       - PORT=4000
@@ -68,14 +57,10 @@ services:
     ports:
       - "4000:4000"
     volumes:
-      # Mount source code for hot reload
-      - ./server/src:/app/src:cached
-      - ./server/prisma:/app/prisma:cached
-      - ./server/tsconfig.json:/app/tsconfig.json:cached
-      - ./server/.env:/app/.env:cached
-      # Preserve node_modules and dist in container
+      # Mount entire server directory for hot reload
+      - ./server:/app:cached
+      # Preserve node_modules in container
       - /app/node_modules
-      - /app/dist
     networks:
       - somniai-network
     restart: unless-stopped
@@ -86,7 +71,7 @@ services:
         condition: service_healthy
       mosquitto:
         condition: service_started
-    command: npm run dev
+    command: sh -c "npm install && npx prisma generate && npm run dev"
 
   # PostgreSQL Database
   postgres:
