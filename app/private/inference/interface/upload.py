@@ -1,6 +1,6 @@
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, File, Request, UploadFile
+from fastapi import APIRouter, Depends, File, Request, UploadFile, HTTPException
 
 from SomniAI.application.process import Process
 from SomniAI.application.registry import get_cfg
@@ -23,10 +23,14 @@ async def upload_air(request : Request, files: Optional[List[UploadFile]] = File
     '''
     Please send bytes data. Do not send Pytorch Tensor format.
     '''
-    dataset = await parser.get_img(request, files)
-    await process.enqueue_request_air(dataset)   
+    try:
+        dataset = await parser.get_img(request, files)
+        await process.enqueue_request_air(dataset)   
 
-    return {"msg": "succeed to send data"}
+        return {"msg": "succeed to send data"}
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to enqueue VLM data: {str(e)}")
 
 
 @router.post("/upload-side")
@@ -35,11 +39,12 @@ async def upload_side(request : Request, files: Optional[List[UploadFile]] = Fil
     '''
     Please send bytes data. Do not send Pytorch Tensor format.
     '''
-    
-    print("!!")
 
+    try:
+        dataset = await parser.get_img(request, files)
+        await process.enqueue_request_side(dataset)
+        
+        return {"msg": "succeed to send data"}
 
-    dataset = await parser.get_img(request, files)
-    await process.enqueue_request_side(dataset)
-
-    return {"msg": "succeed to send data"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to enqueue VLM data: {str(e)}")
