@@ -1,0 +1,91 @@
+{
+  "transmissionStats": {
+    "today": {
+      "totalFrames": 15420,
+      "successfulFrames": 15189,
+      "failedFrames": 231,
+      "successRate": 98.5,
+      "averageLatency": 45,
+      "peakFps": 30,
+      "averageFps": 12
+    },
+    "thisWeek": {
+      "totalFrames": 98450,
+      "successfulFrames": 96873,
+      "failedFrames": 1577,
+      "successRate": 98.4,
+      "averageLatency": 47,
+      "peakFps": 30,
+      "averageFps": 11
+    },
+    "thisMonth": {
+      "totalFrames": 425600,
+      "successfulFrames": 418344,
+      "failedFrames": 7256,
+      "successRate": 98.3,
+      "averageLatency": 48,
+      "peakFps": 30,
+      "averageFps": 12
+    }
+  },
+  "fpsHistory": [
+    { "timestamp": "14:00", "fps": 10, "target": 10 },
+    { "timestamp": "14:05", "fps": 12, "target": 10 },
+    { "timestamp": "14:10", "fps": 11, "target": 10 },
+    { "timestamp": "14:15", "fps": 10, "target": 10 },
+    { "timestamp": "14:20", "fps": 15, "target": 15 },
+    { "timestamp": "14:25", "fps": 14, "target": 15 },
+    { "timestamp": "14:30", "fps": 15, "target": 15 },
+    { "timestamp": "14:35", "fps": 13, "target": 15 },
+    { "timestamp": "14:40", "fps": 12, "target": 10 },
+    { "timestamp": "14:45", "fps": 11, "target": 10 }
+  ],
+  "networkUsage": [
+    { "hour": "08:00", "sent": 125.5, "received": 2.3 },
+    { "hour": "09:00", "sent": 142.8, "received": 2.8 },
+    { "hour": "10:00", "sent": 158.2, "received": 3.1 },
+    { "hour": "11:00", "sent": 135.6, "received": 2.5 },
+    { "hour": "12:00", "sent": 98.4, "received": 1.9 },
+    { "hour": "13:00", "sent": 165.3, "received": 3.4 },
+    { "hour": "14:00", "sent": 178.9, "received": 3.7 }
+  ],
+  "connectionHistory": [
+    { "date": "11-08", "uptime": 95.5, "downtime": 4.5 },
+    { "date": "11-09", "uptime": 98.2, "downtime": 1.8 },
+    { "date": "11-10", "uptime": 96.8, "downtime": 3.2 },
+    { "date": "11-11", "uptime": 99.1, "downtime": 0.9 },
+    { "date": "11-12", "uptime": 97.3, "downtime": 2.7 },
+    { "date": "11-13", "uptime": 98.6, "downtime": 1.4 },
+    { "date": "11-14", "uptime": 99.2, "downtime": 0.8 }
+  ],
+  "errorLog": [
+    {
+      "timestamp": "2025-11-14T13:58:23Z",
+      "type": "network",
+      "severity": "warning",
+      "message": "Connection timeout - retrying",
+      "resolved": true
+    },
+    {
+      "timestamp": "2025-11-14T12:45:10Z",
+      "type": "transmission",
+      "severity": "error",
+      "message": "Failed to send frame after 3 retries",
+      "resolved": true
+    },
+    {
+      "timestamp": "2025-11-14T11:30:45Z",
+      "type": "network",
+      "severity": "warning",
+      "message": "High latency detected (>100ms)",
+      "resolved": true
+    },
+    {
+      "timestamp": "2025-11-14T10:15:22Z",
+      "type": "system",
+      "severity": "info",
+      "message": "Battery saver mode activated",
+      "resolved": true
+    }
+  ]
+}
