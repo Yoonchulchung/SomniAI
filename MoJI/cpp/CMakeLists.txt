@@ -40,6 +40,8 @@ add_library(${PACKAGE_NAME} SHARED
   moji-fast-streaming.h
   moji-send-frame.cpp
   moji-send-frame.h
+  send-http.cpp
+  send-http.h
   cpp-installer.cpp
 )
 
