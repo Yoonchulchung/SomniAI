@@ -42,4 +42,25 @@ router.get('/messages', mqttController.getMessages);
  */
 router.get('/status', mqttController.getStatus);
 
+/**
+ * @route   GET /api/mqtt/logs
+ * @desc    Get MQTT logs
+ * @access  Public
+ */
+router.get('/logs', mqttController.getLogs);
+
+/**
+ * @route   DELETE /api/mqtt/logs
+ * @desc    Clear MQTT logs
+ * @access  Public
+ */
+router.delete('/logs', mqttController.clearLogs);
+
+/**
+ * @route   GET /api/mqtt/logs/stream
+ * @desc    Stream MQTT logs via SSE
+ * @access  Public
+ */
+router.get('/logs/stream', mqttController.streamLogs);
+
 export default router;

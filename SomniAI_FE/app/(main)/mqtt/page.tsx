@@ -5,17 +5,27 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useMQTT } from '@/hooks/useMQTT';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
-import { ArrowLeft, Radio, Send, Inbox, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Radio, Send, Inbox, MessageSquare, Terminal, Trash2 } from 'lucide-react';
+
+interface ServerLog {
+  timestamp: number;
+  level: 'info' | 'warn' | 'error' | 'success';
+  message: string;
+  details?: any;
+}
 
 export default function MQTTPage() {
   const mqtt = useMQTT();
-  const [activeTab, setActiveTab] = useState<'connection' | 'publish' | 'subscribe' | 'messages'>('connection');
+  const [activeTab, setActiveTab] = useState<'connection' | 'publish' | 'subscribe' | 'messages' | 'serverlogs'>('connection');
+  const [serverLogs, setServerLogs] = useState<ServerLog[]>([]);
+  const [autoScroll, setAutoScroll] = useState(true);
+  const logsEndRef = useRef<HTMLDivElement>(null);
 
   // Connection form
   const [host, setHost] = useState('localhost');
@@ -67,6 +77,55 @@ export default function MQTTPage() {
     }
   };
 
+  const handleClearServerLogs = async () => {
+    try {
+      const response = await fetch('http://localhost:4000/api/mqtt/logs', {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        setServerLogs([]);
+      }
+    } catch (error) {
+      console.error('Failed to clear logs:', error);
+    }
+  };
+
+  // Connect to SSE for server logs
+  useEffect(() => {
+    if (activeTab !== 'serverlogs') return;
+
+    const eventSource = new EventSource('http://localhost:4000/api/mqtt/logs/stream');
+
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+
+        // Skip connection message
+        if (data.type === 'connected') return;
+
+        setServerLogs((prev) => [...prev, data].slice(-500)); // Keep last 500 logs
+      } catch (error) {
+        console.error('Failed to parse log:', error);
+      }
+    };
+
+    eventSource.onerror = (error) => {
+      console.error('SSE connection error:', error);
+      eventSource.close();
+    };
+
+    return () => {
+      eventSource.close();
+    };
+  }, [activeTab]);
+
+  // Auto-scroll to bottom when new logs arrive
+  useEffect(() => {
+    if (autoScroll && logsEndRef.current) {
+      logsEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [serverLogs, autoScroll]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-orange-50">
       {/* Header */}
@@ -107,6 +166,7 @@ export default function MQTTPage() {
               { id: 'publish', label: '발행', icon: Send },
               { id: 'subscribe', label: '구독', icon: Inbox },
               { id: 'messages', label: '메시지', icon: MessageSquare },
+              { id: 'serverlogs', label: '서버 로그', icon: Terminal },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -361,6 +421,94 @@ export default function MQTTPage() {
                       </div>
                     </div>
                   ))
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {activeTab === 'serverlogs' && (
+          <Card elevated>
+            <CardHeader
+              title="MQTT 서버 로그"
+              subtitle={`실시간 스트리밍 - ${serverLogs.length}개의 로그`}
+              icon={<Terminal className="w-6 h-6 text-gray-600" />}
+            />
+            <CardContent>
+              <div className="mb-4 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={autoScroll}
+                      onChange={(e) => setAutoScroll(e.target.checked)}
+                      className="w-4 h-4"
+                    />
+                    <span className="text-sm text-gray-700">자동 스크롤</span>
+                  </label>
+                  <Badge label="실시간" variant="success" dot />
+                </div>
+                {serverLogs.length > 0 && (
+                  <Button onClick={handleClearServerLogs} variant="danger" size="sm">
+                    <Trash2 className="w-4 h-4" />
+                    전체 삭제
+                  </Button>
+                )}
+              </div>
+
+              <div className="bg-gray-900 rounded-lg p-4 max-h-[600px] overflow-y-auto font-mono text-sm">
+                {serverLogs.length === 0 ? (
+                  <div className="text-center py-12 text-gray-400">
+                    <Terminal className="w-16 h-16 mx-auto mb-3 opacity-50" />
+                    <p>서버 로그를 대기 중...</p>
+                    <p className="text-xs mt-2">MQTT 브로커에 연결하거나 메시지를 발행/구독하면 로그가 표시됩니다</p>
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    {serverLogs.map((log, index) => {
+                      const levelColors = {
+                        info: 'text-blue-400',
+                        success: 'text-green-400',
+                        warn: 'text-yellow-400',
+                        error: 'text-red-400',
+                      };
+
+                      const levelIcons = {
+                        info: 'ℹ',
+                        success: '✓',
+                        warn: '⚠',
+                        error: '✗',
+                      };
+
+                      return (
+                        <div key={index} className="flex gap-3 items-start py-1 border-b border-gray-800 hover:bg-gray-800/50">
+                          <span className="text-gray-500 text-xs whitespace-nowrap">
+                            {new Date(log.timestamp).toLocaleTimeString('ko-KR', {
+                              hour12: false,
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              second: '2-digit',
+                              fractionalSecondDigits: 3
+                            })}
+                          </span>
+                          <span className={`${levelColors[log.level]} font-bold w-4`}>
+                            {levelIcons[log.level]}
+                          </span>
+                          <div className="flex-1">
+                            <span className="text-gray-200">{log.message}</span>
+                            {log.details && (
+                              <div className="text-gray-400 text-xs mt-1 ml-2 border-l-2 border-gray-700 pl-2">
+                                {typeof log.details === 'string'
+                                  ? log.details
+                                  : JSON.stringify(log.details, null, 2)}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                    <div ref={logsEndRef} />
+                  </div>
                 )}
               </div>
             </CardContent>

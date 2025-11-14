@@ -145,6 +145,72 @@ export class MqttController {
 
     res.json(response);
   }
+
+  /**
+   * Get MQTT logs
+   */
+  async getLogs(req: Request, res: Response) {
+    const logs = mqttService.getLogs();
+
+    const response: ApiResponse = {
+      success: true,
+      data: logs,
+    };
+
+    res.json(response);
+  }
+
+  /**
+   * Clear MQTT logs
+   */
+  async clearLogs(req: Request, res: Response) {
+    mqttService.clearLogs();
+
+    const response: ApiResponse = {
+      success: true,
+      message: 'Logs cleared',
+    };
+
+    res.json(response);
+  }
+
+  /**
+   * Stream MQTT logs via Server-Sent Events (SSE)
+   */
+  streamLogs(req: Request, res: Response) {
+    // Set headers for SSE
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no'); // Disable buffering for nginx
+
+    // Send initial connection message
+    res.write(`data: ${JSON.stringify({ type: 'connected', message: 'Log stream connected' })}\n\n`);
+
+    // Send existing logs
+    const existingLogs = mqttService.getLogs();
+    existingLogs.forEach((log) => {
+      res.write(`data: ${JSON.stringify(log)}\n\n`);
+    });
+
+    // Listen for new log events
+    const logHandler = (log: any) => {
+      res.write(`data: ${JSON.stringify(log)}\n\n`);
+    };
+
+    mqttService.on('log', logHandler);
+
+    // Heartbeat to keep connection alive
+    const heartbeat = setInterval(() => {
+      res.write(': heartbeat\n\n');
+    }, 30000); // Every 30 seconds
+
+    // Cleanup on client disconnect
+    req.on('close', () => {
+      clearInterval(heartbeat);
+      mqttService.removeListener('log', logHandler);
+    });
+  }
 }
 
 export default new MqttController();
