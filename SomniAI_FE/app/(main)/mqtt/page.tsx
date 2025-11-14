@@ -1,0 +1,629 @@
+/**
+ * MQTT Control Page
+ * MQTT Publish/Subscribe control panel
+ */
+
+'use client';
+
+import { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
+import { useMQTT } from '@/hooks/useMQTT';
+import { Card, CardContent, CardHeader } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
+import { ArrowLeft, Radio, Send, Inbox, MessageSquare, Terminal, Trash2 } from 'lucide-react';
+
+interface ServerLog {
+  timestamp: number;
+  level: 'info' | 'warn' | 'error' | 'success';
+  message: string;
+  details?: any;
+}
+
+interface ConnectionLog {
+  timestamp: number;
+  level: 'info' | 'warn' | 'error' | 'success';
+  message: string;
+}
+
+export default function MQTTPage() {
+  const mqtt = useMQTT();
+  const [activeTab, setActiveTab] = useState<'connection' | 'publish' | 'subscribe' | 'messages' | 'serverlogs'>('connection');
+  const [serverLogs, setServerLogs] = useState<ServerLog[]>([]);
+  const [autoScroll, setAutoScroll] = useState(true);
+  const logsEndRef = useRef<HTMLDivElement>(null);
+  const [connectionLogs, setConnectionLogs] = useState<ConnectionLog[]>([]);
+  const connectionLogsEndRef = useRef<HTMLDivElement>(null);
+
+  // Connection form
+  const [host, setHost] = useState('localhost');
+  const [port, setPort] = useState(9001);
+  const [clientId, setClientId] = useState(`somni_web_${Math.random().toString(16).substr(2, 8)}`);
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+
+  // Publish form
+  const [pubTopic, setPubTopic] = useState('test/topic');
+  const [pubMessage, setPubMessage] = useState('Hello from SomniAI!');
+  const [pubQos, setPubQos] = useState<0 | 1 | 2>(0);
+  const [pubRetained, setPubRetained] = useState(false);
+
+  // Subscribe form
+  const [subTopic, setSubTopic] = useState('test/#');
+  const [subQos, setSubQos] = useState<0 | 1 | 2>(0);
+
+  const addConnectionLog = (level: ConnectionLog['level'], message: string) => {
+    const log: ConnectionLog = {
+      timestamp: Date.now(),
+      level,
+      message,
+    };
+    setConnectionLogs((prev) => [...prev, log].slice(-50)); // Keep last 50 logs
+  };
+
+  const handleConnect = async () => {
+    addConnectionLog('info', `연결 시도: ws://${host}:${port}`);
+    try {
+      await mqtt.connect({
+        host,
+        port,
+        clientId,
+        username,
+        password,
+        protocol: 'ws',
+      });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류';
+      addConnectionLog('error', `연결 실패: ${errorMessage}`);
+      console.error('Connection failed:', error);
+    }
+  };
+
+  const handlePublish = async () => {
+    try {
+      await mqtt.publish(pubTopic, pubMessage, { qos: pubQos, retained: pubRetained });
+      alert('메시지가 발행되었습니다');
+    } catch (error) {
+      console.error('Publish failed:', error);
+    }
+  };
+
+  const handleSubscribe = async () => {
+    try {
+      await mqtt.subscribe(subTopic, subQos);
+      alert('토픽 구독이 완료되었습니다');
+    } catch (error) {
+      console.error('Subscribe failed:', error);
+    }
+  };
+
+  const handleClearServerLogs = async () => {
+    try {
+      const response = await fetch('/api/mqtt/logs', {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        setServerLogs([]);
+      }
+    } catch (error) {
+      console.error('Failed to clear logs:', error);
+    }
+  };
+
+  // Connect to SSE for server logs
+  useEffect(() => {
+    if (activeTab !== 'serverlogs') return;
+
+    const eventSource = new EventSource('/api/mqtt/logs/stream');
+
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+
+        // Skip connection message
+        if (data.type === 'connected') return;
+
+        setServerLogs((prev) => [...prev, data].slice(-500)); // Keep last 500 logs
+      } catch (error) {
+        console.error('Failed to parse log:', error);
+      }
+    };
+
+    eventSource.onerror = (error) => {
+      console.error('SSE connection error:', error);
+      eventSource.close();
+    };
+
+    return () => {
+      eventSource.close();
+    };
+  }, [activeTab]);
+
+  // Auto-scroll to bottom when new logs arrive
+  useEffect(() => {
+    if (autoScroll && logsEndRef.current) {
+      logsEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [serverLogs, autoScroll]);
+
+  // Track connection state changes
+  useEffect(() => {
+    if (mqtt.connectionState === 'connected') {
+      addConnectionLog('success', 'MQTT 브로커에 연결되었습니다');
+    } else if (mqtt.connectionState === 'connecting') {
+      addConnectionLog('info', '브로커에 연결 중...');
+    } else if (mqtt.connectionState === 'reconnecting') {
+      addConnectionLog('warn', '브로커에 재연결 중...');
+    } else if (mqtt.connectionState === 'disconnected') {
+      addConnectionLog('info', '브로커 연결이 해제되었습니다');
+    }
+  }, [mqtt.connectionState]);
+
+  // Track connection errors
+  useEffect(() => {
+    if (mqtt.error) {
+      addConnectionLog('error', `오류 발생: ${mqtt.error.message}`);
+    }
+  }, [mqtt.error]);
+
+  // Auto-scroll connection logs
+  useEffect(() => {
+    if (connectionLogsEndRef.current) {
+      connectionLogsEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [connectionLogs]);
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-orange-50">
+      {/* Header */}
+      <header className="bg-white border-b border-gray-200 shadow-sm">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Link href="/">
+                <Button variant="outline" size="sm">
+                  <ArrowLeft className="w-4 h-4" />
+                  Back
+                </Button>
+              </Link>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">MQTT Control</h1>
+                <p className="text-sm text-gray-600">IoT 메시지 브로커 제어</p>
+              </div>
+            </div>
+            <Badge
+              label={mqtt.connectionState.toUpperCase()}
+              variant={
+                mqtt.connectionState === 'connected' ? 'success' :
+                mqtt.connectionState === 'connecting' || mqtt.connectionState === 'reconnecting' ? 'warning' :
+                mqtt.connectionState === 'error' ? 'error' : 'default'
+              }
+              dot={mqtt.connectionState === 'connected'}
+            />
+          </div>
+        </div>
+      </header>
+
+      {/* Tabs */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="flex gap-2">
+            {[
+              { id: 'connection', label: '연결', icon: Radio },
+              { id: 'publish', label: '발행', icon: Send },
+              { id: 'subscribe', label: '구독', icon: Inbox },
+              { id: 'messages', label: '메시지', icon: MessageSquare },
+              { id: 'serverlogs', label: '서버 로그', icon: Terminal },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`flex items-center gap-2 px-4 py-3 border-b-2 font-semibold transition-colors ${
+                  activeTab === tab.id
+                    ? 'border-blue-600 text-blue-600'
+                    : 'border-transparent text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                <tab.icon className="w-4 h-4" />
+                {tab.label}
+                {tab.id === 'messages' && mqtt.messages.length > 0 && (
+                  <span className="bg-blue-600 text-white text-xs rounded-full px-2 py-0.5">
+                    {mqtt.messages.length}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-6 py-8">
+        {activeTab === 'connection' && (
+          <Card elevated>
+            <CardHeader title="MQTT 브로커 연결" icon={<Radio className="w-6 h-6 text-blue-600" />} />
+            <CardContent>
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">호스트</label>
+                    <input
+                      type="text"
+                      value={host}
+                      onChange={(e) => setHost(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      placeholder="localhost"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">포트</label>
+                    <input
+                      type="number"
+                      value={port}
+                      onChange={(e) => setPort(Number(e.target.value))}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      placeholder="9001"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Client ID</label>
+                  <input
+                    type="text"
+                    value={clientId}
+                    onChange={(e) => setClientId(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Username (선택)</label>
+                    <input
+                      type="text"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Password (선택)</label>
+                    <input
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+                {!mqtt.isConnected ? (
+                  <Button onClick={handleConnect} variant="success" fullWidth>
+                    연결
+                  </Button>
+                ) : (
+                  <Button onClick={() => {
+                    addConnectionLog('info', '연결 해제 요청');
+                    mqtt.disconnect();
+                  }} variant="danger" fullWidth>
+                    연결 해제
+                  </Button>
+                )}
+
+                {/* Connection Logs */}
+                <div className="mt-6">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-semibold text-gray-700">연결 로그</h3>
+                    {connectionLogs.length > 0 && (
+                      <button
+                        onClick={() => setConnectionLogs([])}
+                        className="text-xs text-gray-500 hover:text-gray-700"
+                      >
+                        로그 삭제
+                      </button>
+                    )}
+                  </div>
+                  <div className="bg-gray-900 rounded-lg p-3 max-h-64 overflow-y-auto font-mono text-xs">
+                    {connectionLogs.length === 0 ? (
+                      <div className="text-center py-6 text-gray-500">
+                        <p>연결 로그가 없습니다</p>
+                        <p className="text-xs mt-1">브로커에 연결을 시도하면 로그가 표시됩니다</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-1">
+                        {connectionLogs.map((log, index) => {
+                          const levelColors = {
+                            info: 'text-blue-400',
+                            success: 'text-green-400',
+                            warn: 'text-yellow-400',
+                            error: 'text-red-400',
+                          };
+
+                          const levelIcons = {
+                            info: 'ℹ',
+                            success: '✓',
+                            warn: '⚠',
+                            error: '✗',
+                          };
+
+                          return (
+                            <div key={index} className="flex gap-2 items-start">
+                              <span className="text-gray-500 whitespace-nowrap">
+                                {new Date(log.timestamp).toLocaleTimeString('ko-KR', {
+                                  hour12: false,
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                  second: '2-digit',
+                                })}
+                              </span>
+                              <span className={`${levelColors[log.level]} font-bold`}>
+                                {levelIcons[log.level]}
+                              </span>
+                              <span className="text-gray-200 flex-1">{log.message}</span>
+                            </div>
+                          );
+                        })}
+                        <div ref={connectionLogsEndRef} />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {activeTab === 'publish' && (
+          <Card elevated>
+            <CardHeader title="메시지 발행" icon={<Send className="w-6 h-6 text-green-600" />} />
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">토픽</label>
+                  <input
+                    type="text"
+                    value={pubTopic}
+                    onChange={(e) => setPubTopic(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="test/topic"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">메시지</label>
+                  <textarea
+                    value={pubMessage}
+                    onChange={(e) => setPubMessage(e.target.value)}
+                    rows={4}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="메시지 내용"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">QoS</label>
+                    <select
+                      value={pubQos}
+                      onChange={(e) => setPubQos(Number(e.target.value) as 0 | 1 | 2)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value={0}>0 - At most once</option>
+                      <option value={1}>1 - At least once</option>
+                      <option value={2}>2 - Exactly once</option>
+                    </select>
+                  </div>
+                  <div className="flex items-end">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={pubRetained}
+                        onChange={(e) => setPubRetained(e.target.checked)}
+                        className="w-4 h-4"
+                      />
+                      <span className="text-sm font-semibold text-gray-700">Retained</span>
+                    </label>
+                  </div>
+                </div>
+                <Button onClick={handlePublish} variant="primary" fullWidth disabled={!mqtt.isConnected}>
+                  <Send className="w-5 h-5" />
+                  발행
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {activeTab === 'subscribe' && (
+          <Card elevated>
+            <CardHeader title="토픽 구독" icon={<Inbox className="w-6 h-6 text-purple-600" />} />
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">토픽 (와일드카드 지원)</label>
+                  <input
+                    type="text"
+                    value={subTopic}
+                    onChange={(e) => setSubTopic(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="test/# 또는 test/+"
+                  />
+                  <p className="text-xs text-gray-500 mt-2">
+                    # = 다중 레벨 와일드카드, + = 단일 레벨 와일드카드
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">QoS</label>
+                  <select
+                    value={subQos}
+                    onChange={(e) => setSubQos(Number(e.target.value) as 0 | 1 | 2)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value={0}>0 - At most once</option>
+                    <option value={1}>1 - At least once</option>
+                    <option value={2}>2 - Exactly once</option>
+                  </select>
+                </div>
+                <Button onClick={handleSubscribe} variant="primary" fullWidth disabled={!mqtt.isConnected}>
+                  <Inbox className="w-5 h-5" />
+                  구독
+                </Button>
+
+                {/* Current Subscriptions */}
+                <div className="mt-6">
+                  <h3 className="text-sm font-semibold text-gray-700 mb-3">구독 중인 토픽</h3>
+                  <div className="space-y-2">
+                    {mqtt.getSubscriptions().map((topic) => (
+                      <div key={topic} className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+                        <span className="font-mono text-sm text-purple-900">{topic}</span>
+                        <Button
+                          onClick={() => mqtt.unsubscribe(topic)}
+                          variant="danger"
+                          size="sm"
+                        >
+                          구독 해제
+                        </Button>
+                      </div>
+                    ))}
+                    {mqtt.getSubscriptions().length === 0 && (
+                      <p className="text-sm text-gray-500 text-center py-4">구독 중인 토픽이 없습니다</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {activeTab === 'messages' && (
+          <Card elevated>
+            <CardHeader
+              title="수신 메시지"
+              subtitle={`${mqtt.messages.length}개의 메시지`}
+              icon={<MessageSquare className="w-6 h-6 text-blue-600" />}
+            />
+            <CardContent>
+              {mqtt.messages.length > 0 && (
+                <div className="mb-4">
+                  <Button onClick={() => mqtt.clearMessages()} variant="danger" size="sm">
+                    전체 삭제
+                  </Button>
+                </div>
+              )}
+              <div className="space-y-3 max-h-[600px] overflow-y-auto">
+                {mqtt.messages.length === 0 ? (
+                  <div className="text-center py-12">
+                    <MessageSquare className="w-16 h-16 text-gray-300 mx-auto mb-3" />
+                    <p className="text-gray-500">수신된 메시지가 없습니다</p>
+                  </div>
+                ) : (
+                  mqtt.messages.map((msg, index) => (
+                    <div key={index} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                      <div className="flex items-start justify-between mb-2">
+                        <span className="font-mono text-sm font-semibold text-blue-600">{msg.topic}</span>
+                        <span className="text-xs text-gray-500">
+                          {new Date(msg.timestamp).toLocaleTimeString('ko-KR')}
+                        </span>
+                      </div>
+                      <div className="font-mono text-sm bg-white border border-gray-200 rounded p-3 mb-2">
+                        {msg.payload}
+                      </div>
+                      <div className="flex gap-2">
+                        <Badge label={`QoS ${msg.qos}`} size="sm" />
+                        {msg.retained && <Badge label="Retained" variant="warning" size="sm" />}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {activeTab === 'serverlogs' && (
+          <Card elevated>
+            <CardHeader
+              title="MQTT 서버 로그"
+              subtitle={`실시간 스트리밍 - ${serverLogs.length}개의 로그`}
+              icon={<Terminal className="w-6 h-6 text-gray-600" />}
+            />
+            <CardContent>
+              <div className="mb-4 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={autoScroll}
+                      onChange={(e) => setAutoScroll(e.target.checked)}
+                      className="w-4 h-4"
+                    />
+                    <span className="text-sm text-gray-700">자동 스크롤</span>
+                  </label>
+                  <Badge label="실시간" variant="success" dot />
+                </div>
+                {serverLogs.length > 0 && (
+                  <Button onClick={handleClearServerLogs} variant="danger" size="sm">
+                    <Trash2 className="w-4 h-4" />
+                    전체 삭제
+                  </Button>
+                )}
+              </div>
+
+              <div className="bg-gray-900 rounded-lg p-4 max-h-[600px] overflow-y-auto font-mono text-sm">
+                {serverLogs.length === 0 ? (
+                  <div className="text-center py-12 text-gray-400">
+                    <Terminal className="w-16 h-16 mx-auto mb-3 opacity-50" />
+                    <p>서버 로그를 대기 중...</p>
+                    <p className="text-xs mt-2">MQTT 브로커에 연결하거나 메시지를 발행/구독하면 로그가 표시됩니다</p>
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    {serverLogs.map((log, index) => {
+                      const levelColors = {
+                        info: 'text-blue-400',
+                        success: 'text-green-400',
+                        warn: 'text-yellow-400',
+                        error: 'text-red-400',
+                      };
+
+                      const levelIcons = {
+                        info: 'ℹ',
+                        success: '✓',
+                        warn: '⚠',
+                        error: '✗',
+                      };
+
+                      return (
+                        <div key={index} className="flex gap-3 items-start py-1 border-b border-gray-800 hover:bg-gray-800/50">
+                          <span className="text-gray-500 text-xs whitespace-nowrap">
+                            {new Date(log.timestamp).toLocaleTimeString('ko-KR', {
+                              hour12: false,
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              second: '2-digit',
+                              fractionalSecondDigits: 3
+                            })}
+                          </span>
+                          <span className={`${levelColors[log.level]} font-bold w-4`}>
+                            {levelIcons[log.level]}
+                          </span>
+                          <div className="flex-1">
+                            <span className="text-gray-200">{log.message}</span>
+                            {log.details && (
+                              <div className="text-gray-400 text-xs mt-1 ml-2 border-l-2 border-gray-700 pl-2">
+                                {typeof log.details === 'string'
+                                  ? log.details
+                                  : JSON.stringify(log.details, null, 2)}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                    <div ref={logsEndRef} />
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </main>
+    </div>
+  );
+}

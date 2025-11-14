@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: somniai-config
+  namespace: somniai
+data:
+  # Backend API Configuration
+  NODE_ENV: "production"
+  PORT: "4000"
+  API_PREFIX: "/api"
+
+  # Database Configuration
+  POSTGRES_DB: "somniai"
+  JWT_EXPIRES_IN: "7d"
+
+  # Redis Configuration
+  REDIS_URL: "redis://redis-service:6379"
+  REDIS_TTL: "3600"
+
+  # MQTT Configuration
+  MQTT_BROKER: "mqtt://mosquitto-service:1883"
+  MQTT_CLIENT_ID: "somniai-k8s-server"
+
+  # CORS Configuration
+  CORS_ORIGIN: "http://localhost"
+
+  # Rate Limiting
+  RATE_LIMIT_WINDOW_MS: "60000"
+  RATE_LIMIT_MAX_REQUESTS: "100"
+
+  # Frontend Configuration
+  NEXT_PUBLIC_API_URL: "http://localhost/api"

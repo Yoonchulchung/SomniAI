@@ -1,0 +1,50 @@
+{
+  "status": {
+    "isConnected": true,
+    "serverUrl": "http://192.168.0.100:8000",
+    "uptime": 3600,
+    "lastSync": "2025-11-14T14:15:00Z"
+  },
+  "quickStats": {
+    "totalFramesSent": 15420,
+    "successRate": 98.5,
+    "averageFps": 12,
+    "networkUsage": 45.6
+  },
+  "recentActivity": [
+    {
+      "id": 1,
+      "timestamp": "2025-11-14T14:10:00Z",
+      "type": "connection",
+      "message": "서버에 연결되었습니다",
+      "status": "success"
+    },
+    {
+      "id": 2,
+      "timestamp": "2025-11-14T14:05:00Z",
+      "type": "transmission",
+      "message": "1000개의 프레임 전송 완료",
+      "status": "success"
+    },
+    {
+      "id": 3,
+      "timestamp": "2025-11-14T13:58:00Z",
+      "type": "settings",
+      "message": "FPS를 15로 변경했습니다",
+      "status": "info"
+    },
+    {
+      "id": 4,
+      "timestamp": "2025-11-14T13:50:00Z",
+      "type": "error",
+      "message": "일시적 연결 끊김 (재연결됨)",
+      "status": "warning"
+    }
+  ],
+  "systemHealth": {
+    "cpu": 45,
+    "memory": 62,
+    "battery": 78,
+    "temperature": 38
+  }
+}

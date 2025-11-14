@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+
+# Build outputs
+android/
+ios/
+build/
+dist/
+.expo/
+
+# Generated files
+*.log
+*.tgz
+.gradle/
+.idea/
+.vscode/
+.DS_Store
+
+# Documentation
+coverage/
+docs/
+
+# Configuration
+.husky/
