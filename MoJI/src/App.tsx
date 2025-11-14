@@ -1,92 +1,155 @@
+/**
+ * Main Application Component
+ * Enterprise-grade app with providers, error boundaries, and optimizations
+ */
+
 import 'react-native-gesture-handler';
-import { NavigationContainer } from '@react-navigation/native'
-import React from 'react'
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
-import { Camera } from 'react-native-vision-camera'
-import { GestureHandlerRootView } from 'react-native-gesture-handler'
-import { StyleSheet, Text } from 'react-native'
-import { HomeScreen } from './screens/HomeScreen'
-import { MonitorScreen } from './screens/MonitorScreen'
-import { AnalyticsScreen } from './screens/AnalyticsScreen'
-import { SettingsScreen } from './screens/SettingsScreen'
+import React, { useEffect } from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { Camera } from 'react-native-vision-camera';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { StyleSheet, Text, StatusBar } from 'react-native';
+import { AppProvider } from './context/AppContext';
+import { ErrorBoundary } from './components/ErrorBoundary';
+import { ToastContainer } from './components/Toast';
+import { HomeScreenOptimized } from './screens/HomeScreenOptimized';
+import { MonitorScreen } from './screens/MonitorScreen';
+import { AnalyticsScreen } from './screens/AnalyticsScreen';
+import { SettingsScreen } from './screens/SettingsScreen';
+import { theme } from './theme';
+import { appLogger } from './utils/logger';
+import { performanceMonitor } from './utils/performance';
 
-const Tab = createBottomTabNavigator()
+const Tab = createBottomTabNavigator();
 
-export function App(): React.ReactElement | null {
-   const cameraPermission = Camera.getCameraPermissionStatus()
-   const microphonePermission = Camera.getMicrophonePermissionStatus()
+/**
+ * Tab Navigator Component
+ */
+const TabNavigator: React.FC = () => {
+  const cameraPermission = Camera.getCameraPermissionStatus();
+  const microphonePermission = Camera.getMicrophonePermissionStatus();
 
-   console.log(`Camera: ${cameraPermission} | Microphone : ${microphonePermission}`)
+  useEffect(() => {
+    appLogger.info('Camera permissions', {
+      camera: cameraPermission,
+      microphone: microphonePermission,
+    });
+  }, [cameraPermission, microphonePermission]);
 
-   return(
-		<NavigationContainer>
-			<GestureHandlerRootView style={styles.root}>
-				<Tab.Navigator
-					screenOptions={{
-						headerShown: false,
-						tabBarActiveTintColor: '#2196F3',
-						tabBarInactiveTintColor: '#999',
-						tabBarStyle: {
-							backgroundColor: '#fff',
-							borderTopWidth: 1,
-							borderTopColor: '#e0e0e0',
-							height: 60,
-							paddingBottom: 8,
-							paddingTop: 8,
-						},
-						tabBarLabelStyle: {
-							fontSize: 12,
-							fontWeight: '600',
-						},
-					}}
-					initialRouteName="Home">
-					<Tab.Screen
-						name="Home"
-						component={HomeScreen}
-						options={{
-							tabBarLabel: 'Home',
-							tabBarIcon: ({ color, size }) => (
-								<Text style={{ fontSize: 24, color }}>🏠</Text>
-							),
-						}}
-					/>
-					<Tab.Screen
-						name="Monitor"
-						component={MonitorScreen}
-						options={{
-							tabBarLabel: 'Monitor',
-							tabBarIcon: ({ color, size }) => (
-								<Text style={{ fontSize: 24, color }}>📹</Text>
-							),
-						}}
-					/>
-					<Tab.Screen
-						name="Analytics"
-						component={AnalyticsScreen}
-						options={{
-							tabBarLabel: 'Analytic',
-							tabBarIcon: ({ color, size }) => (
-								<Text style={{ fontSize: 24, color }}>📊</Text>
-							),
-						}}
-					/>
-					<Tab.Screen
-						name="Settings"
-						component={SettingsScreen}
-						options={{
-							tabBarLabel: 'Settings',
-							tabBarIcon: ({ color, size }) => (
-								<Text style={{ fontSize: 24, color }}>⚙️</Text>
-							),
-						}}
-					/>
-				</Tab.Navigator>
-			</GestureHandlerRootView>
-		</NavigationContainer>
-	)
+  return (
+    <Tab.Navigator
+      screenOptions={{
+        headerShown: false,
+        tabBarActiveTintColor: theme.colors.primary[500],
+        tabBarInactiveTintColor: theme.colors.gray[500],
+        tabBarStyle: {
+          backgroundColor: theme.colors.background.primary,
+          borderTopWidth: 1,
+          borderTopColor: theme.colors.border.light,
+          height: 60,
+          paddingBottom: 8,
+          paddingTop: 8,
+          ...theme.shadows.md,
+        },
+        tabBarLabelStyle: {
+          fontSize: theme.typography.fontSize.sm,
+          fontWeight: theme.typography.fontWeight.semibold,
+        },
+      }}
+      initialRouteName="Home">
+      <Tab.Screen
+        name="Home"
+        component={HomeScreenOptimized}
+        options={{
+          tabBarLabel: 'Home',
+          tabBarIcon: ({ color }) => (
+            <Text style={{ fontSize: 24, color }}>🏠</Text>
+          ),
+          tabBarAccessibilityLabel: 'Home Tab',
+        }}
+      />
+      <Tab.Screen
+        name="Monitor"
+        component={MonitorScreen}
+        options={{
+          tabBarLabel: 'Monitor',
+          tabBarIcon: ({ color }) => (
+            <Text style={{ fontSize: 24, color }}>📹</Text>
+          ),
+          tabBarAccessibilityLabel: 'Monitor Tab',
+        }}
+      />
+      <Tab.Screen
+        name="Analytics"
+        component={AnalyticsScreen}
+        options={{
+          tabBarLabel: 'Analytics',
+          tabBarIcon: ({ color }) => (
+            <Text style={{ fontSize: 24, color }}>📊</Text>
+          ),
+          tabBarAccessibilityLabel: 'Analytics Tab',
+        }}
+      />
+      <Tab.Screen
+        name="Settings"
+        component={SettingsScreen}
+        options={{
+          tabBarLabel: 'Settings',
+          tabBarIcon: ({ color }) => (
+            <Text style={{ fontSize: 24, color }}>⚙️</Text>
+          ),
+          tabBarAccessibilityLabel: 'Settings Tab',
+        }}
+      />
+    </Tab.Navigator>
+  );
+};
+
+/**
+ * Main App Component with Providers
+ */
+export function App(): React.ReactElement {
+  useEffect(() => {
+    // Performance monitoring
+    performanceMonitor.start('App:mount');
+    appLogger.info('Application started', {
+      version: '1.0.0',
+      environment: __DEV__ ? 'development' : 'production',
+    });
+
+    return () => {
+      const mountTime = performanceMonitor.end('App:mount');
+      appLogger.info('Application unmounted', { mountTime });
+    };
+  }, []);
+
+  return (
+    <ErrorBoundary
+      onError={(error, errorInfo) => {
+        appLogger.error('Unhandled React error', error, {
+          componentStack: errorInfo.componentStack,
+        });
+      }}>
+      <AppProvider>
+        <GestureHandlerRootView style={styles.root}>
+          <StatusBar
+            barStyle="dark-content"
+            backgroundColor={theme.colors.background.primary}
+          />
+          <NavigationContainer>
+            <TabNavigator />
+          </NavigationContainer>
+          <ToastContainer />
+        </GestureHandlerRootView>
+      </AppProvider>
+    </ErrorBoundary>
+  );
 }
+
 const styles = StyleSheet.create({
   root: {
     flex: 1,
+    backgroundColor: theme.colors.background.secondary,
   },
-})
+});
