@@ -6,6 +6,9 @@
 import { Request, Response } from 'express';
 import { ApiResponse } from '../types';
 import os from 'os';
+import prisma from '../config/database';
+import redisClient from '../config/redis';
+import mqttService from '../services/mqttService';
 
 export class SystemController {
   /**
@@ -71,6 +74,77 @@ export class SystemController {
       const response: ApiResponse = {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to get system health',
+      };
+
+      return res.status(500).json(response);
+    }
+  }
+
+  /**
+   * Get services connection status
+   */
+  async getServicesStatus(_req: Request, res: Response) {
+    try {
+      const services = [];
+
+      // Check Database (PostgreSQL)
+      let dbStatus = 'disconnected';
+      let dbError = null;
+      try {
+        await prisma.$queryRaw`SELECT 1`;
+        dbStatus = 'connected';
+      } catch (error) {
+        dbError = error instanceof Error ? error.message : 'Unknown error';
+      }
+
+      services.push({
+        name: 'Database (PostgreSQL)',
+        status: dbStatus,
+        timestamp: Date.now(),
+        error: dbError,
+      });
+
+      // Check Redis
+      let redisStatus = 'disconnected';
+      let redisError = null;
+      try {
+        if (redisClient.isOpen) {
+          await redisClient.ping();
+          redisStatus = 'connected';
+        }
+      } catch (error) {
+        redisError = error instanceof Error ? error.message : 'Unknown error';
+      }
+
+      services.push({
+        name: 'Redis',
+        status: redisStatus,
+        timestamp: Date.now(),
+        error: redisError,
+      });
+
+      // Check MQTT
+      const mqttStatus = mqttService.isConnected() ? 'connected' : 'disconnected';
+      services.push({
+        name: 'MQTT Broker',
+        status: mqttStatus,
+        timestamp: Date.now(),
+        error: null,
+      });
+
+      const response: ApiResponse = {
+        success: true,
+        data: {
+          services,
+          overall: services.every(s => s.status === 'connected') ? 'healthy' : 'degraded',
+        },
+      };
+
+      return res.json(response);
+    } catch (error) {
+      const response: ApiResponse = {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to get services status',
       };
 
       return res.status(500).json(response);

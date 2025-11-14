@@ -5,14 +5,40 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
-import { Activity, TrendingUp, Zap, Users, Server } from 'lucide-react';
+import { Activity, TrendingUp, Zap, Users, Server, Terminal } from 'lucide-react';
+
+interface ServiceStatus {
+  name: string;
+  status: 'connected' | 'disconnected';
+  timestamp: number;
+  error: string | null;
+}
+
+interface ServiceLog {
+  timestamp: number;
+  level: 'info' | 'success' | 'error' | 'warn';
+  message: string;
+}
 
 export default function DashboardPage() {
   const [backendStatus, setBackendStatus] = useState<'connected' | 'disconnected' | 'checking'>('checking');
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
+  const [services, setServices] = useState<ServiceStatus[]>([]);
+  const [serviceLogs, setServiceLogs] = useState<ServiceLog[]>([]);
+  const logsEndRef = useRef<HTMLDivElement>(null);
+
+  // Add log entry
+  const addLog = (level: ServiceLog['level'], message: string) => {
+    const log: ServiceLog = {
+      timestamp: Date.now(),
+      level,
+      message,
+    };
+    setServiceLogs((prev) => [...prev, log].slice(-100)); // Keep last 100 logs
+  };
 
   // Check backend connection
   const checkBackendConnection = async () => {
@@ -35,11 +61,58 @@ export default function DashboardPage() {
     }
   };
 
+  // Check services status
+  const checkServicesStatus = async () => {
+    try {
+      addLog('info', '서비스 상태 확인 시작...');
+      const response = await fetch('http://localhost:4000/api/system/services', {
+        method: 'GET',
+        signal: AbortSignal.timeout(5000),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          const newServices = data.data.services as ServiceStatus[];
+          setServices(newServices);
+
+          // Log each service status
+          newServices.forEach(service => {
+            if (service.status === 'connected') {
+              addLog('success', `${service.name}: 연결됨`);
+            } else {
+              addLog('error', `${service.name}: 연결 끊김${service.error ? ` (${service.error})` : ''}`);
+            }
+          });
+        } else {
+          addLog('error', '서비스 상태 확인 실패');
+        }
+      } else {
+        addLog('error', `서비스 상태 API 오류: ${response.status}`);
+      }
+    } catch (error) {
+      console.error('Services status check failed:', error);
+      addLog('error', '서비스 상태 확인 실패: 네트워크 오류');
+    }
+  };
+
+  // Auto-scroll logs to bottom
+  useEffect(() => {
+    if (logsEndRef.current) {
+      logsEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [serviceLogs]);
+
   // Check on mount and every 10 seconds
   useEffect(() => {
     checkBackendConnection();
-    const interval = setInterval(checkBackendConnection, 10000);
-    return () => clearInterval(interval);
+    checkServicesStatus();
+    const backendInterval = setInterval(checkBackendConnection, 10000);
+    const servicesInterval = setInterval(checkServicesStatus, 10000);
+    return () => {
+      clearInterval(backendInterval);
+      clearInterval(servicesInterval);
+    };
   }, []);
 
   const stats = [
@@ -142,6 +215,64 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Services Connection Logs - Full Width */}
+        <Card elevated>
+          <CardHeader
+            title="서비스 연결 로그"
+            subtitle={`${serviceLogs.length}개의 로그 항목`}
+            icon={<Terminal className="w-6 h-6 text-purple-600" />}
+          />
+          <CardContent>
+            <div className="bg-gray-900 rounded-lg p-4 max-h-96 overflow-y-auto font-mono text-xs">
+              {serviceLogs.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <Terminal className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                  <p className="text-xs">서비스 연결 로그가 없습니다</p>
+                  <p className="text-xs mt-1">서비스 상태를 확인하면 로그가 표시됩니다</p>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {serviceLogs.map((log, index) => {
+                    const levelColors = {
+                      info: 'text-blue-400',
+                      success: 'text-green-400',
+                      warn: 'text-yellow-400',
+                      error: 'text-red-400',
+                    };
+
+                    const levelIcons = {
+                      info: 'ℹ',
+                      success: '✓',
+                      warn: '⚠',
+                      error: '✗',
+                    };
+
+                    return (
+                      <div key={index} className="flex gap-2 items-start py-0.5">
+                        <span className="text-gray-500 whitespace-nowrap text-[10px]">
+                          {new Date(log.timestamp).toLocaleTimeString('ko-KR', {
+                            hour12: false,
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit',
+                          })}
+                        </span>
+                        <span className={`${levelColors[log.level]} font-bold`}>
+                          {levelIcons[log.level]}
+                        </span>
+                        <div className="flex-1">
+                          <span className="text-gray-200">{log.message}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <div ref={logsEndRef} />
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

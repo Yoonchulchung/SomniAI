@@ -16,6 +16,13 @@ const router = express.Router();
 router.get('/health', systemController.getHealth);
 
 /**
+ * @route   GET /api/system/services
+ * @desc    Get services connection status
+ * @access  Public
+ */
+router.get('/services', systemController.getServicesStatus);
+
+/**
  * @route   GET /api/system/client-ip
  * @desc    Get client IP address
  * @access  Public
