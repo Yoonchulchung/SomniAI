@@ -28,8 +28,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const userData = await authApi.getMe();
       setUser(userData);
     } catch (error) {
-      console.error('Failed to load user:', error);
+      console.warn('Failed to load user info, token may be invalid:', error);
+      // 토큰이 있지만 사용자 정보를 가져올 수 없는 경우 토큰 제거
       Cookies.remove('access_token');
+      setUser(null);
     } finally {
       setLoading(false);
     }
@@ -44,8 +46,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (response.user) {
         setUser(response.user);
       } else {
-        // 사용자 정보가 없으면 별도로 조회
-        await loadUser();
+        // 응답에서 사용자 정보 구성 (레거시 API 호환)
+        const userData: User = {
+          id: (response as any).user_id || 'unknown',
+          name: (response as any).name || name,
+        };
+        setUser(userData);
       }
       router.push('/dashboard');
     } catch (error: any) {
