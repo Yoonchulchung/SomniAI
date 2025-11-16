@@ -25,6 +25,8 @@ async def upload_air(request : Request, files: Optional[List[UploadFile]] = File
     '''
     Please send bytes data. Do not send Pytorch Tensor format.
     '''
+    
+    print("@@")
     try:
         dataset = await parser.get_img(request, files)
         await process.enqueue_request(dataset)   
@@ -32,6 +34,7 @@ async def upload_air(request : Request, files: Optional[List[UploadFile]] = File
         return {"msg": "succeed to send data"}
     
     except Exception as e:
+        print(e)
         raise HTTPException(status_code=500, detail=f"Failed to enqueue VLM data: {str(e)}")
 
 
@@ -42,6 +45,7 @@ async def upload_side(request : Request, files: Optional[List[UploadFile]] = Fil
     Please send bytes data. Do not send Pytorch Tensor format.
     '''
 
+    print("@@")
     try:
         dataset = await parser.get_img(request, files)
         await process.enqueue_request(dataset)
@@ -49,4 +53,5 @@ async def upload_side(request : Request, files: Optional[List[UploadFile]] = Fil
         return {"msg": "succeed to send data"}
 
     except Exception as e:
+        print(e)
         raise HTTPException(status_code=500, detail=f"Failed to enqueue VLM data: {str(e)}")

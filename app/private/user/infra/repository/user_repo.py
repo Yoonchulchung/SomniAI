@@ -1,6 +1,5 @@
-from fastapi import HTTPException
-
 from database import SessionLocal
+from fastapi import HTTPException
 from user.domain.repository.user_repo import IUserRepository
 from user.domain.user import User as UserV0
 from user.infra.db_models.user import User

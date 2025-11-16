@@ -4,6 +4,7 @@ from typing import Optional
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from hypercorn.asyncio import serve
 from hypercorn.config import Config
 
@@ -18,8 +19,13 @@ args = parser.parse_args()
 SomniAI_cfg = load_config(args.config)
 registry.set_cfg(SomniAI_cfg)
 
+from containers import Container
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    container = Container()
+
     await bootstrap()
 
     yield
@@ -28,9 +34,20 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+# CORS 설정
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Next.js 개발 서버
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 from inference.interface.api.v1 import health, ping, upload, model_control
 from inference.interface.view.v1 import main, check_result
+from auth import router as auth_router
 
+app.include_router(auth_router.router, prefix=SomniAI_cfg.FASTAPI.API_PREFIX)
 app.include_router(health.router, prefix=SomniAI_cfg.FASTAPI.API_PREFIX, tags=["health"])
 app.include_router(ping.router, prefix=SomniAI_cfg.FASTAPI.API_PREFIX, tags=["ping"])
 app.include_router(main.router, tags=["main"])

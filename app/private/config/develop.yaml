@@ -2,7 +2,7 @@
 type: develop
 
 FASTAPI:
-  HOST : localhost
+  HOST : 0.0.0.0
   PORT : 8000
   API_PREFIX : /api/v1
   WORKERS : 1
