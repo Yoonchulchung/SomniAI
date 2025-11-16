@@ -34,7 +34,7 @@ async def result_side(request: Request, dataset=Depends(get_DataSet)):
     # Pose analysis 정보 추출
     pose_analysis = message.get("pose_analysis", {})
 
-    if cfg.AI.VISION.MODEL_NAME == "YOLO":
+    if cfg.AI.POSE.MODEL_NAME == "YOLO":
         out = dataset.draw_yolo_keypoints(
             message["result"],
             img,
@@ -645,7 +645,7 @@ async def result_side_json(dataset=Depends(get_DataSet)):
     pose_analysis = message.get("pose_analysis", {})
 
     # 이미지를 base64로 인코딩
-    if cfg.AI.VISION.MODEL_NAME == "YOLO":
+    if cfg.AI.POSE.MODEL_NAME == "YOLO":
         out = dataset.draw_yolo_keypoints(
             message["result"],
             img,
@@ -673,7 +673,6 @@ async def result_side_json(dataset=Depends(get_DataSet)):
             "data": {
                 "image": data_url,
                 "pose_analysis": pose_analysis,
-                "raw_result": message.get("result")
             }
         },
         status_code=200
@@ -706,7 +705,6 @@ async def result_air_json():
             "data": {
                 "image": data_url,
                 "vlm_output": message.get("vlm_output"),
-                "raw_result": message
             }
         },
         status_code=200

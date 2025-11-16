@@ -152,7 +152,7 @@ class Dataset:
         from mmengine import Config
         from mmpose.visualization import PoseLocalVisualizer
 
-        cfg = Config.fromfile(self.cfg.VISION.MODEL_CFG_PATH)
+        cfg = Config.fromfile(self.cfg.POSE.MODEL_CFG_PATH)
 
         dataset_meta = cfg.get('dataset_meta', None)
 
