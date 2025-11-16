@@ -1,6 +1,7 @@
 import base64
 import io
-from typing import Optional, Protocol
+from abc import ABC, abstractmethod
+from typing import Optional
 
 import torch
 import torchvision.transforms as transforms
@@ -10,49 +11,83 @@ from PIL import Image
 from inference.application.logger import SomniAI_log
 
 
-class Parser(Protocol):
+class Parser(ABC):
     '''
     클라이언트의 요청을 분석하는 역할을 합니다. 허용되는 요청의 Content Type은 아래와 같습니다.
-    
+
         - multipart/form-data
         - application/octet-stream
         - application/json
         - application/x-www-form-urlencoded
-        
+
     '''
-    async def _img_from_form_data(self, request : Request): 
+
+    def __init__(self, cfg):
+        self.cfg = cfg
+
+    async def _img_from_form_data(self, request: Request):
         '''
         multipart/form-data 요청에서 image를 추출합니다.
         '''
-        raise NotImplementedError
+        return None
 
-    async def _img_from_octet_stream(self, request : Request): 
+    async def _img_from_octet_stream(self, request: Request):
         '''
         application/octet-stream 요청에서 image를 추출합니다.
         '''
-        raise NotImplementedError
+        try:
+            body = await request.body()
 
-    async def _img_from_json(self, request : Request): 
+            if not _is_image_bytes(body):
+                raise HTTPException(status_code=400, detail="Invalid image data. Don't send tensor!")
+
+            return self._convert_bytes_to_image(body)
+
+        except Exception as e:
+            SomniAI_log('[Error] Failed to parse data from body:', str(e))
+            raise HTTPException(status_code=400, detail=f"Error : {e}")
+
+    async def _img_from_json(self, request: Request):
         '''
         application/json 요청에서 image를 추출합니다.
         '''
-        raise NotImplementedError
+        try:
+            json_body = await request.json()
+            base64_img = json_body.get('image')
 
-    async def _img_from_urlencoded(self, request : Request): 
+            bytes_data = _decode_base64(base64_img)
+
+            if not _is_image_bytes(bytes_data):
+                raise HTTPException(status_code=400, detail="Invalid image data. Don't send tensor!")
+
+            return self._convert_bytes_to_image(bytes_data)
+        except Exception as e:
+            SomniAI_log('[Error] Failed to parse data from body:', str(e))
+            raise HTTPException(status_code=400, detail=f"Error : {e}")
+
+    async def _img_from_urlencoded(self, request: Request):
         '''
         application/x-www-form-urlencoded 요청에서 image를 추출합니다.
         '''
+        return None
+
+    @abstractmethod
+    def _convert_bytes_to_image(self, byte_data: bytes):
+        '''
+        bytes 데이터를 이미지로 변환합니다.
+        자식 클래스에서 반드시 구현해야 합니다.
+        '''
         raise NotImplementedError
-    
-    async def get_img(self, request : Request, files : Optional[UploadFile] = File(None)):
-        
+
+    async def get_img(self, request: Request, files: Optional[UploadFile] = File(None)):
+
         handlers = {
-                    'multipart/form-data' : self._img_from_form_data,
-                    'application/octet-stream' : self._img_from_octet_stream,
-                    'application/json' : self._img_from_json,
-                    'application/x-www-form-urlencoded' : self._img_from_urlencoded,
+                    'multipart/form-data': self._img_from_form_data,
+                    'application/octet-stream': self._img_from_octet_stream,
+                    'application/json': self._img_from_json,
+                    'application/x-www-form-urlencoded': self._img_from_urlencoded,
                 }
-                
+
         ct = _get_content_type(request)
 
         handler = handlers.get(ct)
@@ -66,89 +101,24 @@ class Parser(Protocol):
             return await handler(request, files)
         else:
             return await handler(request)
-    
+
 
 class RequestParserTensor(Parser):
     def __init__(self, cfg):
-        super().__init__()
-        
-        self.cfg = cfg
+        super().__init__(cfg)
 
-    async def _img_from_fom_data(self, request : Request): 
-        return None
+    def _convert_bytes_to_image(self, byte_data: bytes) -> torch.Tensor:
+        '''bytes를 Tensor로 변환'''
+        return _img_bytes_to_tensor(byte_data)
 
-    async def _img_from_octet_stream(self, request : Request): 
-        
-        try:
-            body = await request.body()
-            
-            if not _is_image_bytes(body):
-                raise HTTPException(status_code=400, detail="Invalid image data. Don't send tensor!")
-        
-            return _img_bytes_to_tensor(body)
-        
-        except Exception as e:
-            SomniAI_log('[Error] Failed to parse data from body:', str(e))
-            raise HTTPException(status_code=400, detail=f"Error : {e}")
-
-    async def _img_from_json(self, request : Request): 
-        try:
-            json_body = await request.json()
-            base64_img = json_body.get('image')
-            bytes = _decode_base64(base64_img)
-            
-            if not _is_image_bytes(bytes):
-                raise HTTPException(status_code=400, detail="Invalid image data. Don't send tensor!")
-            
-            return _img_bytes_to_tensor(bytes)
-        except Exception as e:
-            SomniAI_log('[Error] Failed to parse data from body:', str(e))
-            raise HTTPException(status_code=400, detail=f"Error : {e}")
-
-    async def _img_from_urlencoded(self, request : Request): 
-        return None
-        
 
 class RequestParserPIL(Parser):
     def __init__(self, cfg):
-        super().__init__()
-        
-        self.cfg = cfg
-    
-    async def _img_from_form_data(self, request : Request): 
-        return None
+        super().__init__(cfg)
 
-    async def _img_from_octet_stream(self, request : Request): 
-        
-        try:
-            body = await request.body()
-            
-            if not _is_image_bytes(body):
-                raise HTTPException(status_code=400, detail="Invalid image data. Don't send tensor!")
-        
-            return _image_bytes_to_pil(body)
-        
-        except Exception as e:
-            SomniAI_log('[Error] Failed to parse data from body:', str(e))
-            raise HTTPException(status_code=400, detail=f"Error : {e}")
-
-    async def _img_from_json(self, request : Request): 
-        try:    
-            json_body = await request.json()
-            base64_img = json_body.get('image')
-            
-            bytes = _decode_base64(base64_img)
-                
-            if not _is_image_bytes(bytes):
-                raise HTTPException(status_code=400, detail="Invalid image data. Don't send tensor!")
-            
-            return _image_bytes_to_pil(bytes)
-        except Exception as e:
-            SomniAI_log('[Error] Failed to parse data from body:', str(e))
-            raise HTTPException(status_code=400, detail=f"Error : {e}")
-
-    async def _img_from_urlencoded(self, request : Request): 
-        return None
+    def _convert_bytes_to_image(self, byte_data: bytes) -> Image.Image:
+        '''bytes를 PIL Image로 변환'''
+        return _image_bytes_to_pil(byte_data)
     
         
 def _get_content_type(request):
