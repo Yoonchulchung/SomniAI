@@ -148,25 +148,25 @@ class Dataset:
         return tuple(int(float(v)) for v in xy)
         
 
-    def draw_mmpose_keypoints(self, cfg, img_bgr, pose_results : list):
+    def draw_mmpose_keypoints(self, cfg, img_bgr, pose_results : list, pose_analysis: dict = None):
         from mmengine import Config
         from mmpose.visualization import PoseLocalVisualizer
 
         cfg = Config.fromfile(self.cfg.VISION.MODEL_CFG_PATH)
-        
+
         dataset_meta = cfg.get('dataset_meta', None)
 
         visualizer = PoseLocalVisualizer(vis_backends=None, save_dir=None)
         visualizer.set_dataset_meta(dataset_meta)
-    
+
         img_bgr = np.array(img_bgr)
         H, W = img_bgr.shape[:2]
 
         pose_ds = self._dict_to_datasample(pose_results, img_shape=(H, W))
 
-        return visualizer.add_datasample(
+        result_img = visualizer.add_datasample(
             name='result',
-            image=img_bgr,    
+            image=img_bgr,
             data_sample=pose_ds,
             draw_gt=False,
             draw_pred=True,
@@ -174,6 +174,78 @@ class Dataset:
             show=False,
             out_file=None,
         )
+
+        # 각도 정보가 있으면 이미지에 추가
+        if pose_analysis and pose_analysis.get('success'):
+            result_img = self._add_angle_annotations(result_img, pose_analysis)
+
+        return result_img
+
+    def _add_angle_annotations(self, img: np.ndarray, pose_analysis: dict) -> np.ndarray:
+        """
+        이미지에 각도 정보를 텍스트로 추가합니다.
+        """
+        result = img.copy()
+        h, w = result.shape[:2]
+
+        # 각도 정보가 있는 경우에만 추가
+        if not pose_analysis.get('person_details'):
+            return result
+
+        y_offset = 40
+
+        for person in pose_analysis['person_details']:
+            if not person.get('valid'):
+                continue
+
+            neck_angle = person.get('neck_angle')
+            assessment = person.get('posture_assessment', {})
+
+            if neck_angle is None:
+                continue
+
+            # 각도 텍스트
+            angle_text = f"Neck Angle: {neck_angle:.1f}°"
+            status_text = f"Status: {assessment.get('status', 'Unknown')}"
+
+            # 배경색 설정 (자세 상태에 따라)
+            color_map = {
+                'green': (0, 255, 0),
+                'yellow': (0, 255, 255),
+                'orange': (0, 165, 255),
+                'red': (0, 0, 255)
+            }
+            bg_color = color_map.get(assessment.get('color', 'green'), (0, 255, 0))
+
+            # 텍스트 배경 사각형
+            cv2.rectangle(result, (10, y_offset - 30), (400, y_offset + 35), bg_color, -1)
+            cv2.rectangle(result, (10, y_offset - 30), (400, y_offset + 35), (255, 255, 255), 2)
+
+            # 텍스트 추가
+            cv2.putText(result, angle_text, (20, y_offset),
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2, cv2.LINE_AA)
+            cv2.putText(result, status_text, (20, y_offset + 30),
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2, cv2.LINE_AA)
+
+            # 키포인트 정보 표시 (귀, 어깨)
+            if 'keypoints_used' in person:
+                kpts = person['keypoints_used']
+                if 'ear' in kpts and 'shoulder' in kpts:
+                    ear = kpts['ear']
+                    shoulder = kpts['shoulder']
+
+                    # 귀-어깨 연결선 강조
+                    ear_pt = (int(ear['x']), int(ear['y']))
+                    shoulder_pt = (int(shoulder['x']), int(shoulder['y']))
+                    cv2.line(result, ear_pt, shoulder_pt, (255, 0, 255), 3, cv2.LINE_AA)
+
+                    # 원으로 강조
+                    cv2.circle(result, ear_pt, 8, (255, 0, 255), -1)
+                    cv2.circle(result, shoulder_pt, 8, (255, 0, 255), -1)
+
+            y_offset += 120
+
+        return result
     
     def _dict_to_datasample(self, pose_result_dict : Dict, img_shape : tuple = None) -> PoseDataSample:
        
