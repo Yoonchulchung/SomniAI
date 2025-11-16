@@ -1,7 +1,7 @@
+from abc import abstractmethod
 from typing import Callable
 
 import torch
-from abc import abstractmethod
 
 
 class ModelLoaderInterface:

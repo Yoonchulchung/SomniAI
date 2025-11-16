@@ -1,13 +1,14 @@
 import argparse
 import asyncio
+from typing import Optional
 
 from fastapi import FastAPI
 from hypercorn.asyncio import serve
 from hypercorn.config import Config
 
-import SomniAI.application.registry as registry
+import inference.application.registry as registry
 from boot_loader import bootstrap, shutdown
-from SomniAI.application.config import load_config
+from inference.application.config import load_config
 
 parser = argparse.ArgumentParser(description="SomniAI FastAPI Server")
 parser.add_argument('config', type=str, help="FastAPI config path")
@@ -20,10 +21,18 @@ registry.set_cfg(SomniAI_cfg)
 
 from contextlib import asynccontextmanager
 
+class AppState:
+    
+    def __init__(self):
+        self.air_process: Optional[Process] = None
+        self.side_process: Optional[Process] = None
+        self.inference_engine: Optional[InferenceGPU] = None
+        self.mqtt_client: Optional[SomniAIMQTT] = None
+        self.model_loader: Optional[GPUModelLoader] = None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    await bootstrap()
+    await bootstrap(app)
     
     yield
     
@@ -31,14 +40,12 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-from SomniAI.interface import health, main, ping
+from inference.interface.api.v1 import health, ping, upload
+from inference.interface.view.v1 import main, check_result
 
 app.include_router(health.router, prefix=SomniAI_cfg.FASTAPI.API_PREFIX, tags=["health"])
 app.include_router(ping.router, prefix=SomniAI_cfg.FASTAPI.API_PREFIX, tags=["ping"])
 app.include_router(main.router, tags=["main"])
-
-
-from inference.interface import check_result, upload
 
 app.include_router(check_result.router, prefix=SomniAI_cfg.FASTAPI.API_PREFIX, tags=["result"])
 app.include_router(upload.router, prefix=SomniAI_cfg.FASTAPI.API_PREFIX, tags=["upload"])

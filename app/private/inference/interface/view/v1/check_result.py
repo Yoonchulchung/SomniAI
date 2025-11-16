@@ -7,7 +7,6 @@ import torch
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse
 from PIL import Image
-
 from SomniAI.application.AI.dataset import Dataset
 from SomniAI.application.process import Process
 from SomniAI.application.registry import get_cfg
