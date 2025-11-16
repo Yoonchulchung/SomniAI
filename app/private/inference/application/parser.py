@@ -31,22 +31,41 @@ class Parser(ABC):
         '''
         return None
 
-    async def _img_from_octet_stream(self, request: Request):
+    async def _img_from_form_data(self, request: Request, files=None):
         '''
-        application/octet-stream 요청에서 image를 추출합니다.
+        multipart/form-data 요청에서 image를 추출합니다.
+        files가 List[UploadFile]로 들어오는 경우를 처리합니다.
         '''
         try:
-            body = await request.body()
 
-            if not _is_image_bytes(body):
-                raise HTTPException(status_code=400, detail="Invalid image data. Don't send tensor!")
+            if not files:
+                raise HTTPException(status_code=400, detail="No file uploaded.")
 
-            return self._convert_bytes_to_image(body)
+            if isinstance(files, list):
+                if len(files) == 0:
+                    raise HTTPException(status_code=400, detail="Empty file list.")
+                target_file = files[0]
+            else:
 
+                target_file = files
+
+            contents = await target_file.read()
+
+            if len(contents) == 0:
+                raise HTTPException(status_code=400, detail="Empty file uploaded.")
+
+            if not _is_image_bytes(contents):
+                raise HTTPException(status_code=400, detail="Invalid image format. Don't send tensor or text files!")
+
+            return self._convert_bytes_to_image(contents)
+
+        except HTTPException as he:
+            raise he
         except Exception as e:
-            SomniAI_log('[Error] Failed to parse data from body:', str(e))
-            raise HTTPException(status_code=400, detail=f"Error : {e}")
-
+            SomniAI_log('[Error] Failed to parse data from form-data:', str(e))
+            raise HTTPException(status_code=400, detail=f"Error processing file: {e}")
+        
+        
     async def _img_from_json(self, request: Request):
         '''
         application/json 요청에서 image를 추출합니다.
@@ -64,7 +83,30 @@ class Parser(ABC):
         except Exception as e:
             SomniAI_log('[Error] Failed to parse data from body:', str(e))
             raise HTTPException(status_code=400, detail=f"Error : {e}")
+        
+    async def _img_from_octet_stream(self, request: Request, files=None):
+        '''
+        application/octet-stream 요청에서 image를 추출합니다.
+        Body 전체를 byte로 읽어서 처리합니다.
+        (files 인자는 get_img의 호출 규격을 맞추기 위해 두되, 사용하지 않습니다)
+        '''
+        try:
+            body = await request.body()
 
+            if not body or len(body) == 0:
+                raise HTTPException(status_code=400, detail="Empty body received.")
+
+            if not _is_image_bytes(body):
+                raise HTTPException(status_code=400, detail="Invalid image data. Don't send tensor or text!")
+
+            return self._convert_bytes_to_image(body)
+
+        except HTTPException as he:
+            raise he
+        except Exception as e:
+            SomniAI_log('[Error] Failed to parse data from octet-stream:', str(e))
+            raise HTTPException(status_code=400, detail=f"Error processing octet-stream: {e}")
+        
     async def _img_from_urlencoded(self, request: Request):
         '''
         application/x-www-form-urlencoded 요청에서 image를 추출합니다.

@@ -1,8 +1,8 @@
+from containers import Container
+from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
-from dependency_injector.wiring import inject, Provide
-from containers import Container
 router = APIRouter(prefix="/users")
 
 class CreatedUserBody(BaseModel):

@@ -14,7 +14,7 @@ from user.infra.db_models.user import User
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # DB 연결 (alembic.ini에서 가져온 연결 문자열)
-DATABASE_URL = "mysql+mysqldb://root:local-root-pass@127.0.0.1/somniai"
+DATABASE_URL = "mysql+pymysql://root:local-root-pass@127.0.0.1/somniai"
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -34,10 +34,27 @@ def create_admin_user(name: str, password: str):
         hashed_password = pwd_context.hash(password)
 
         # 사용자 생성
-        ulid = ULID()
+        # ulid = ULID()
         now = datetime.now()
+        # user = User(
+        #     id=ulid.generate(),
+        #     name=name,
+        #     password=hashed_password,
+        #     db_status=True,
+        #     created_at=now,
+        #     updated_at=now,
+        # )
+                # [수정 전]
+        # ulid = ULID()
+        # user = User(
+        #     id=ulid.generate(),  <-- 여기가 에러 날 겁니다.
+        #     ...
+        # )
+
+        # [수정 후]
+        ulid = ULID()
         user = User(
-            id=ulid.generate(),
+            id=str(ulid),  # <-- 이렇게 문자열로 변환해서 바로 넣으세요.
             name=name,
             password=hashed_password,
             db_status=True,

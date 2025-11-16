@@ -67,7 +67,8 @@ class ApiClient {
   async uploadFile<T = any>(url: string, formData: FormData) {
     const response = await this.client.post<T>(url, formData, {
       headers: {
-        'Content-Type': 'multipart/form-data',
+        //'Content-Type': 'multipart/form-data',
+        'Content-Type': undefined,
       },
     });
     return response.data;

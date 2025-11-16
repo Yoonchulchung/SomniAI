@@ -29,6 +29,49 @@ class RegisterRequest(BaseModel):
     password: str
 
 
+# @router.post("/login", response_model=LoginResponse)
+# @inject
+# async def login(
+#     request: LoginRequest,
+#     user_service: UserService = Depends(Provide[Container.user_service])
+# ):
+#     """
+#     사용자 로그인
+#     """
+#     # 사용자 조회
+#     try:
+#         user = user_service.user_repo.find_by_name(request.name)
+#     except HTTPException:
+#         raise HTTPException(
+#             status_code=status.HTTP_401_UNAUTHORIZED,
+#             detail="Incorrect username or password",
+#         )
+
+#     if not user:
+#         raise HTTPException(
+#             status_code=status.HTTP_401_UNAUTHORIZED,
+#             detail="Incorrect username or password",
+#         )
+
+#     # 비밀번호 검증
+#     if not verify_password(request.password, user.password):
+#         raise HTTPException(
+#             status_code=status.HTTP_401_UNAUTHORIZED,
+#             detail="Incorrect username or password",
+#         )
+
+#     # JWT 토큰 생성
+#     access_token = create_access_token(
+#         data={"sub": user.id, "name": user.name}
+#     )
+
+#     return LoginResponse(
+#         access_token=access_token,
+#         token_type="bearer",
+#         user_id=user.id,
+#         name=user.name
+#     )
+
 @router.post("/login", response_model=LoginResponse)
 @inject
 async def login(
@@ -36,40 +79,21 @@ async def login(
     user_service: UserService = Depends(Provide[Container.user_service])
 ):
     """
-    사용자 로그인
+    [테스트용] 무조건 로그인 성공 처리 (강제 할당)
     """
-    # 사용자 조회
-    try:
-        user = user_service.user_repo.find_by_name(request.name)
-    except HTTPException:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-        )
+    
+    forced_user_id = "forced_admin_id_01H" 
+    forced_user_name = request.name
 
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-        )
-
-    # 비밀번호 검증
-    if not verify_password(request.password, user.password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-        )
-
-    # JWT 토큰 생성
     access_token = create_access_token(
-        data={"sub": user.id, "name": user.name}
+        data={"sub": forced_user_id, "name": forced_user_name}
     )
 
     return LoginResponse(
         access_token=access_token,
         token_type="bearer",
-        user_id=user.id,
-        name=user.name
+        user_id=forced_user_id,
+        name=forced_user_name
     )
 
 

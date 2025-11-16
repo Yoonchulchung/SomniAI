@@ -1,9 +1,8 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, String, Boolean
-from sqlalchemy.orm import Mapped, mapped_column
-
 from database import Base
+from sqlalchemy import Boolean, DateTime, String
+from sqlalchemy.orm import Mapped, mapped_column
 
 
 class User(Base):

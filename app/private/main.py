@@ -19,8 +19,13 @@ args = parser.parse_args()
 SomniAI_cfg = load_config(args.config)
 registry.set_cfg(SomniAI_cfg)
 
+from containers import Container
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    container = Container()
+
     await bootstrap()
 
     yield
@@ -32,7 +37,7 @@ app = FastAPI(lifespan=lifespan)
 # CORS 설정
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],  # Next.js 개발 서버
+    allow_origins=["*"],  # Next.js 개발 서버
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
