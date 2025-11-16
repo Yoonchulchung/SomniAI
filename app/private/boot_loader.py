@@ -30,22 +30,24 @@ async def bootstrap() -> None:
     model_loader = GPUModelLoader(SomniAI_cfg, registry, SomniAI_log)
 
     mqtt = SomniAIMQTT(SomniAI_cfg)
- 
+    
+    side_inference = SideInference(model_loader, SomniAI_cfg)
     side_process = SideProcess(SomniAI_cfg,
                            model_loader,
-                           ChannelType.SIDE,
-                           SideInference,
-                           ImageRequestQueue(name="side"),
-                           mqtt,
-                           SomniAI_log)
+                           channel_type=ChannelType.SIDE,
+                           inference=side_inference,
+                           queue=ImageRequestQueue(name="side"),
+                           MQTT=mqtt,
+                           logger=SomniAI_log)
     
+    air_inference = AirInference(model_loader, SomniAI_cfg)
     air_process = AirProcess(SomniAI_cfg,
                            model_loader,
                            ChannelType.AIR,
-                           AirInference,
-                           ImageRequestQueue(name="air"),
-                           mqtt,
-                           SomniAI_log)
+                           inference=air_inference,
+                           queue=ImageRequestQueue(name="air"),
+                           MQTT=mqtt,
+                           logger=SomniAI_log)
     
     work_dir = "./work_dir"
     
@@ -56,8 +58,8 @@ async def bootstrap() -> None:
     
     _print_info(SomniAI_cfg, model_loader)
     
-    # asyncio.create_task(side_process.micro_scheduler())
-    # asyncio.create_task(air_process.micro_scheduler())
+    asyncio.create_task(side_process.micro_scheduler())
+    asyncio.create_task(air_process.micro_scheduler())
 
 
 async def shutdown() -> None:

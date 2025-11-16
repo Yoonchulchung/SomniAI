@@ -27,7 +27,7 @@ async def upload_air(request : Request, files: Optional[List[UploadFile]] = File
     '''
     try:
         dataset = await parser.get_img(request, files)
-        await process.enqueue_request_air(dataset)   
+        await process.enqueue_request(dataset)   
 
         return {"msg": "succeed to send data"}
     
@@ -44,7 +44,7 @@ async def upload_side(request : Request, files: Optional[List[UploadFile]] = Fil
 
     try:
         dataset = await parser.get_img(request, files)
-        await process.enqueue_request_side(dataset)
+        await process.enqueue_request(dataset)
         
         return {"msg": "succeed to send data"}
 

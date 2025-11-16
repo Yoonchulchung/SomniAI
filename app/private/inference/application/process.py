@@ -65,13 +65,13 @@ class AirProcess(IProcess):
         self.channel_type = channel_type
         self.logger = logger
 
-        self.inference = inference(model_loader, cfg)
+        self.inference = inference
         self.mqtt = MQTT
         
         self.BATCH_THRESHOLD = self.cfg_HTTP.BATCH_THRESHOLD
         self.BATCH_TIMEOUT = self.cfg_HTTP.BATCH_TIMEOUT
         
-        self.queue = queue
+        self.queue = asyncio.Queue()
         
         self.result_queue = asyncio.Queue()
         
@@ -84,48 +84,46 @@ class AirProcess(IProcess):
     async def enqueue_request(self, dataset: Image.Image) -> None:
         '''데이터를 큐에 넣습니다'''
         
-        self.queue.enqueue(dataset)
+        if not isinstance(dataset, Image.Image):
+            raise TypeError(f"Expected PIL.Image.Image, got {type(dataset)}")
+
+        await self.queue.put(dataset)
 
     async def micro_scheduler(self) -> None:
-
-        '''
-        배치 스케줄러를 사용하여 AI 추론을 진행합니다.
-        큐에 데이터가 있으면 바로 가져오고 없으면 있을 때까지 대기합니다.
-        설정한 배치 크기에 다달하면 AI 추론을 시작합니다.
-        '''
-
-        self.logger(f"[{self.channel_type.value}] Micro scheduler started")
-
+        
         batch = []
         loop = asyncio.get_running_loop()
 
         while True:
+
             deadline = loop.time() + self.BATCH_TIMEOUT
 
             while len(batch) < self.BATCH_THRESHOLD:
-
-                dataset = self.queue.try_dequeue()
-                if dataset:
+                try:
+                    dataset = self.queue.get_nowait()
                     batch.append(dataset)
+                except asyncio.QueueEmpty:
+                    break
 
             while len(batch) < self.BATCH_THRESHOLD:
                 timeout = deadline - loop.time()
                 if timeout <= 0:
                     break
-                
-                dataset = self.queue.dequeue()
-                if dataset:
+                try:
+                    dataset = await asyncio.wait_for(self.queue.get(), timeout=timeout)
                     batch.append(dataset)
-                    
+                except asyncio.TimeoutError:
+                    break
+            
             if batch:
                 _batch = batch.copy()
-                batch = []
+                batch = []            
                 asyncio.create_task(self._run_inference(_batch))
  
 
     async def _run_inference(self, batch):
         '''배치 추론을 실행합니다'''
-
+        
         try:
             item = batch.pop(0)
 
@@ -180,13 +178,13 @@ class SideProcess(IProcess):
         self.channel_type = channel_type
         self.logger = logger
 
-        self.inference = inference(model_loader, cfg)
+        self.inference = inference
         self.mqtt = MQTT
         
         self.BATCH_THRESHOLD = self.cfg_HTTP.BATCH_THRESHOLD
         self.BATCH_TIMEOUT = self.cfg_HTTP.BATCH_TIMEOUT
         
-        self.queue = queue
+        self.queue = asyncio.Queue()
         
         self.result_queue = asyncio.Queue()
         
@@ -199,18 +197,13 @@ class SideProcess(IProcess):
     async def enqueue_request(self, dataset: Image.Image) -> None:
         '''데이터를 큐에 넣습니다'''
         
-        self.queue.enqueue(dataset)
+        if not isinstance(dataset, Image.Image):
+            raise TypeError(f"Expected PIL.Image.Image, got {type(dataset)}")
+
+        await self.queue.put(dataset)
 
     async def micro_scheduler(self) -> None:
-
-        '''
-        배치 스케줄러를 사용하여 AI 추론을 진행합니다.
-        큐에 데이터가 있으면 바로 가져오고 없으면 있을 때까지 대기합니다.
-        설정한 배치 크기에 다달하면 AI 추론을 시작합니다.
-        '''
-
-        self.logger(f"[{self.channel_type.value}] Micro scheduler started")
-
+        
         batch = []
         loop = asyncio.get_running_loop()
 
@@ -218,29 +211,30 @@ class SideProcess(IProcess):
             deadline = loop.time() + self.BATCH_TIMEOUT
 
             while len(batch) < self.BATCH_THRESHOLD:
-
-                dataset = self.queue.try_dequeue()
-                if dataset:
+                try:
+                    dataset = self.queue.get_nowait()
                     batch.append(dataset)
+                except asyncio.QueueEmpty:
+                    break
 
             while len(batch) < self.BATCH_THRESHOLD:
                 timeout = deadline - loop.time()
                 if timeout <= 0:
                     break
-                
-                dataset = self.queue.dequeue()
-                if dataset:
+                try:
+                    dataset = await asyncio.wait_for(self.queue.get(), timeout=timeout)
                     batch.append(dataset)
-                    
+                except asyncio.TimeoutError:
+                    break
+            
             if batch:
                 _batch = batch.copy()
-                batch = []
+                batch = []            
                 asyncio.create_task(self._run_inference(_batch))
  
 
     async def _run_inference(self, batch):
         '''배치 추론을 실행합니다'''
-
         try:
             item = batch.pop(0)
 
