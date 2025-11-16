@@ -2,9 +2,9 @@ from typing import List, Optional
 
 from fastapi import (APIRouter, Depends, File, HTTPException, Request,
                      UploadFile)
-from inference.application.parser import RequestParserPIL
-from inference.application.process import AirProcess, SideProcess
-from inference.application.registry import get_cfg
+from modules.inference.application.parser import RequestParserPIL
+from modules.inference.application.process import AirProcess, SideProcess
+from modules.inference.application.registry import get_cfg
 
 router = APIRouter()
 SomniAI_cfg = get_cfg()

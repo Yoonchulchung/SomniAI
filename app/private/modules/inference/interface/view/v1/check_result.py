@@ -10,10 +10,10 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from PIL import Image
 
-from inference.infrastructure.ai.dataset import Dataset
-from inference.application.process import SideProcess
-from inference.application.process import AirProcess
-from inference.application.registry import get_cfg
+from modules.inference.infrastructure.ai.dataset import Dataset
+from modules.inference.application.process import SideProcess
+from modules.inference.application.process import AirProcess
+from modules.inference.application.registry import get_cfg
 
 router = APIRouter()
 

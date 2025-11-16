@@ -4,9 +4,9 @@ Model Manager
 """
 import asyncio
 from typing import Optional, Dict, Any
-from inference.infrastructure.ai.loader import GPUModelLoader
-from inference.infrastructure.ai.inference import SideInference, AirInference, IInference
-from inference.application.process import SideProcess, AirProcess, BaseGPUProcess
+from modules.inference.infrastructure.ai.loader import GPUModelLoader
+from modules.inference.infrastructure.ai.inference import SideInference, AirInference, IInference
+from modules.inference.application.process import SideProcess, AirProcess, BaseGPUProcess
 
 
 class ModelManager:

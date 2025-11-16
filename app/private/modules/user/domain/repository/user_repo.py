@@ -1,6 +1,6 @@
 from abc import ABCMeta, abstractmethod
 
-from user.domain.user import User
+from modules.user.domain.user import User
 
 
 class IUserRepository(metaclass=ABCMeta):

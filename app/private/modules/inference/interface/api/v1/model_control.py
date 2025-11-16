@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional, Dict, Any
 
-from inference.application.model_manager import get_model_manager
+from modules.inference.application.model_manager import get_model_manager
 
 router = APIRouter()
 

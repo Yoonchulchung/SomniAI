@@ -12,7 +12,7 @@ from modules.auth.application.dto import (
     RegisterResponse,
     UserInfoResponse,
 )
-from user.app.user_service import UserService
+from modules.user.app.user_service import UserService
 
 
 class AuthUseCase:

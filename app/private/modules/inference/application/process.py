@@ -6,10 +6,10 @@ from typing import List, Optional, Any
 import torch
 from PIL import Image
 
-from inference.domain.channel import ChannelType
-from inference.infrastructure.ai.inference import IInference
-from inference.infrastructure.ai.loader import ModelLoaderInterface
-from inference.infrastructure.mqtt import SomniAIMQTT
+from modules.inference.domain.channel import ChannelType
+from modules.inference.infrastructure.ai.inference import IInference
+from modules.inference.infrastructure.ai.loader import ModelLoaderInterface
+from modules.inference.infrastructure.mqtt import SomniAIMQTT
 
 class IProcess(ABC):
     '''

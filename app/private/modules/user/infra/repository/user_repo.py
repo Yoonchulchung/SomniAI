@@ -1,9 +1,9 @@
-from database import SessionLocal
+from infrastructure.database.session import SessionLocal
 from fastapi import HTTPException
-from user.domain.repository.user_repo import IUserRepository
-from user.domain.user import User as UserV0
-from user.infra.db_models.user import User
-from utils.db_utils import row_to_dict
+from modules.user.domain.repository.user_repo import IUserRepository
+from modules.user.domain.user import User as UserV0
+from modules.user.infra.db_models.user import User
+from infrastructure.database.db_utils import row_to_dict
 
 
 class UserRepository(IUserRepository):

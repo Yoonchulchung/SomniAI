@@ -3,8 +3,8 @@ from typing import Annotated
 
 from ulid import ULID
 from fastapi import HTTPException
-from user.domain.repository.user_repo import IUserRepository
-from user.domain.user import User
+from modules.user.domain.repository.user_repo import IUserRepository
+from modules.user.domain.user import User
 
 class UserService:
     

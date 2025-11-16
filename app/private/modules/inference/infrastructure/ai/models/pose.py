@@ -3,7 +3,7 @@ from typing import List, Tuple, Union
 import numpy as np
 import torch
 from PIL import Image
-from inference.infrastructure.ai.registry import pose_register
+from modules.inference.infrastructure.ai.registry import pose_register
 
 
 class BasePoseAdapter:

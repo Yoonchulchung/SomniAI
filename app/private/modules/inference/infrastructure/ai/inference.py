@@ -92,7 +92,7 @@ class SideInference(IInference):
     def __init__(self, model_loader, cfg):
         super().__init__(model_loader, cfg)
         # Pose Analyzer 초기화
-        from inference.domain.pose_analyzer import create_pose_analyzer
+        from modules.inference.domain.pose_analyzer import create_pose_analyzer
         self.pose_analyzer = create_pose_analyzer(confidence_threshold=0.3)
 
 

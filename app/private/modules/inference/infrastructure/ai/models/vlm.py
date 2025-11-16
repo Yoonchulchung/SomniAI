@@ -4,7 +4,7 @@ import re
 import torch
 import torch.nn as nn
 from PIL import Image
-from inference.infrastructure.ai.registry import vlm_register
+from modules.inference.infrastructure.ai.registry import vlm_register
 from transformers import GenerationConfig
 
 

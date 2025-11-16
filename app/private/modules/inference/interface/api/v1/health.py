@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Request
 
-from inference.application.health_check import Rsponse_Health_Check
+from modules.inference.application.health_check import Rsponse_Health_Check
 
 
 def get_healtcheck():
