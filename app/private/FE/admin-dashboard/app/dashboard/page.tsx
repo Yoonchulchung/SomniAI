@@ -230,6 +230,24 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* Quick Links */}
+        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+          <button
+            onClick={() => router.push('/dashboard/results')}
+            className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-lg shadow-lg p-6 hover:from-indigo-600 hover:to-purple-700 transition-all transform hover:scale-105"
+          >
+            <h3 className="text-xl font-bold mb-2">분석 결과 보기</h3>
+            <p className="text-sm opacity-90">측면 자세 및 공중 분석 결과를 확인하세요</p>
+          </button>
+          <button
+            onClick={() => router.push('/dashboard/logs')}
+            className="bg-gradient-to-r from-green-500 to-teal-600 text-white rounded-lg shadow-lg p-6 hover:from-green-600 hover:to-teal-700 transition-all transform hover:scale-105"
+          >
+            <h3 className="text-xl font-bold mb-2">API 로그</h3>
+            <p className="text-sm opacity-90">API 요청 로그 및 통계를 확인하세요</p>
+          </button>
+        </div>
+
         {/* API Endpoints */}
         <div className="mt-6 bg-white rounded-lg shadow p-6">
           <h2 className="text-lg font-semibold mb-4">사용 가능한 API 엔드포인트</h2>
@@ -258,10 +276,20 @@ export default function DashboardPage() {
               </ul>
             </div>
             <div className="border rounded p-4">
-              <h3 className="font-medium text-orange-600">업로드</h3>
+              <h3 className="font-medium text-orange-600">업로드 & 결과</h3>
               <ul className="mt-2 text-sm space-y-1 text-gray-600">
                 <li>POST /api/v1/upload-air - Air 이미지</li>
                 <li>POST /api/v1/upload-side - Side 이미지</li>
+                <li>GET /api/v1/result-side-json - 측면 결과</li>
+                <li>GET /api/v1/result-air-json - 공중 결과</li>
+              </ul>
+            </div>
+            <div className="border rounded p-4">
+              <h3 className="font-medium text-blue-600">API 로그</h3>
+              <ul className="mt-2 text-sm space-y-1 text-gray-600">
+                <li>GET /api/v1/api-logs - 로그 목록</li>
+                <li>GET /api/v1/api-logs/:id - 로그 상세</li>
+                <li>GET /api/v1/api-logs/stats/summary - 통계</li>
               </ul>
             </div>
           </div>

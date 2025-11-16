@@ -122,3 +122,36 @@ export const userApi = {
   updateUser: (userId: string, data: { name?: string; password?: string }) =>
     apiClient.put(`/users/${userId}`, data),
 };
+
+// Result API
+export const resultApi = {
+  getSideResult: () => apiClient.get('/result-side-json'),
+  getAirResult: () => apiClient.get('/result-air-json'),
+};
+
+// API Log API
+export const apiLogApi = {
+  getLogs: (params?: {
+    page?: number;
+    items_per_page?: number;
+    user_id?: string;
+    endpoint?: string;
+    method?: string;
+    status_code?: number;
+  }) => {
+    const queryParams = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          queryParams.append(key, String(value));
+        }
+      });
+    }
+    return apiClient.get(`/api-logs?${queryParams.toString()}`);
+  },
+  getLogDetail: (logId: string) => apiClient.get(`/api-logs/${logId}`),
+  getStats: (userId?: string) => {
+    const queryParams = userId ? `?user_id=${userId}` : '';
+    return apiClient.get(`/api-logs/stats/summary${queryParams}`);
+  },
+};

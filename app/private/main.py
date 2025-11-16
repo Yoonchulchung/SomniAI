@@ -46,6 +46,7 @@ app.add_middleware(
 from inference.interface.api.v1 import health, ping, upload, model_control
 from inference.interface.view.v1 import main, check_result
 from auth import router as auth_router
+from api_log import router as api_log_router
 
 app.include_router(auth_router.router, prefix=SomniAI_cfg.FASTAPI.API_PREFIX)
 app.include_router(health.router, prefix=SomniAI_cfg.FASTAPI.API_PREFIX, tags=["health"])
@@ -55,6 +56,7 @@ app.include_router(main.router, tags=["main"])
 app.include_router(check_result.router, prefix=SomniAI_cfg.FASTAPI.API_PREFIX, tags=["result"])
 app.include_router(upload.router, prefix=SomniAI_cfg.FASTAPI.API_PREFIX, tags=["upload"])
 app.include_router(model_control.router, prefix=SomniAI_cfg.FASTAPI.API_PREFIX, tags=["model"])
+app.include_router(api_log_router.router, prefix=SomniAI_cfg.FASTAPI.API_PREFIX, tags=["logs"])
 
 
 async def start():

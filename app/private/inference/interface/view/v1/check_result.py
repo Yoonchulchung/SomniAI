@@ -1,12 +1,13 @@
 import base64
 import io
+from typing import Optional, Dict, Any
 
 import cv2
 import httpx
 import numpy as np
 import torch
 from fastapi import APIRouter, Depends, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from PIL import Image
 
 from inference.infrastructure.ai.dataset import Dataset
@@ -621,3 +622,92 @@ def _show_side_result(data_url: str, angle_info_html: str, pose_analysis: dict) 
     </html>
     """
     return html_page
+
+
+# JSON API 엔드포인트
+@router.get("/result-side-json")
+async def result_side_json(dataset=Depends(get_DataSet)):
+    """측면 결과를 JSON 형식으로 반환합니다."""
+    gpu = SideProcess.get_instance()
+
+    img, message = await gpu.get_result()
+    if not message:
+        return JSONResponse(
+            content={
+                "success": False,
+                "message": "표시할 결과가 아직 큐에 없습니다.",
+                "data": None
+            },
+            status_code=200
+        )
+
+    # Pose analysis 정보 추출
+    pose_analysis = message.get("pose_analysis", {})
+
+    # 이미지를 base64로 인코딩
+    if cfg.AI.VISION.MODEL_NAME == "YOLO":
+        out = dataset.draw_yolo_keypoints(
+            message["result"],
+            img,
+            draw_boxes=True,
+            keypoint_radius=3,
+            keypoint_thickness=2,
+            skeleton_thickness=2,
+            use_normalized=False,
+            kpt_conf_thresh=0.2,
+        )
+    else:
+        out = dataset.draw_mmpose_keypoints(
+            cfg,
+            img,
+            message["result"],
+            pose_analysis=pose_analysis
+        )
+
+    data_url = cv2_to_data_url(out, format="PNG")
+
+    return JSONResponse(
+        content={
+            "success": True,
+            "message": "측면 자세 분석 결과",
+            "data": {
+                "image": data_url,
+                "pose_analysis": pose_analysis,
+                "raw_result": message.get("result")
+            }
+        },
+        status_code=200
+    )
+
+
+@router.get("/result-air-json")
+async def result_air_json():
+    """공중 결과를 JSON 형식으로 반환합니다."""
+    gpu = AirProcess.get_instance()
+
+    img, message = await gpu.get_result()
+
+    if not message:
+        return JSONResponse(
+            content={
+                "success": False,
+                "message": "표시할 결과가 아직 큐에 없습니다.",
+                "data": None
+            },
+            status_code=200
+        )
+
+    data_url = pil_to_data_url(img, fmt="PNG")
+
+    return JSONResponse(
+        content={
+            "success": True,
+            "message": "공중 분석 결과",
+            "data": {
+                "image": data_url,
+                "vlm_output": message.get("vlm_output"),
+                "raw_result": message
+            }
+        },
+        status_code=200
+    )
