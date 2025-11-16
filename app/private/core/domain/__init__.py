@@ -1,0 +1,3 @@
+"""
+Common domain entities and value objects
+"""

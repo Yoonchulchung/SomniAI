@@ -1,6 +1,8 @@
+"""
+FastAPI Application Entry Point
+"""
 import argparse
 import asyncio
-from typing import Optional
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -8,73 +10,91 @@ from fastapi.middleware.cors import CORSMiddleware
 from hypercorn.asyncio import serve
 from hypercorn.config import Config
 
-import inference.application.registry as registry
-from inference.application.config import load_config
-from boot_loader import bootstrap, shutdown
+# Core & Infrastructure
+from core.config import get_settings
+from infrastructure.logging import get_logger
 
+# Modules
+import modules.inference.application.registry as registry
+from modules.inference.application.config import load_config
+from boot_loader import bootstrap, shutdown
+from containers import Container
+
+# Argument parser
 parser = argparse.ArgumentParser(description="SomniAI FastAPI Server")
 parser.add_argument('config', type=str, help="FastAPI config path")
 args = parser.parse_args()
 
+# Load inference config
 SomniAI_cfg = load_config(args.config)
 registry.set_cfg(SomniAI_cfg)
 
-from containers import Container
+# Application settings
+settings = get_settings()
+logger = get_logger("somniai")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """Application lifespan events"""
+    # Startup
     container = Container()
+    container.wire(packages=["modules"])
 
     await bootstrap()
+    logger.info("Application started successfully")
 
     yield
 
+    # Shutdown
     await shutdown()
+    logger.info("Application shutdown completed")
 
-app = FastAPI(lifespan=lifespan)
 
-# CORS 설정
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # Next.js 개발 서버
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+# Create FastAPI application
+app = FastAPI(
+    title=settings.APP_NAME,
+    version=settings.APP_VERSION,
+    lifespan=lifespan,
 )
 
-from inference.interface.api.v1 import health, ping, upload, model_control
-from inference.interface.view.v1 import main, check_result
-from auth import router as auth_router
-from api_log import router as api_log_router
+# CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.CORS_ORIGINS,
+    allow_credentials=settings.CORS_ALLOW_CREDENTIALS,
+    allow_methods=settings.CORS_ALLOW_METHODS,
+    allow_headers=settings.CORS_ALLOW_HEADERS,
+)
 
-app.include_router(auth_router.router, prefix=SomniAI_cfg.FASTAPI.API_PREFIX)
-app.include_router(health.router, prefix=SomniAI_cfg.FASTAPI.API_PREFIX, tags=["health"])
-app.include_router(ping.router, prefix=SomniAI_cfg.FASTAPI.API_PREFIX, tags=["ping"])
+# Import routers
+from modules.inference.interface.api.v1 import health, ping, upload, model_control
+from modules.inference.interface.view.v1 import main, check_result
+from modules.auth.interface.api import router as auth_router
+from modules.api_log.interface.api import router as api_log_router
+
+# Include routers
+app.include_router(auth_router, prefix=settings.API_PREFIX)
+app.include_router(health.router, prefix=settings.API_PREFIX, tags=["health"])
+app.include_router(ping.router, prefix=settings.API_PREFIX, tags=["ping"])
 app.include_router(main.router, tags=["main"])
-
-app.include_router(check_result.router, prefix=SomniAI_cfg.FASTAPI.API_PREFIX, tags=["result"])
-app.include_router(upload.router, prefix=SomniAI_cfg.FASTAPI.API_PREFIX, tags=["upload"])
-app.include_router(model_control.router, prefix=SomniAI_cfg.FASTAPI.API_PREFIX, tags=["model"])
-app.include_router(api_log_router.router, prefix=SomniAI_cfg.FASTAPI.API_PREFIX, tags=["logs"])
+app.include_router(check_result.router, prefix=settings.API_PREFIX, tags=["result"])
+app.include_router(upload.router, prefix=settings.API_PREFIX, tags=["upload"])
+app.include_router(model_control.router, prefix=settings.API_PREFIX, tags=["model"])
+app.include_router(api_log_router, prefix=settings.API_PREFIX)
 
 
 async def start():
+    """Start the application server"""
     config = Config()
-    config.bind = [f"{SomniAI_cfg.FASTAPI.HOST}:{SomniAI_cfg.FASTAPI.PORT}"]
+    config.bind = [f"{settings.HOST}:{settings.PORT}"]
+    config.use_reloader = settings.RELOAD
+    config.workers = 1 if settings.RELOAD else settings.WORKERS
+    config.loglevel = settings.LOG_LEVEL.lower()
 
-    # Hot reload 설정
-    config.use_reloader = getattr(SomniAI_cfg.FASTAPI, "RELOAD", True)
-
-    # Worker 수 설정 (reload 사용 시 1로 제한)
-    if config.use_reloader:
-        config.workers = 1
-    else:
-        config.workers = getattr(SomniAI_cfg.FASTAPI, "WORKERS", 1)
-
-    config.loglevel = getattr(SomniAI_cfg.FASTAPI, "LOG_LEVEL", "info").lower()
-
+    logger.info(f"Starting server on {settings.HOST}:{settings.PORT}")
     await serve(app, config)
-    
+
+
 if __name__ == "__main__":
     asyncio.run(start())
