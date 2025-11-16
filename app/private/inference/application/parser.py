@@ -7,7 +7,7 @@ import torchvision.transforms as transforms
 from fastapi import File, HTTPException, Request, UploadFile
 from PIL import Image
 
-from SomniAI.application.logger import SomniAI_log
+from inference.application.logger import SomniAI_log
 
 
 class Parser(Protocol):

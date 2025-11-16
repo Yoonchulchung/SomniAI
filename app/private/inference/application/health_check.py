@@ -5,7 +5,7 @@ import psutil
 import torch
 from fastapi import Request
 
-from SomniAI.application.log import SomniAI_log
+from inference.application.logger import SomniAI_log
 
 
 class HealthCheck(Protocol):
