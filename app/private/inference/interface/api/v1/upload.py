@@ -1,24 +1,27 @@
-from typing import List, Optional, Annotated
+from typing import List, Optional
 
 from fastapi import (APIRouter, Depends, File, HTTPException, Request,
                      UploadFile)
-from dependency_injector.wiring import inject, Provide
-
-from inference.containers import InferenceContainer
 from inference.application.parser import RequestParserPIL
-from inference.application.process import Process
+from inference.application.process import AirProcess, SideProcess
+from inference.application.registry import get_cfg
 
 router = APIRouter()
+SomniAI_cfg = get_cfg()
 
+
+def get_parser():
+    return RequestParserPIL(SomniAI_cfg.HTTP)
+
+def get_Process_Air():
+    return AirProcess.get_instance()
+
+def get_Process_Side():
+    return SideProcess.get_instance()
 
 @router.post("/upload-air")
-@inject
-async def upload_air(
-    request: Request,
-    files: Optional[List[UploadFile]] = File(None),
-    parser: RequestParserPIL = Depends(Provide[InferenceContainer.parser]),
-    process: Process = Depends(Provide[InferenceContainer.process])
-):
+async def upload_air(request : Request, files: Optional[List[UploadFile]] = File(None), 
+                 parser = Depends(get_parser), process = Depends(get_Process_Air)):
     '''
     Please send bytes data. Do not send Pytorch Tensor format.
     '''
@@ -33,13 +36,8 @@ async def upload_air(
 
 
 @router.post("/upload-side")
-@inject
-async def upload_side(
-    request: Request,
-    files: Optional[List[UploadFile]] = File(None),
-    parser: RequestParserPIL = Depends(Provide[InferenceContainer.parser]),
-    process: Process = Depends(Provide[InferenceContainer.process])
-):
+async def upload_side(request : Request, files: Optional[List[UploadFile]] = File(None), 
+                 parser = Depends(get_parser), process = Depends(get_Process_Side)):
     '''
     Please send bytes data. Do not send Pytorch Tensor format.
     '''

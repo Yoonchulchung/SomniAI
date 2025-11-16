@@ -8,21 +8,15 @@ from hypercorn.asyncio import serve
 from hypercorn.config import Config
 
 import inference.application.registry as registry
-from boot_loader import bootstrap, shutdown
 from inference.application.config import load_config
-from inference.containers import InferenceContainer
+from boot_loader import bootstrap, shutdown
 
 parser = argparse.ArgumentParser(description="SomniAI FastAPI Server")
 parser.add_argument('config', type=str, help="FastAPI config path")
 args = parser.parse_args()
 
 SomniAI_cfg = load_config(args.config)
-
 registry.set_cfg(SomniAI_cfg)
-
-# Container 초기화 및 wiring
-container = InferenceContainer()
-container.wire(packages=["inference"])
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

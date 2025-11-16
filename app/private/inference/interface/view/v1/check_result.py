@@ -2,30 +2,29 @@ import base64
 import io
 
 import cv2
+import httpx
 import numpy as np
 import torch
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse
 from PIL import Image
-from dependency_injector.wiring import inject, Provide
 
-from inference.containers import InferenceContainer
 from inference.infrastructure.ai.dataset import Dataset
-from inference.application.process import Process
+from inference.application.process import SideProcess
+from inference.application.process import AirProcess
 from inference.application.registry import get_cfg
 
 router = APIRouter()
 
 cfg = get_cfg()
 
+async def get_DataSet():
+    return Dataset(cfg.AI)
+
 
 @router.get("/result-side")
-@inject
-async def result_side(
-    request: Request,
-    dataset: Dataset = Depends(Provide[InferenceContainer.dataset])
-):
-    gpu = Process.get_instance()
+async def result_side(request: Request, dataset=Depends(get_DataSet)):
+    gpu = SideProcess.get_instance()
     
     img, message = await gpu.get_side_result()
     if not message:
@@ -59,7 +58,7 @@ async def result_side(
 
 @router.get("/result-air")
 async def result_air(request: Request, ):
-    gpu = ProcessGPU.get_instance()
+    gpu = AirProcess.get_instance()
     
     img, message = await gpu.get_air_result()
     

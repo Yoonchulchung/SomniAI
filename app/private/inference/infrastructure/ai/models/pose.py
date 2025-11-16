@@ -3,8 +3,7 @@ from typing import List, Tuple, Union
 import numpy as np
 import torch
 from PIL import Image
-
-from SomniAI.application.AI.registry import pose_register
+from inference.infrastructure.ai.registry import pose_register
 
 
 class BasePoseAdapter:
