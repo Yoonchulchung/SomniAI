@@ -5,42 +5,31 @@ import socket
 from rich.console import Console
 from rich.panel import Panel
 
-from SomniAI.application.AI import GPUModelLoader, InferenceGPU
-from SomniAI.application.AI.registry import pose_register, vlm_register
-from SomniAI.application.config import save_yaml
-from SomniAI.application.logger import SomniAI_log
-from SomniAI.application.mqtt import SomniAIMQTT
-from SomniAI.application.process import Process
-from SomniAI.application.registry import get_cfg
+from inference.containers import InferenceContainer
+from inference.application.config import save_yaml
+from inference.application.logger import SomniAI_log
 
 
 async def bootstrap() -> None:
     # We build everything in bootstrap
     SomniAI_log("=" * 10, " SomniAI FastAPI Server ", "=" * 10)
-    
-    SomniAI_cfg = get_cfg()
-    
-    registry = {
-        "pose_register" : pose_register,
-        "vlm_register" : vlm_register,
-    }
-    
-    model_loader = GPUModelLoader(SomniAI_cfg, registry, SomniAI_log)
 
-    infernce = InferenceGPU(model_loader, SomniAI_cfg)
-    mqtt = SomniAIMQTT(SomniAI_cfg)
- 
-    process = Process(SomniAI_cfg, infernce, mqtt, SomniAI_log)
-    
+    # Container에서 의존성 가져오기
+    container = InferenceContainer()
+
+    SomniAI_cfg = container.config()
+    model_loader = container.model_loader()
+    process = container.process()
+
     work_dir = "./work_dir"
-    
+
     if not os.path.exists(work_dir):
         os.mkdir(work_dir)
-    
+
     save_yaml(SomniAI_cfg, f'{work_dir}/data.yaml')
-    
+
     _print_info(SomniAI_cfg, model_loader)
-    
+
     asyncio.create_task(process.air_micro_scheduler())
     asyncio.create_task(process.side_micro_scheduler())
 

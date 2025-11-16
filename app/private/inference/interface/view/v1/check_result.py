@@ -7,20 +7,24 @@ import torch
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse
 from PIL import Image
-from SomniAI.application.AI.dataset import Dataset
-from SomniAI.application.process import Process
-from SomniAI.application.registry import get_cfg
+from dependency_injector.wiring import inject, Provide
+
+from inference.containers import InferenceContainer
+from inference.infrastructure.ai.dataset import Dataset
+from inference.application.process import Process
+from inference.application.registry import get_cfg
 
 router = APIRouter()
 
 cfg = get_cfg()
 
-async def get_DataSet():
-    return Dataset(cfg.AI)
-
 
 @router.get("/result-side")
-async def result_side(request: Request, dataset=Depends(get_DataSet)):
+@inject
+async def result_side(
+    request: Request,
+    dataset: Dataset = Depends(Provide[InferenceContainer.dataset])
+):
     gpu = Process.get_instance()
     
     img, message = await gpu.get_side_result()
