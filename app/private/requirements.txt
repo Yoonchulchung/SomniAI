@@ -9,6 +9,16 @@ colorama
 soxr
 fastapi-mcp
 isort
-
 mmpose
 ultralytics
+
+# Authentication
+python-jose[cryptography]
+passlib[bcrypt]
+python-multipart
+
+# Database
+alembic
+sqlalchemy
+mysqlclient
+ulid-py
