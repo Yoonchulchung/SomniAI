@@ -91,14 +91,23 @@ class SideInference(IInference):
 
     def __init__(self, model_loader, cfg):
         super().__init__(model_loader, cfg)
-    
-    
+        # Pose Analyzer 초기화
+        from inference.domain.pose_analyzer import create_pose_analyzer
+        self.pose_analyzer = create_pose_analyzer(confidence_threshold=0.3)
+
+
     def forward(self, img: Image.Image) -> Dict:
-        '''Side 추론: Pose만'''
-        
-        pose_output = self._pose_infer(img)
+        '''Side 추론: Pose + 각도 분석'''
+
+        result, keypoints, scores, bboxes = self._pose_infer(img)
+
+        # 측면 목 각도 분석
+        pose_analysis = self.pose_analyzer.analyze_side_pose(keypoints, scores)
+
         return {
-            "pose_output": pose_output,
+            "result": result,
+            "pose_output": (result, keypoints, scores, bboxes),
+            "pose_analysis": pose_analysis,
             "model_info": {
                 "vision_model": self.model_loader.get_pose_name(),
             },
