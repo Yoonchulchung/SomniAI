@@ -15,6 +15,7 @@ from inference.infrastructure.mqtt import SomniAIMQTT
 from inference.application.process import AirProcess, SideProcess
 from inference.application.registry import get_cfg
 from inference.application.queue_manager import ImageRequestQueue
+from inference.application.model_manager import setup_model_manager
 
 async def bootstrap() -> None:
     # We build everything in bootstrap
@@ -32,22 +33,22 @@ async def bootstrap() -> None:
     mqtt = SomniAIMQTT(SomniAI_cfg)
     
     side_inference = SideInference(model_loader, SomniAI_cfg)
-    side_process = SideProcess(SomniAI_cfg,
-                           model_loader,
-                           channel_type=ChannelType.SIDE,
-                           inference=side_inference,
-                           queue=ImageRequestQueue(name="side"),
-                           MQTT=mqtt,
-                           logger=SomniAI_log)
-    
+    side_process = SideProcess(
+        SomniAI_cfg,
+        channel_type=ChannelType.SIDE,
+        inference=side_inference,
+        MQTT=mqtt,
+        logger=SomniAI_log
+    )
+
     air_inference = AirInference(model_loader, SomniAI_cfg)
-    air_process = AirProcess(SomniAI_cfg,
-                           model_loader,
-                           ChannelType.AIR,
-                           inference=air_inference,
-                           queue=ImageRequestQueue(name="air"),
-                           MQTT=mqtt,
-                           logger=SomniAI_log)
+    air_process = AirProcess(
+        SomniAI_cfg,
+        channel_type=ChannelType.AIR,
+        inference=air_inference,
+        MQTT=mqtt,
+        logger=SomniAI_log
+    )
     
     work_dir = "./work_dir"
     
@@ -55,9 +56,21 @@ async def bootstrap() -> None:
         os.mkdir(work_dir)
     
     save_yaml(SomniAI_cfg, f'{work_dir}/data.yaml')
-    
+
+    # ModelManager 설정
+    setup_model_manager(
+        model_loader,
+        side_inference,
+        air_inference,
+        side_process,
+        air_process,
+        SomniAI_cfg,
+        SomniAI_log,
+        mqtt
+    )
+
     _print_info(SomniAI_cfg, model_loader)
-    
+
     asyncio.create_task(side_process.micro_scheduler())
     asyncio.create_task(air_process.micro_scheduler())
 

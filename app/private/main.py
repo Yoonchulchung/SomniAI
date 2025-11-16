@@ -28,7 +28,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-from inference.interface.api.v1 import health, ping, upload
+from inference.interface.api.v1 import health, ping, upload, model_control
 from inference.interface.view.v1 import main, check_result
 
 app.include_router(health.router, prefix=SomniAI_cfg.FASTAPI.API_PREFIX, tags=["health"])
@@ -37,14 +37,23 @@ app.include_router(main.router, tags=["main"])
 
 app.include_router(check_result.router, prefix=SomniAI_cfg.FASTAPI.API_PREFIX, tags=["result"])
 app.include_router(upload.router, prefix=SomniAI_cfg.FASTAPI.API_PREFIX, tags=["upload"])
+app.include_router(model_control.router, prefix=SomniAI_cfg.FASTAPI.API_PREFIX, tags=["model"])
 
 
 async def start():
     config = Config()
     config.bind = [f"{SomniAI_cfg.FASTAPI.HOST}:{SomniAI_cfg.FASTAPI.PORT}"]
-    config.use_reloader = getattr(SomniAI_cfg.FASTAPI.RELOAD, "RELOAD", True)
-    config.workers = SomniAI_cfg.FASTAPI.WORKERS
-    config.loglevel = getattr(SomniAI_cfg.FASTAPI.LOG_LEVEL, "LOG_LEVEL", "info").lower()
+
+    # Hot reload 설정
+    config.use_reloader = getattr(SomniAI_cfg.FASTAPI, "RELOAD", True)
+
+    # Worker 수 설정 (reload 사용 시 1로 제한)
+    if config.use_reloader:
+        config.workers = 1
+    else:
+        config.workers = getattr(SomniAI_cfg.FASTAPI, "WORKERS", 1)
+
+    config.loglevel = getattr(SomniAI_cfg.FASTAPI, "LOG_LEVEL", "info").lower()
 
     await serve(app, config)
     
