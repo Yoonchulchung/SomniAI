@@ -1,21 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks';
 import { useRouter } from 'next/navigation';
-import { apiLogApi } from '@/lib/api-client';
-
-interface APILog {
-  id: string;
-  user_id: string | null;
-  endpoint: string;
-  method: string;
-  status_code: number;
-  ip_address: string | null;
-  user_agent: string | null;
-  duration_ms: number | null;
-  created_at: string | null;
-}
+import { logsApi } from '@/lib/api';
+import type { ApiLog } from '@/types';
 
 interface PaginationInfo {
   page: number;
@@ -27,7 +16,7 @@ interface PaginationInfo {
 interface LogsResponse {
   success: boolean;
   data: {
-    logs: APILog[];
+    logs: ApiLog[];
     pagination: PaginationInfo;
   };
 }
@@ -45,7 +34,7 @@ interface StatsResponse {
 export default function LogsPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
-  const [logs, setLogs] = useState<APILog[]>([]);
+  const [logs, setLogs] = useState<ApiLog[]>([]);
   const [pagination, setPagination] = useState<PaginationInfo | null>(null);
   const [stats, setStats] = useState<StatsResponse['data'] | null>(null);
   const [loading, setLoading] = useState(true);
@@ -77,17 +66,33 @@ export default function LogsPage() {
       if (filters.status_code) params.status_code = parseInt(filters.status_code);
 
       const [logsData, statsData] = await Promise.all([
-        apiLogApi.getLogs(params).catch(() => null),
-        apiLogApi.getStats().catch(() => null),
+        logsApi.getLogs(params).catch(() => null),
+        logsApi.getStats().catch(() => null),
       ]);
 
-      if (logsData?.success) {
-        setLogs(logsData.data.logs);
-        setPagination(logsData.data.pagination);
+      if (logsData) {
+        setLogs(logsData.logs);
+        setPagination({
+          page: logsData.page,
+          items_per_page: logsData.items_per_page,
+          total: logsData.total,
+          total_pages: logsData.total_pages,
+        });
       }
 
-      if (statsData?.success) {
-        setStats(statsData.data);
+      if (statsData) {
+        setStats({
+          total_requests: statsData.total_requests,
+          average_duration_ms: statsData.avg_duration_ms,
+          status_code_distribution: Object.entries(statsData.status_distribution || {}).map(([status_code, count]) => ({
+            status_code: parseInt(status_code),
+            count: count as number,
+          })),
+          top_endpoints: Object.entries(statsData.endpoint_distribution || {}).map(([endpoint, count]) => ({
+            endpoint,
+            count: count as number,
+          })),
+        });
       }
     } catch (error) {
       console.error('Failed to load logs:', error);
@@ -293,7 +298,7 @@ export default function LogsPage() {
                   logs.map((log) => (
                     <tr key={log.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {log.created_at ? new Date(log.created_at).toLocaleString('ko-KR') : '-'}
+                        {log.timestamp ? new Date(log.timestamp).toLocaleString('ko-KR') : '-'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-2 py-1 text-xs font-medium rounded ${getMethodColor(log.method)}`}>
@@ -310,7 +315,7 @@ export default function LogsPage() {
                         {log.duration_ms !== null ? `${log.duration_ms} ms` : '-'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {log.ip_address || '-'}
+                        {log.user_id || '-'}
                       </td>
                     </tr>
                   ))

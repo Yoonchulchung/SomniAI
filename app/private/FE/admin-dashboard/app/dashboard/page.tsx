@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import { healthApi, uploadApi } from '@/lib/api-client';
+import { healthApi, uploadApi } from '@/lib/api';
 
 export default function DashboardPage() {
   const { user, logout, loading: authLoading } = useAuth();

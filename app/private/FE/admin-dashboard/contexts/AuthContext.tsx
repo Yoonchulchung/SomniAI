@@ -3,19 +3,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
-import { authApi } from '@/lib/api-client';
-
-interface User {
-  user_id: string;
-  name: string;
-}
-
-interface AuthContextType {
-  user: User | null;
-  loading: boolean;
-  login: (name: string, password: string) => Promise<void>;
-  logout: () => void;
-}
+import { authApi } from '@/lib/api';
+import type { User, AuthContextType } from '@/types';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -48,12 +37,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (name: string, password: string) => {
     try {
-      const response = await authApi.login(name, password);
+      const response = await authApi.login({ name, password });
       Cookies.set('access_token', response.access_token, { expires: 1 }); // 1일
-      setUser({ user_id: response.user_id, name: response.name });
+
+      // 사용자 정보 설정
+      if (response.user) {
+        setUser(response.user);
+      } else {
+        // 사용자 정보가 없으면 별도로 조회
+        await loadUser();
+      }
       router.push('/dashboard');
     } catch (error: any) {
-      throw new Error(error.response?.data?.detail || 'Login failed');
+      throw new Error(error.response?.data?.detail || '로그인에 실패했습니다.');
     }
   };
 
