@@ -26,7 +26,7 @@ async def get_DataSet():
 async def result_side(request: Request, dataset=Depends(get_DataSet)):
     gpu = SideProcess.get_instance()
     
-    img, message = await gpu.get_side_result()
+    img, message = await gpu.get_result()
     if not message:
         return _nothing()
     
@@ -60,7 +60,7 @@ async def result_side(request: Request, dataset=Depends(get_DataSet)):
 async def result_air(request: Request, ):
     gpu = AirProcess.get_instance()
     
-    img, message = await gpu.get_air_result()
+    img, message = await gpu.get_result()
     
     # try:
     #   async with httpx.AsyncClient() as client:
@@ -72,8 +72,8 @@ async def result_air(request: Request, ):
         return _nothing()
     
     data_url = pil_to_data_url(img, fmt="PNG")
-
-    page = _show_image(data_url=data_url, message_html=message["ans"])
+    
+    page = _show_image(data_url=data_url, message_html=message["vlm_output"])
     return HTMLResponse(page)
     
 def _nothing():

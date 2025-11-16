@@ -1,260 +1,166 @@
 import asyncio
+import time
 from abc import ABC, abstractmethod
+from typing import List, Optional, Any
+
+import torch
+from PIL import Image
+
 from inference.domain.channel import ChannelType
 from inference.infrastructure.ai.inference import IInference
 from inference.infrastructure.ai.loader import ModelLoaderInterface
 from inference.infrastructure.mqtt import SomniAIMQTT
-import torch
-from PIL import Image
-
 
 class IProcess(ABC):
-
     '''
-    Process는 SomniAI 서버의 요청 처리를 담당합니다.
-    클라이언트가 요청한 데이터를 관리하고 처리할 수 있어야 합니다.
-    
-    GPU 처리 여부는 외부에서 결정합니다.
-    Process를 통해 추론 결과는 MQTT 큐에 저장되게 됩니다.
+    Process 인터페이스
     '''
-
     @abstractmethod
-    async def enqueue_request(self, dataset: Image.Image) -> None:
-
-        '''
-        데이터를 큐에 넣습니다.
-        '''
+    async def enqueue_request(self, image: Image.Image) -> None:
         raise NotImplementedError
-
 
     @abstractmethod
     async def micro_scheduler(self) -> None:
-
-        '''
-        큐 데이터를 이용하여 AI 추론을 진행합니다.
-        '''
         raise NotImplementedError
 
 
-class AirProcess(IProcess):
+class BaseGPUProcess(IProcess):
+    '''
+    AirProcess와 SideProcess의 공통 로직을 담당하는 부모 클래스입니다.
+    '''
+    _instances = {}
 
-    _instance = None
     def __new__(cls, *args, **kwargs):
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-        return cls._instance
-    
+        if cls not in cls._instances:
+            cls._instances[cls] = super(BaseGPUProcess, cls).__new__(cls)
+        return cls._instances[cls]
+
     @classmethod
     def get_instance(cls):
-        if cls._instance is None:
-            raise RuntimeError("ProcessGPU is not initialized yet")
-        return cls._instance
-    
+        if cls not in cls._instances:
+            raise RuntimeError(f"{cls.__name__} is not initialized yet")
+        return cls._instances[cls]
+
     def __init__(
         self,
         cfg,
-        model_loader : ModelLoaderInterface,
         channel_type: ChannelType,
-        inference : IInference,
-        queue,
-        MQTT : SomniAIMQTT,
-        logger
+        inference: IInference,
+        MQTT: SomniAIMQTT,
+        logger,
+        **kwargs,
     ):
-        self.cfg_HTTP = cfg.HTTP
+        if hasattr(self, "initialized") and self.initialized:
+            return
 
+        self.cfg_HTTP = cfg.HTTP
         self.channel_type = channel_type
         self.logger = logger
-
         self.inference = inference
         self.mqtt = MQTT
-        
+
         self.BATCH_THRESHOLD = self.cfg_HTTP.BATCH_THRESHOLD
         self.BATCH_TIMEOUT = self.cfg_HTTP.BATCH_TIMEOUT
-        
+
         self.queue = asyncio.Queue()
-        
         self.result_queue = asyncio.Queue()
         
         self._model_lock = asyncio.Lock()
 
         if not torch.cuda.is_available():
-            raise ValueError(f"Process is only available with GPU")
+            raise ValueError("Process is only available with GPU")
         self.device = "cuda"
- 
-    async def enqueue_request(self, dataset: Image.Image) -> None:
-        '''데이터를 큐에 넣습니다'''
         
-        if not isinstance(dataset, Image.Image):
-            raise TypeError(f"Expected PIL.Image.Image, got {type(dataset)}")
+        self.initialized = True
 
-        await self.queue.put(dataset)
+    async def enqueue_request(self, image: Image.Image) -> None:
+
+        if not isinstance(image, Image.Image):
+            self.logger(f"Invalid type: {type(image)}")
+            return
+        
+        await self.queue.put(image)
+
+    async def get_result(self) -> Any:
+        '''결과 큐에서 데이터를 가져옵니다 (Non-blocking).'''
+        try:
+            return self.result_queue.get_nowait()
+        except asyncio.QueueEmpty:
+            return None, None
 
     async def micro_scheduler(self) -> None:
-        
-        batch = []
+        '''
+        효율적인 배치 처리를 위한 스케줄러
+        데이터가 하나라도 들어오면 타이머를 시작하여 BATCH_TIMEOUT 동안 
+        BATCH_THRESHOLD 만큼 데이터를 모읍니다.
+        '''
         loop = asyncio.get_running_loop()
-
+        
         while True:
+            batch: List[Image.Image] = []
+            
+            try:
+                first_item = await self.queue.get()
+                batch.append(first_item)
+            except Exception as e:
+                self.logger.error(f"Queue consumption error: {e}")
+                continue
 
             deadline = loop.time() + self.BATCH_TIMEOUT
-
-            while len(batch) < self.BATCH_THRESHOLD:
-                try:
-                    dataset = self.queue.get_nowait()
-                    batch.append(dataset)
-                except asyncio.QueueEmpty:
-                    break
-
+            
             while len(batch) < self.BATCH_THRESHOLD:
                 timeout = deadline - loop.time()
                 if timeout <= 0:
                     break
+                
                 try:
-                    dataset = await asyncio.wait_for(self.queue.get(), timeout=timeout)
-                    batch.append(dataset)
+                    item = await asyncio.wait_for(self.queue.get(), timeout=timeout)
+                    batch.append(item)
                 except asyncio.TimeoutError:
+                    break
+                except Exception as e:
+                    self.logger.error(f"Error collecting batch: {e}")
                     break
             
             if batch:
-                _batch = batch.copy()
-                batch = []            
-                asyncio.create_task(self._run_inference(_batch))
- 
+                asyncio.create_task(self._run_inference(batch))
 
-    async def _run_inference(self, batch):
-        '''배치 추론을 실행합니다'''
-        
-        try:
-            item = batch.pop(0)
-
-        except IndexError:
-            self.logger(f"[{self.channel_type.value}] No items in batch.")
+    async def _run_inference(self, batch: List[Image.Image]):
+        '''배치 단위 추론 실행'''
+        if not batch:
             return
 
-        img = item
-        loop = asyncio.get_event_loop()
-
-        async with self._model_lock:
-            result = await loop.run_in_executor(None, self.inference.forward, img)
-
-        await self.result_queue.put(result)
-        self.logger(f"[{self.channel_type.value}] Inference completed")
-
-        # await self._save_result(result)
-
-    async def _save_result(self, result):
-        '''결과를 MQTT로 전송합니다'''
-
-        async with self.mqtt as mqtt_broker:
-            await mqtt_broker.send_to_message_broker(result["pose_output"])
-            
-            
-class SideProcess(IProcess):
-    
-    _instance = None
-    def __new__(cls, *args, **kwargs):
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-        return cls._instance
-    
-    @classmethod
-    def get_instance(cls):
-        if cls._instance is None:
-            raise RuntimeError("ProcessGPU is not initialized yet")
-        return cls._instance
-    
-    def __init__(
-        self,
-        cfg,
-        model_loader : ModelLoaderInterface,
-        channel_type: ChannelType,
-        inference : IInference,
-        queue,
-        MQTT : SomniAIMQTT,
-        logger
-    ):
-        self.cfg_HTTP = cfg.HTTP
-
-        self.channel_type = channel_type
-        self.logger = logger
-
-        self.inference = inference
-        self.mqtt = MQTT
-        
-        self.BATCH_THRESHOLD = self.cfg_HTTP.BATCH_THRESHOLD
-        self.BATCH_TIMEOUT = self.cfg_HTTP.BATCH_TIMEOUT
-        
-        self.queue = asyncio.Queue()
-        
-        self.result_queue = asyncio.Queue()
-        
-        self._model_lock = asyncio.Lock()
-
-        if not torch.cuda.is_available():
-            raise ValueError(f"Process is only available with GPU")
-        self.device = "cuda"
- 
-    async def enqueue_request(self, dataset: Image.Image) -> None:
-        '''데이터를 큐에 넣습니다'''
-        
-        if not isinstance(dataset, Image.Image):
-            raise TypeError(f"Expected PIL.Image.Image, got {type(dataset)}")
-
-        await self.queue.put(dataset)
-
-    async def micro_scheduler(self) -> None:
-        
-        batch = []
         loop = asyncio.get_running_loop()
-
-        while True:
-            deadline = loop.time() + self.BATCH_TIMEOUT
-
-            while len(batch) < self.BATCH_THRESHOLD:
-                try:
-                    dataset = self.queue.get_nowait()
-                    batch.append(dataset)
-                except asyncio.QueueEmpty:
-                    break
-
-            while len(batch) < self.BATCH_THRESHOLD:
-                timeout = deadline - loop.time()
-                if timeout <= 0:
-                    break
-                try:
-                    dataset = await asyncio.wait_for(self.queue.get(), timeout=timeout)
-                    batch.append(dataset)
-                except asyncio.TimeoutError:
-                    break
-            
-            if batch:
-                _batch = batch.copy()
-                batch = []            
-                asyncio.create_task(self._run_inference(_batch))
- 
-
-    async def _run_inference(self, batch):
-        '''배치 추론을 실행합니다'''
+        
+        self.logger(f"[{self.channel_type.value}] Start inference with batch size: {len(batch)}")
+        batch = batch[0]
+        
         try:
-            item = batch.pop(0)
+            async with self._model_lock:
+                results = await loop.run_in_executor(None, self.inference.forward, batch)
+            
+            await self._handle_results(batch, results)
 
-        except IndexError:
-            self.logger(f"[{self.channel_type.value}] No items in batch.")
-            return
+        except Exception as e:
+            self.logger.error(f"[{self.channel_type.value}] Inference failed: {e}")
 
-        img = item
-        loop = asyncio.get_event_loop()
+    async def _handle_results(self, batch, results):
+        '''결과 저장 및 MQTT 전송 로직 분리'''
+        
+        await self.result_queue.put((batch, results))
+        
+        self.logger(f"[{self.channel_type.value}] Inference completed & Saved")
 
-        async with self._model_lock:
-            result = await loop.run_in_executor(None, self.inference.forward, img)
+        # try:
+        #     async with self.mqtt as mqtt_broker:
+        #         # 결과 포맷에 맞춰 전송
+        #         await mqtt_broker.send_to_message_broker(results)
+        # except Exception as e:
+        #     self.logger.error(f"MQTT Error: {e}")
 
-        await self.result_queue.put(result)
-        self.logger(f"[{self.channel_type.value}] Inference completed")
 
-        # await self._save_result(result)
+class AirProcess(BaseGPUProcess):
+    pass
 
-    async def _save_result(self, result):
-        '''결과를 MQTT로 전송합니다'''
-
-        async with self.mqtt as mqtt_broker:
-            await mqtt_broker.send_to_message_broker(result["pose_output"])
+class SideProcess(BaseGPUProcess):
+    pass
