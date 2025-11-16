@@ -1,24 +1,42 @@
+# FastAPI & Web
 fastapi
-ultralytics
 uvicorn
+hypercorn
+python-multipart
+
+# AI/ML
+ultralytics
 transformers
 accelerate
 timm
 torch
+mmpose
+
+# Utilities
 colorama
 soxr
 fastapi-mcp
 isort
-mmpose
-ultralytics
+rich
 
-# Authentication
+# Authentication & Security
 python-jose[cryptography]
 passlib[bcrypt]
-python-multipart
 
 # Database
 alembic
 sqlalchemy
+pymysql
 mysqlclient
 ulid-py
+
+# Configuration
+pydantic-settings
+
+# Dependency Injection
+dependency-injector
+
+# Testing (optional)
+pytest
+pytest-asyncio
+httpx
