@@ -32,10 +32,10 @@ class AppState:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    await bootstrap(app)
-    
+    await bootstrap()
+
     yield
-    
+
     await shutdown()
 
 app = FastAPI(lifespan=lifespan)

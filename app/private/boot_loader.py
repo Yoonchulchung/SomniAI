@@ -5,13 +5,14 @@ import socket
 from rich.console import Console
 from rich.panel import Panel
 
-from SomniAI.application.AI import GPUModelLoader, InferenceGPU
-from SomniAI.application.AI.registry import pose_register, vlm_register
-from SomniAI.application.config import save_yaml
-from SomniAI.application.logger import SomniAI_log
-from SomniAI.application.mqtt import SomniAIMQTT
-from SomniAI.application.process import Process
-from SomniAI.application.registry import get_cfg
+from inference.infrastructure.ai.loader import GPUModelLoader
+from inference.infrastructure.ai.inference import InferenceGPU
+from inference.infrastructure.ai.registry import pose_register, vlm_register
+from inference.application.config import save_yaml
+from inference.application.logger import SomniAI_log
+from inference.infrastructure.mqtt import SomniAIMQTT
+from inference.application.process import Process
+from inference.application.registry import get_cfg
 
 
 async def bootstrap() -> None:
