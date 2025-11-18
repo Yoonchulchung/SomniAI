@@ -20,6 +20,7 @@ from modules.inference.infrastructure.mqtt import SomniAIMQTT
 from modules.inference.application.process import AirProcess, SideProcess
 from modules.inference.application.registry import get_cfg
 from modules.inference.application.model_manager import setup_model_manager
+from modules.inference.application.kafka_consumer_service import start_kafka_consumer, stop_kafka_consumer
 
 settings = get_settings()
 logger = get_logger("bootstrap")
@@ -92,6 +93,14 @@ async def bootstrap() -> None:
     asyncio.create_task(side_process.micro_scheduler())
     asyncio.create_task(air_process.micro_scheduler())
 
+    # Kafka Consumer 시작
+    try:
+        await start_kafka_consumer()
+        logger.info("Kafka Consumer initialized successfully")
+    except Exception as e:
+        logger.warning(f"Failed to start Kafka Consumer: {e}")
+        logger.warning("Application will continue without Kafka support")
+
     logger.info("Bootstrap completed successfully")
 
 
@@ -100,6 +109,14 @@ async def shutdown() -> None:
     애플리케이션 종료 처리
     """
     logger.info("Shutting down application...")
+
+    # Kafka Consumer 종료
+    try:
+        await stop_kafka_consumer()
+        logger.info("Kafka Consumer stopped successfully")
+    except Exception as e:
+        logger.warning(f"Error stopping Kafka Consumer: {e}")
+
     # TODO: Add cleanup logic (모델 언로드, 연결 종료 등)
     logger.info("Shutdown completed. Goodbye!")
     

@@ -46,6 +46,12 @@ class Settings(BaseSettings):
     MQTT_PORT: int = 1883
     MQTT_TOPIC: str = "somniai/pillow/esp32"
 
+    # Kafka
+    KAFKA_BOOTSTRAP_SERVERS: str = "localhost:9093"
+    KAFKA_TOPIC_AIR: str = "somniai-air-images"
+    KAFKA_TOPIC_SIDE: str = "somniai-side-images"
+    KAFKA_CONSUMER_GROUP: str = "somniai-consumer-group"
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

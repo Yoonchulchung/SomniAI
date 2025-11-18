@@ -19,6 +19,9 @@ fastapi-mcp
 isort
 rich
 
+# Kafka
+aiokafka
+
 # Authentication & Security
 python-jose[cryptography]
 passlib[bcrypt]

@@ -68,7 +68,7 @@ app.add_middleware(
 )
 
 # Import routers
-from modules.inference.interface.api.v1 import health, ping, upload, model_control
+from modules.inference.interface.api.v1 import health, ping, upload, model_control, kafka_upload
 from modules.inference.interface.view.v1 import main, check_result
 from modules.auth.interface.api import router as auth_router
 from modules.api_log.interface.api import router as api_log_router
@@ -80,6 +80,7 @@ app.include_router(ping.router, prefix=settings.API_PREFIX, tags=["ping"])
 app.include_router(main.router, tags=["main"])
 app.include_router(check_result.router, prefix=settings.API_PREFIX, tags=["result"])
 app.include_router(upload.router, prefix=settings.API_PREFIX, tags=["upload"])
+app.include_router(kafka_upload.router, prefix=settings.API_PREFIX, tags=["kafka"])
 app.include_router(model_control.router, prefix=settings.API_PREFIX, tags=["model"])
 app.include_router(api_log_router, prefix=settings.API_PREFIX)
 
