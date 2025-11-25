@@ -54,7 +54,8 @@ class MQTTConfig:
 class FastAPIConfig:
     HOST: str = "localhost"
     PORT: int = 8000
-    API_PREFIX: str = "/fastapi"
+    API_PREFIX: str = "api/fastapi"
+    VIEW_PREFIX: str = "view/fastapi"
     WORKERS: int = 1
     RELOAD : bool = False
     LOG_LEVEL : str = "info"
@@ -161,6 +162,7 @@ def _parse_config(config_data : Union[Dict[str, Any], types.ModuleType, Config])
         HOST=_get(fastapi_raw, "HOST", FastAPIConfig.HOST),
         PORT=int(_get(fastapi_raw, "PORT", FastAPIConfig.PORT)),
         API_PREFIX=_get(fastapi_raw, "API_PREFIX", FastAPIConfig.API_PREFIX),
+        VIEW_PREFIX=_get(fastapi_raw, "VIEW_PREFIX", FastAPIConfig.VIEW_PREFIX),
         WORKERS=int(_get(fastapi_raw, "WORKERS", FastAPIConfig.WORKERS)),
         RELOAD=_get(fastapi_raw, "RELOAD", FastAPIConfig.RELOAD),
         LOG_LEVEL=_get(fastapi_raw, "LOG_LEVEL", FastAPIConfig.LOG_LEVEL),

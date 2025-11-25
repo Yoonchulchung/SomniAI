@@ -1,8 +1,28 @@
-type: develop
+APP_NAME: SomniAI
+APP_VERSION: 1.0.0
+DEBUG: false
+TYPE: develop
+DB_HOST: localhost
+DB_PORT: 3306
+DB_USER: root
+DB_PASSWORD: local-root-pass
+DB_NAME: somniai
+DB_ECHO: false
+JWT_SECRET_KEY: your-secret-key-change-in-production
+JWT_ALGORITHM: HS256
+JWT_ACCESS_TOKEN_EXPIRE_MINUTES: 30
+CORS_ORIGINS:
+- '*'
+CORS_ALLOW_CREDENTIALS: true
+CORS_ALLOW_METHODS:
+- '*'
+CORS_ALLOW_HEADERS:
+- '*'
 FASTAPI:
   HOST: 0.0.0.0
   PORT: 8000
   API_PREFIX: /api/v1
+  VIEW_PREFIX: /view/v1
   WORKERS: 1
   RELOAD: true
   LOG_LEVEL: info
@@ -11,7 +31,10 @@ HTTP:
   BATCH_TIMEOUT: 1.0
 AI:
   FREE_MEM_THRESHOLD: 2
-  NORM_MEAN: (0.485, 0.456, 0.406)
+  NORM_MEAN:
+  - 0.485
+  - 0.456
+  - 0.406
   NORM_STD:
   - 0.229
   - 0.224

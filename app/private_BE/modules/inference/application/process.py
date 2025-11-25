@@ -6,10 +6,10 @@ from typing import Any, List, Optional
 import torch
 from PIL import Image
 
+from infrastructure.middleware.mqtt import SomniAIMQTT
 from modules.inference.domain.channel import ChannelType
 from modules.inference.infrastructure.ai.inference import IInference
 from modules.inference.infrastructure.ai.loader import ModelLoaderInterface
-from infrastructure.middleware.mqtt import SomniAIMQTT
 
 
 class IProcess(ABC):
@@ -128,19 +128,22 @@ class BaseGPUProcess(IProcess):
                 results, infer_batch = await task
                 await _save_to_queue(self.logger, self.result_queue, infer_batch, results)
 
+                if self.channel_type.lower() == ChannelType.SIDE:
+                    await _send_to_mqtt(self.mqtt, "/somniai/neck/angle", self.logger, results)
+
 
 async def _save_to_queue(logger, queue, batch, results):
     await queue.put((batch, results))
     
 
-async def _send_to_mqtt(logger, result):
+async def _send_to_mqtt(mqtt, topic, logger, results):
 
-    # try:
-    #     async with self.mqtt as mqtt_broker:
-    #         # 결과 포맷에 맞춰 전송
-    #         await mqtt_broker.send_to_message_broker(results)
-    # except Exception as e:
-    #     self.logger.error(f"MQTT Error: {e}")
+    try:
+        async with mqtt as mqtt_broker:
+            await mqtt_broker.send_to_message_broker(topic, results["pose_analysis"])
+
+    except Exception as e:
+        logger.error(f"MQTT Error: {e}")
 
     ...
 

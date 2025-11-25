@@ -10,7 +10,8 @@ from rich.panel import Panel
 
 from core.config import get_settings
 from infrastructure.logging import get_logger
-from modules.inference.application.config import save_yaml
+from infrastructure.middleware.mqtt import SomniAIMQTT
+from core.config.settings import save_yaml
 from modules.inference.application.logger import SomniAI_log
 from modules.inference.application.model_manager import setup_model_manager
 from modules.inference.application.process import AirProcess, SideProcess
@@ -19,7 +20,6 @@ from modules.inference.domain.channel import ChannelType
 from modules.inference.infrastructure.ai.inference import AirInference, SideInference
 from modules.inference.infrastructure.ai.loader import GPUModelLoader
 from modules.inference.infrastructure.ai.registry import pose_register, vlm_register
-from infrastructure.middleware.mqtt import SomniAIMQTT
 
 settings = get_settings()
 logger = get_logger("bootstrap")
@@ -117,7 +117,7 @@ def _print_info(SomniAI_cfg, model_loader):
 
     console = Console()
 
-    port = getattr(SomniAI_cfg.FASTAPI, "PORT", settings.PORT)
+    port = getattr(SomniAI_cfg.FASTAPI, "PORT", settings.FASTAPI.PORT)
 
     lines = [
         f"Serving at: http://{ip}:{port}",
@@ -126,9 +126,9 @@ def _print_info(SomniAI_cfg, model_loader):
         f"Available Inference Models: {model_loader.get_model_list()}",
     ]
     console.print("\n")
-    console.print(Panel.fit(
-        "\n".join(lines),
-        title=f"FastAPI CLI - {SomniAI_cfg.type} mode",
-        border_style="cyan",
-    ))
+    # console.print(Panel.fit(
+    #     "\n".join(lines),
+    #     title=f"FastAPI CLI - {SomniAI_cfg.type} mode",
+    #     border_style="cyan",
+    # ))
     console.print("\n")

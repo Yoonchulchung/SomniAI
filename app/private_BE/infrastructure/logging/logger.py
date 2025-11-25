@@ -24,7 +24,7 @@ def get_logger(name: Optional[str] = None) -> logging.Logger:
 
     if not logger.handlers:
         # 로그 레벨 설정
-        log_level = getattr(logging, settings.LOG_LEVEL.upper(), logging.INFO)
+        log_level = getattr(logging, settings.FASTAPI.LOG_LEVEL.upper(), logging.INFO)
         logger.setLevel(log_level)
 
         # 콘솔 핸들러

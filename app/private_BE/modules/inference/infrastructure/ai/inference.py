@@ -1,10 +1,10 @@
+import asyncio
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import Dict
+from typing import Dict, List
 
 from PIL import Image
-from typing import List
-import asyncio
+
 
 class IInference(ABC):
     '''

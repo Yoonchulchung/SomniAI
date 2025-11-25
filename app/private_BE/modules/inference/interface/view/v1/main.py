@@ -11,7 +11,10 @@ SomniAI_cfg = get_cfg()
 @router.get("/", response_class=HTMLResponse)
 def main(request: Request) -> HTMLResponse:
     base_url = str(request.base_url).rstrip("/")
+    
+    # API Prefix와 View Prefix를 모두 가져옵니다.
     api_prefix = SomniAI_cfg.FASTAPI.API_PREFIX
+    view_prefix = SomniAI_cfg.FASTAPI.VIEW_PREFIX
 
     app = request.app 
     rows = []
@@ -21,7 +24,8 @@ def main(request: Request) -> HTMLResponse:
 
         path = route.path
 
-        if not path.startswith(api_prefix):
+        # 수정됨: API Prefix '또는' View Prefix로 시작하는 경로를 모두 포함시킵니다.
+        if not (path.startswith(api_prefix) or path.startswith(view_prefix)):
             continue
 
         methods = sorted(m for m in route.methods if m not in {"HEAD", "OPTIONS"})
@@ -162,14 +166,14 @@ def main(request: Request) -> HTMLResponse:
         <div class="container">
           <div class="card">
             <h1>SomniAI API Index</h1>
-            <p class="muted">아래는 <span class="prefix">{api_prefix}</span> 하위로 등록된 엔드포인트 목록입니다.</p>
+            <p class="muted">아래는 <span class="prefix">{api_prefix}</span> 및 <span class="prefix">{view_prefix}</span> 하위로 등록된 엔드포인트 목록입니다.</p>
             <div class="links">
               <a href="{base_url}/docs">Swagger UI (/docs)</a>
               <a href="{base_url}/redoc">ReDoc (/redoc)</a>
             </div>
             {render_table()}
             <div class="footer">
-              Base URL: {base_url} • Prefix: <span class="prefix">{api_prefix}</span>
+              Base URL: {base_url}
             </div>
           </div>
         </div>

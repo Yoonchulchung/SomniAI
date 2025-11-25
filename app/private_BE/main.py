@@ -1,6 +1,3 @@
-"""
-FastAPI Application Entry Point
-"""
 import argparse
 import asyncio
 from contextlib import asynccontextmanager
@@ -16,21 +13,17 @@ from boot_loader import bootstrap, shutdown
 from containers import Container
 
 # Core & Infrastructure
-from core.config import get_settings
 from infrastructure.logging import get_logger
-from modules.inference.application.config import load_config
+from core.config.settings import Settings
 
 # Argument parser
 parser = argparse.ArgumentParser(description="SomniAI FastAPI Server")
 parser.add_argument('config', type=str, help="FastAPI config path")
 args = parser.parse_args()
 
-# Load inference config
-SomniAI_cfg = load_config(args.config)
-registry.set_cfg(SomniAI_cfg)
-
 # Application settings
-settings = get_settings()
+SomniAI_cfg = settings = Settings.from_yaml(args.config)
+registry.set_cfg(SomniAI_cfg)
 logger = get_logger("somniai")
 
 
@@ -72,28 +65,33 @@ from modules.auth.interface.api import router as auth_router
 
 # Import routers
 from modules.inference.interface.api.v1 import health, model_control, ping, upload
-from modules.inference.interface.view.v1 import check_result, main
+from modules.inference.interface.view.v1 import main
+
+from modules.inference.interface.view.v1.air import result_air
+from modules.inference.interface.view.v1.side import result_side
 
 # Include routers
-app.include_router(auth_router, prefix=settings.API_PREFIX)
-app.include_router(health.router, prefix=settings.API_PREFIX, tags=["health"])
-app.include_router(ping.router, prefix=settings.API_PREFIX, tags=["ping"])
+app.include_router(auth_router, prefix=settings.FASTAPI.API_PREFIX)
+app.include_router(health.router, prefix=settings.FASTAPI.API_PREFIX, tags=["health"])
+app.include_router(ping.router, prefix=settings.FASTAPI.API_PREFIX, tags=["ping"])
+app.include_router(upload.router, prefix=settings.FASTAPI.API_PREFIX, tags=["upload"])
+app.include_router(model_control.router, prefix=settings.FASTAPI.API_PREFIX, tags=["model"])
+app.include_router(api_log_router, prefix=settings.FASTAPI.API_PREFIX)
+
 app.include_router(main.router, tags=["main"])
-app.include_router(check_result.router, prefix=settings.API_PREFIX, tags=["result"])
-app.include_router(upload.router, prefix=settings.API_PREFIX, tags=["upload"])
-app.include_router(model_control.router, prefix=settings.API_PREFIX, tags=["model"])
-app.include_router(api_log_router, prefix=settings.API_PREFIX)
+app.include_router(result_air.router, prefix=settings.FASTAPI.VIEW_PREFIX, tags=["air_view"])
+app.include_router(result_side.router, prefix=settings.FASTAPI.VIEW_PREFIX, tags=["side_view"])
 
 
 async def start():
     """Start the application server"""
     config = Config()
-    config.bind = [f"{settings.HOST}:{settings.PORT}"]
-    config.use_reloader = settings.RELOAD
-    config.workers = 1 if settings.RELOAD else settings.WORKERS
-    config.loglevel = settings.LOG_LEVEL.lower()
+    config.bind = [f"{settings.FASTAPI.HOST}:{settings.FASTAPI.PORT}"]
+    config.use_reloader = settings.FASTAPI.RELOAD
+    config.workers = 1 if settings.FASTAPI.RELOAD else settings.FASTAPI.WORKERS
+    config.loglevel = settings.FASTAPI.LOG_LEVEL.lower()
 
-    logger.info(f"Starting server on {settings.HOST}:{settings.PORT}")
+    logger.info(f"Starting server on {settings.FASTAPI.HOST}:{settings.FASTAPI.PORT}")
     await serve(app, config)
 
 

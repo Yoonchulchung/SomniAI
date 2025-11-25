@@ -5,6 +5,7 @@ FASTAPI:
   HOST : 0.0.0.0
   PORT : 8000
   API_PREFIX : /api/v1
+  VIEW_PREFIX: /view/v1
   WORKERS : 1
   RELOAD : True
   LOG_LEVEL : info
@@ -40,6 +41,6 @@ AI:
     IOU_THRES: 0.45
 
 MQTT:
-  ADRESS : localhost
+  ADRESS : 220.149.231.121
   PORT : 1883
   TOPIC : somniai/pillow/esp32
