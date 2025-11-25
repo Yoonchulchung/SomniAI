@@ -1,10 +1,12 @@
 from datetime import datetime
 from typing import Annotated
 
-from ulid import ULID
 from fastapi import HTTPException
+from ulid import ULID
+
 from modules.user.domain.repository.user_repo import IUserRepository
 from modules.user.domain.user import User
+
 
 class UserService:
     

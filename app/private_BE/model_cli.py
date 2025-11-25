@@ -5,12 +5,13 @@ Model CLI
 """
 import argparse
 import asyncio
-import httpx
 import sys
 from typing import Optional
+
+import httpx
 from rich.console import Console
-from rich.table import Table
 from rich.panel import Panel
+from rich.table import Table
 
 console = Console()
 

@@ -2,7 +2,7 @@
 API Log repository interface
 """
 from abc import ABC, abstractmethod
-from typing import Optional, List, Tuple
+from typing import List, Optional, Tuple
 
 from modules.api_log.domain.entities import APILogEntity
 

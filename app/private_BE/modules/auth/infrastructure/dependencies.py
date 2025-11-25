@@ -2,7 +2,7 @@
 Auth dependencies
 """
 from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from infrastructure.security import decode_access_token
 

@@ -2,13 +2,13 @@
 Custom exceptions
 """
 from core.exceptions.base import (
-    SomniAIException,
-    DatabaseException,
     AuthenticationException,
     AuthorizationException,
-    NotFoundException,
-    ValidationException,
+    DatabaseException,
     DuplicateException,
+    NotFoundException,
+    SomniAIException,
+    ValidationException,
 )
 
 __all__ = [

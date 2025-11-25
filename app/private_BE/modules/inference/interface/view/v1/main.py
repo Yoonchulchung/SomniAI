@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 from fastapi.routing import APIRoute
+
 from modules.inference.application.registry import get_cfg
 
 router = APIRouter()

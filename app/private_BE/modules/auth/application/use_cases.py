@@ -4,7 +4,11 @@ Auth use cases
 from typing import Optional
 
 from core.exceptions import AuthenticationException, DuplicateException
-from infrastructure.security import verify_password, get_password_hash, create_access_token
+from infrastructure.security import (
+    create_access_token,
+    get_password_hash,
+    verify_password,
+)
 from modules.auth.application.dto import (
     LoginRequest,
     LoginResponse,

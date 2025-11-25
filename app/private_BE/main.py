@@ -10,15 +10,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from hypercorn.asyncio import serve
 from hypercorn.config import Config
 
+# Modules
+import modules.inference.application.registry as registry
+from boot_loader import bootstrap, shutdown
+from containers import Container
+
 # Core & Infrastructure
 from core.config import get_settings
 from infrastructure.logging import get_logger
-
-# Modules
-import modules.inference.application.registry as registry
 from modules.inference.application.config import load_config
-from boot_loader import bootstrap, shutdown
-from containers import Container
 
 # Argument parser
 parser = argparse.ArgumentParser(description="SomniAI FastAPI Server")
@@ -67,11 +67,12 @@ app.add_middleware(
     allow_headers=settings.CORS_ALLOW_HEADERS,
 )
 
-# Import routers
-from modules.inference.interface.api.v1 import health, ping, upload, model_control
-from modules.inference.interface.view.v1 import main, check_result
-from modules.auth.interface.api import router as auth_router
 from modules.api_log.interface.api import router as api_log_router
+from modules.auth.interface.api import router as auth_router
+
+# Import routers
+from modules.inference.interface.api.v1 import health, model_control, ping, upload
+from modules.inference.interface.view.v1 import check_result, main
 
 # Include routers
 app.include_router(auth_router, prefix=settings.API_PREFIX)

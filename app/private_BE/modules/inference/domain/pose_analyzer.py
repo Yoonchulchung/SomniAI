@@ -4,8 +4,8 @@ Pose Analyzer Module
 """
 import math
 from typing import Dict, List, Optional, Tuple
-import numpy as np
 
+import numpy as np
 
 # COCO Keypoint 인덱스
 KEYPOINT_INDICES = {

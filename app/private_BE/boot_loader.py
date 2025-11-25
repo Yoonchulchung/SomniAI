@@ -10,16 +10,16 @@ from rich.panel import Panel
 
 from core.config import get_settings
 from infrastructure.logging import get_logger
-from modules.inference.infrastructure.ai.loader import GPUModelLoader
-from modules.inference.infrastructure.ai.inference import SideInference, AirInference
-from modules.inference.infrastructure.ai.registry import pose_register, vlm_register
 from modules.inference.application.config import save_yaml
-from modules.inference.domain.channel import ChannelType
 from modules.inference.application.logger import SomniAI_log
-from modules.inference.infrastructure.mqtt import SomniAIMQTT
+from modules.inference.application.model_manager import setup_model_manager
 from modules.inference.application.process import AirProcess, SideProcess
 from modules.inference.application.registry import get_cfg
-from modules.inference.application.model_manager import setup_model_manager
+from modules.inference.domain.channel import ChannelType
+from modules.inference.infrastructure.ai.inference import AirInference, SideInference
+from modules.inference.infrastructure.ai.loader import GPUModelLoader
+from modules.inference.infrastructure.ai.registry import pose_register, vlm_register
+from infrastructure.middleware.mqtt import SomniAIMQTT
 
 settings = get_settings()
 logger = get_logger("bootstrap")

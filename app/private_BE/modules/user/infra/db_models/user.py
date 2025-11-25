@@ -1,8 +1,9 @@
 from datetime import datetime
 
-from infrastructure.database.base import Base
 from sqlalchemy import Boolean, DateTime, String
 from sqlalchemy.orm import Mapped, mapped_column
+
+from infrastructure.database.base import Base
 
 
 class User(Base):

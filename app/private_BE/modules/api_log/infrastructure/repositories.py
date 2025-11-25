@@ -1,9 +1,10 @@
 """
 API Log repository implementation
 """
-from typing import Optional, List, Tuple
-from sqlalchemy.orm import Session
+from typing import List, Optional, Tuple
+
 from sqlalchemy import desc, func
+from sqlalchemy.orm import Session
 
 from modules.api_log.domain.entities import APILogEntity
 from modules.api_log.domain.repositories import APILogRepository

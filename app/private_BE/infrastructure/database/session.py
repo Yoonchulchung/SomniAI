@@ -2,8 +2,9 @@
 Database session management
 """
 from typing import Generator
+
 from sqlalchemy import create_engine, event
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import Pool
 
 from core.config import get_settings

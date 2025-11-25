@@ -3,6 +3,7 @@ JWT token management
 """
 from datetime import datetime, timedelta
 from typing import Optional
+
 from jose import JWTError, jwt
 
 from core.config import get_settings

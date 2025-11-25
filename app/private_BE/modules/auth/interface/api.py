@@ -1,10 +1,10 @@
 """
 Auth API Router
 """
+from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, HTTPException, status
-from dependency_injector.wiring import inject, Provide
 
-from modules.auth.application.use_cases import AuthUseCase
+from containers import Container
 from modules.auth.application.dto import (
     LoginRequest,
     LoginResponse,
@@ -12,8 +12,8 @@ from modules.auth.application.dto import (
     RegisterResponse,
     UserInfoResponse,
 )
+from modules.auth.application.use_cases import AuthUseCase
 from modules.auth.infrastructure.dependencies import get_current_user
-from containers import Container
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 

@@ -4,8 +4,9 @@ import re
 import torch
 import torch.nn as nn
 from PIL import Image
-from modules.inference.infrastructure.ai.registry import vlm_register
 from transformers import GenerationConfig
+
+from modules.inference.infrastructure.ai.registry import vlm_register
 
 
 class VLMAdapter(nn.Module):
@@ -212,8 +213,7 @@ class Qwen2VLAdapter(VLMAdapter):
     def _build(self):
         from transformers import AutoProcessor
         try:
-            from transformers import \
-                Qwen2VLForConditionalGeneration as QwenVLForCG
+            from transformers import Qwen2VLForConditionalGeneration as QwenVLForCG
         except Exception:
             from transformers import AutoModelForCausalLM as QwenVLForCG
 

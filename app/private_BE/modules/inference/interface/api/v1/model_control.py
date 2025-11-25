@@ -2,9 +2,10 @@
 Model Control API
 런타임에 모델을 동적으로 변경하고 관리하는 API
 """
+from typing import Any, Dict, Optional
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import Optional, Dict, Any
 
 from modules.inference.application.model_manager import get_model_manager
 

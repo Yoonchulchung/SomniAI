@@ -5,11 +5,11 @@ from dependency_injector import containers, providers
 
 from core.config import get_settings
 from infrastructure.database import SessionLocal
-from modules.user.infra.repository.user_repo import UserRepository
-from modules.user.app.user_service import UserService
-from modules.auth.application.use_cases import AuthUseCase
-from modules.api_log.infrastructure.repositories import SQLAlchemyAPILogRepository
 from modules.api_log.application.use_cases import APILogUseCase
+from modules.api_log.infrastructure.repositories import SQLAlchemyAPILogRepository
+from modules.auth.application.use_cases import AuthUseCase
+from modules.user.app.user_service import UserService
+from modules.user.infra.repository.user_repo import UserRepository
 
 
 class Container(containers.DeclarativeContainer):

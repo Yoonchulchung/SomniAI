@@ -2,12 +2,13 @@
 API Log API Router
 """
 from typing import Optional
-from fastapi import APIRouter, Depends, Query
-from dependency_injector.wiring import inject, Provide
 
-from modules.api_log.application.use_cases import APILogUseCase
-from modules.api_log.application.dto import APILogListResponse, StatsResponse
+from dependency_injector.wiring import Provide, inject
+from fastapi import APIRouter, Depends, Query
+
 from containers import Container
+from modules.api_log.application.dto import APILogListResponse, StatsResponse
+from modules.api_log.application.use_cases import APILogUseCase
 
 router = APIRouter(prefix="/api-logs", tags=["logs"])
 

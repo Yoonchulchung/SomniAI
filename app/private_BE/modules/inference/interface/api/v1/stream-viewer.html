@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MoJi Stream Viewer</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #1a1a1a;
+            color: white;
+            font-family: monospace;
+        }
+        #container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        #status {
+            padding: 10px;
+            background: #2a2a2a;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .connected { color: #4CAF50; }
+        .disconnected { color: #F44336; }
+        #imageDisplay {
+            width: 100%;
+            max-width: 640px;
+            border: 2px solid #444;
+            border-radius: 8px;
+            background: #000;
+        }
+        #stats {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <h1>🎥 MoJi Live Stream</h1>
+        <div id="status">
+            Status: <span id="connectionStatus" class="disconnected">Disconnected</span><br>
+            FPS: <span id="fps">0</span> | 
+            Received: <span id="frameCount">0</span> frames
+        </div>
+        
+        <img id="imageDisplay" alt="Waiting for stream..." />
+        
+        <div id="stats"></div>
+    </div>
+
+    <script>
+        // 여기 서버 주소 수정하세요
+        const serverUrl = 'ws://10.243.102.25:8000/api/v1/stream';
+        
+        let ws;
+        let frameCount = 0;
+        let fpsCounter = 0;
+        let fpsInterval;
+
+        const statusEl = document.getElementById('connectionStatus');
+        const fpsEl = document.getElementById('fps');
+        const frameCountEl = document.getElementById('frameCount');
+        const imageEl = document.getElementById('imageDisplay');
+        const statsEl = document.getElementById('stats');
+
+        function connect() {
+            console.log('Connecting to:', serverUrl);
+            ws = new WebSocket(serverUrl);
+
+            ws.onopen = () => {
+                console.log('Connected!');
+                statusEl.textContent = 'Connected';
+                statusEl.className = 'connected';
+                
+                // Keep-alive ping
+                setInterval(() => {
+                    if (ws.readyState === WebSocket.OPEN) {
+                        ws.send('ping');
+                    }
+                }, 5000);
+
+                // FPS 계산
+                fpsInterval = setInterval(() => {
+                    fpsEl.textContent = fpsCounter.toFixed(1);
+                    fpsCounter = 0;
+                }, 1000);
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                
+                if (data.type === 'image') {
+                    frameCount++;
+                    fpsCounter++;
+                    frameCountEl.textContent = frameCount;
+                    
+                    // Base64 이미지 표시
+                    imageEl.src = 'data:image/jpeg;base64,' + data.data;
+                    
+                    // 통계 업데이트
+                    const now = Date.now();
+                    const latency = now - (data.timestamp * 1000);
+                    statsEl.textContent = `Last frame latency: ${latency.toFixed(0)}ms | Image size: ${(data.data.length * 0.75 / 1024).toFixed(1)} KB`;
+                }
+            };
+
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+            };
+
+            ws.onclose = () => {
+                console.log('Disconnected');
+                statusEl.textContent = 'Disconnected';
+                statusEl.className = 'disconnected';
+                clearInterval(fpsInterval);
+                
+                // 재연결 시도
+                setTimeout(connect, 3000);
+            };
+        }
+
+        connect();
+    </script>
+</body>
+</html>

@@ -1,8 +1,10 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Dict
-from PIL import Image
 
+from PIL import Image
+from typing import List
+import asyncio
 
 class IInference(ABC):
     '''
@@ -18,6 +20,26 @@ class IInference(ABC):
         self.model_loader = model_loader
         self.cfg = cfg
         self.pose_model = self.model_loader.get_pose()
+
+        self._model_lock = asyncio.Lock()
+
+    async def _run_inference(self, batch: List[Image.Image]):
+        
+        if not batch:
+            return
+
+        loop = asyncio.get_running_loop()
+        
+        batch = batch[0]
+        
+        try:
+            async with self._model_lock:
+                results = await loop.run_in_executor(None, self.forward, batch)
+                return results, batch
+                        
+        except Exception as e:
+            print(f"Inference failed: {e}")
+
 
     def _pose_infer(self, img: Image.Image) -> tuple:
         '''

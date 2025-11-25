@@ -3,10 +3,19 @@ Model Manager
 런타임에 모델을 동적으로 변경할 수 있는 매니저
 """
 import asyncio
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
+
+from modules.inference.application.process import (
+    AirProcess,
+    BaseGPUProcess,
+    SideProcess,
+)
+from modules.inference.infrastructure.ai.inference import (
+    AirInference,
+    IInference,
+    SideInference,
+)
 from modules.inference.infrastructure.ai.loader import GPUModelLoader
-from modules.inference.infrastructure.ai.inference import SideInference, AirInference, IInference
-from modules.inference.application.process import SideProcess, AirProcess, BaseGPUProcess
 
 
 class ModelManager:

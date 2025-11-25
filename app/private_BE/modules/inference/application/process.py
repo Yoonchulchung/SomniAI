@@ -1,7 +1,7 @@
 import asyncio
 import time
 from abc import ABC, abstractmethod
-from typing import List, Optional, Any
+from typing import Any, List, Optional
 
 import torch
 from PIL import Image
@@ -9,7 +9,8 @@ from PIL import Image
 from modules.inference.domain.channel import ChannelType
 from modules.inference.infrastructure.ai.inference import IInference
 from modules.inference.infrastructure.ai.loader import ModelLoaderInterface
-from modules.inference.infrastructure.mqtt import SomniAIMQTT
+from infrastructure.middleware.mqtt import SomniAIMQTT
+
 
 class IProcess(ABC):
     '''
@@ -123,40 +124,25 @@ class BaseGPUProcess(IProcess):
                     break
             
             if batch:
-                asyncio.create_task(self._run_inference(batch))
+                task = asyncio.create_task(self.inference._run_inference(batch))
+                results, infer_batch = await task
+                await _save_to_queue(self.logger, self.result_queue, infer_batch, results)
 
-    async def _run_inference(self, batch: List[Image.Image]):
-        '''배치 단위 추론 실행'''
-        if not batch:
-            return
 
-        loop = asyncio.get_running_loop()
-        
-        self.logger(f"[{self.channel_type.value}] Start inference with batch size: {len(batch)}")
-        batch = batch[0]
-        
-        try:
-            async with self._model_lock:
-                results = await loop.run_in_executor(None, self.inference.forward, batch)
-            
-            await self._handle_results(batch, results)
+async def _save_to_queue(logger, queue, batch, results):
+    await queue.put((batch, results))
+    
 
-        except Exception as e:
-            self.logger.error(f"[{self.channel_type.value}] Inference failed: {e}")
+async def _send_to_mqtt(logger, result):
 
-    async def _handle_results(self, batch, results):
-        '''결과 저장 및 MQTT 전송 로직 분리'''
-        
-        await self.result_queue.put((batch, results))
-        
-        self.logger(f"[{self.channel_type.value}] Inference completed & Saved")
+    # try:
+    #     async with self.mqtt as mqtt_broker:
+    #         # 결과 포맷에 맞춰 전송
+    #         await mqtt_broker.send_to_message_broker(results)
+    # except Exception as e:
+    #     self.logger.error(f"MQTT Error: {e}")
 
-        # try:
-        #     async with self.mqtt as mqtt_broker:
-        #         # 결과 포맷에 맞춰 전송
-        #         await mqtt_broker.send_to_message_broker(results)
-        # except Exception as e:
-        #     self.logger.error(f"MQTT Error: {e}")
+    ...
 
 
 class AirProcess(BaseGPUProcess):
