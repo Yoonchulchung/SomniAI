@@ -8,6 +8,8 @@ from PIL import Image
 from infrastructure.middleware.mqtt import SomniAIMQTT
 from modules.inference.domain.channel import ChannelType
 from modules.inference.infrastructure.ai.inference import IInference
+from modules.inference.application.request import request_to_server
+from modules.inference.infrastructure.ai.dataset import Dataset
 
 
 class IProcess(ABC):
@@ -51,6 +53,8 @@ class BaseGPUProcess(IProcess):
     ):
         if hasattr(self, "initialized") and self.initialized:
             return
+        
+        self.cfg = cfg
 
         self.cfg_HTTP = cfg.HTTP
         self.channel_type = channel_type
@@ -71,6 +75,8 @@ class BaseGPUProcess(IProcess):
         self.device = "cuda"
         
         self.initialized = True
+
+        self.dataset = Dataset(cfg.AI)
 
     async def enqueue_request(self, image: Image.Image) -> None:
 
@@ -122,13 +128,17 @@ class BaseGPUProcess(IProcess):
                     break
             
             if batch:
+                print("Running")
                 task = asyncio.create_task(self.inference._run_inference(batch))
                 results, infer_batch = await task
                 await _save_to_queue(self.logger, self.result_queue, infer_batch, results)
 
-                if self.channel_type.lower() == ChannelType.SIDE:
-                    await _send_to_mqtt(self.mqtt, "/somniai/neck/angle", self.logger, results)
-
+                # if self.channel_type == ChannelType.SIDE:
+                #     await _send_to_mqtt(self.mqtt, "/somniai/neck/angle", self.logger, results)
+                
+                url = "http://220.149.231.121:4000/api/inference/upload"
+                await request_to_server(self.dataset, self.cfg, url, infer_batch, results)
+                
 
 async def _save_to_queue(logger, queue, batch, results):
     await queue.put((batch, results))
@@ -142,8 +152,6 @@ async def _send_to_mqtt(mqtt, topic, logger, results):
 
     except Exception as e:
         logger.error(f"MQTT Error: {e}")
-
-    ...
 
 
 class AirProcess(BaseGPUProcess):

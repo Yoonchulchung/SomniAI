@@ -4,33 +4,38 @@ DEBUG: false
 TYPE: develop
 DB_HOST: localhost
 DB_PORT: 3306
-DB_USER: root
-DB_PASSWORD: local-root-pass
+DB_USER: somniai_prod
+DB_PASSWORD: complex_password_here
 DB_NAME: somniai
 DB_ECHO: false
-JWT_SECRET_KEY: your-secret-key-change-in-production
+JWT_SECRET_KEY: change-this-to-a-very-long-random-string-in-production
 JWT_ALGORITHM: HS256
-JWT_ACCESS_TOKEN_EXPIRE_MINUTES: 30
+JWT_ACCESS_TOKEN_EXPIRE_MINUTES: 60
 CORS_ORIGINS:
-- '*'
+- https://your-domain.com
 CORS_ALLOW_CREDENTIALS: true
 CORS_ALLOW_METHODS:
-- '*'
+- GET
+- POST
+- PUT
+- DELETE
+- OPTIONS
 CORS_ALLOW_HEADERS:
-- '*'
+- Authorization
+- Content-Type
 FASTAPI:
-  HOST: localhost
+  HOST: 0.0.0.0
   PORT: 8000
   API_PREFIX: /api/v1
   VIEW_PREFIX: /view/v1
-  WORKERS: 1
-  RELOAD: true
-  LOG_LEVEL: info
+  WORKERS: 4
+  RELOAD: false
+  LOG_LEVEL: warning
 HTTP:
   BATCH_THRESHOLD: 1
-  BATCH_TIMEOUT: 1.0
+  BATCH_TIMEOUT: 0.5
 AI:
-  FREE_MEM_THRESHOLD: 2
+  FREE_MEM_THRESHOLD: 4
   NORM_MEAN:
   - 0.485
   - 0.456
@@ -59,12 +64,12 @@ AI:
     MODEL_NAME: MMPose
     MODEL_ID: https://download.openmmlab.com/mmpose/top_down/hrnet/hrnet_w48_coco_wholebody_384x288_dark-f5726563_20200918.pth
     MODEL_CFG_PATH: ./vision_models/mmpose/hrnet/td-hm_hrnet-w48_dark-8xb32-210e_coco-wholebody-384x288.py
-    DEVICE: cuda:1
+    DEVICE: cuda:0
     DTYPE: torch.float16
     CHECKPOINT: ./
     CONF_THRES: 0.25
     IOU_THRES: 0.45
 MQTT:
-  ADDRESS: localhost
+  ADDRESS: 220.149.231.121
   PORT: 1883
   TOPIC: somniai/pillow/esp32
