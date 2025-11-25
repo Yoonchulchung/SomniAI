@@ -1,7 +1,6 @@
 import asyncio
-import time
 from abc import ABC, abstractmethod
-from typing import Any, List, Optional
+from typing import Any, List
 
 import torch
 from PIL import Image
@@ -9,7 +8,6 @@ from PIL import Image
 from infrastructure.middleware.mqtt import SomniAIMQTT
 from modules.inference.domain.channel import ChannelType
 from modules.inference.infrastructure.ai.inference import IInference
-from modules.inference.infrastructure.ai.loader import ModelLoaderInterface
 
 
 class IProcess(ABC):
@@ -91,9 +89,9 @@ class BaseGPUProcess(IProcess):
 
     async def micro_scheduler(self) -> None:
         '''
-        효율적인 배치 처리를 위한 스케줄러
-        데이터가 하나라도 들어오면 타이머를 시작하여 BATCH_TIMEOUT 동안 
-        BATCH_THRESHOLD 만큼 데이터를 모읍니다.
+            효율적인 배치 처리를 위한 스케줄러
+            데이터가 하나라도 들어오면 타이머를 시작하여 BATCH_TIMEOUT 동안 
+            BATCH_THRESHOLD 만큼 데이터를 모읍니다.
         '''
         loop = asyncio.get_running_loop()
         

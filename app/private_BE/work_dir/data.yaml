@@ -19,7 +19,7 @@ CORS_ALLOW_METHODS:
 CORS_ALLOW_HEADERS:
 - '*'
 FASTAPI:
-  HOST: 0.0.0.0
+  HOST: localhost
   PORT: 8000
   API_PREFIX: /api/v1
   VIEW_PREFIX: /view/v1

@@ -1,8 +1,30 @@
-
 type: develop
 
+APP_NAME: SomniAI
+APP_VERSION: 1.0.0
+DEBUG: False
+
+DB_HOST: localhost
+DB_PORT: 3306
+DB_USER: root
+DB_PASSWORD: local-root-pass
+DB_NAME: somniai
+DB_ECHO: False
+
+JWT_SECRET_KEY: your-secret-key-change-in-production
+JWT_ALGORITHM: HS256
+JWT_ACCESS_TOKEN_EXPIRE_MINUTES: 30
+
+CORS_ORIGINS:
+  - "*"
+CORS_ALLOW_CREDENTIALS: True
+CORS_ALLOW_METHODS:
+  - "*"
+CORS_ALLOW_HEADERS:
+  - "*"
+
 FASTAPI:
-  HOST : 0.0.0.0
+  HOST : localhost
   PORT : 8000
   API_PREFIX : /api/v1
   VIEW_PREFIX: /view/v1
@@ -17,7 +39,7 @@ HTTP:
 AI:
   FREE_MEM_THRESHOLD : 2 # GB
   NORM_MEAN : (0.485, 0.456, 0.406)
-  NROM_STD : (0.229, 0.224, 0.225)
+  NORM_STD : (0.229, 0.224, 0.225)
   VLM:
     MODEL_NAME : Qwen2VL
     DEVICE : cuda:0
@@ -25,7 +47,7 @@ AI:
     DTYPE : float16
     TASK_TYPE : CAPTION
     MAX_TOKENS : 32
-    QUESTION: >-
+    QUESTION: >-  
       Is the person lying on the bed? If yes, are they lying face down (prone position) or not? If prone, are they
       positioned to the left side of the pillow, the right side, or the center?
     PROMPT: |-
@@ -41,6 +63,6 @@ AI:
     IOU_THRES: 0.45
 
 MQTT:
-  ADRESS : 220.149.231.121
+  ADDRESS : 220.149.231.121
   PORT : 1883
   TOPIC : somniai/pillow/esp32
