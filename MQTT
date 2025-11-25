@@ -1,0 +1,785 @@
+// === ESP32 SomniAI v3.3 (HR 기반 자동 높이 제어 + MQTT, 속도 실측 + 펌프 안전 제한) ===
+// - /health HTTP 서버 유지
+// - HR baseline & 자동 높이 제어 로직은 HTTP 버전과 동일 구조
+// - 펌프 속도 실측값(0.5cm/s = 5mm/s)과 펌프 연속 동작 안전 제한(credit 10) 반영
+//   · pump_budget: 최대 10 (펌프 1초당 1 소모, 밸브 1초당 7/3 회복)
+// - 추가: MQTT로 somniai/neck/angle 에서 "목 각도(정수)"를 받고,
+//   ESP32에서 pillow_angle = 50 - 0.3 * neck_angle 계산 후
+//   · 기준각(BASE_ANGLE_DEG=34도)보다 크면 각도 차이만큼 펌프로 초기 높이 보정
+//   · 1.6도/초, 5mm/s 기준으로 펌프 시간/높이 계산
+//   · 이때 사용한 펌프 시간도 pump_budget 에서 차감 (motor_id=0 제어 상한에 포함)
+// - motor_id는 somniai/pillow/motor 토픽에서 정수로 수신
+
+#include <WiFi.h>
+#include <WebServer.h>
+#include <PubSubClient.h>
+#include <ArduinoJson.h>
+#include <Wire.h>
+#include "MAX30105.h"
+#include "heartRate.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/event_groups.h"
+#include "freertos/queue.h"
+#include <stdarg.h>
+#include <math.h>
+
+/* ---------- 설정 ---------- */
+const char* WIFI_SSID = "Qasdg";
+const char* WIFI_PASS = "24681012";
+
+/* ---------- MQTT 브로커 ---------- */
+const char* MQTT_HOST = "220.149.231.121";
+const int   MQTT_PORT = 1883;
+
+/* ---------- MQTT 토픽 ---------- */
+// 목 각도(옆에서 본 각도, 정수): somniai/neck/angle
+// 모터/자동모드: somniai/pillow/motor  (정수, 0이면 auto_mode 시작)
+const char* TOPIC_NECK_ANGLE = "somniai/neck/angle";
+const char* TOPIC_MOTOR      = "somniai/pillow/motor";
+const char* TOPIC_POSE       = "somniai/pose";         // pose 로그용
+const char* TOPIC_STATUS     = "somniai/esp32/status"; // ESP32 온라인 알림
+
+WiFiClient   wifiClient;
+PubSubClient mqtt(wifiClient);
+
+/* 핀 매핑 (HTTP 버전과 동일) */
+/*
+ * 실제로는 펌프 1개 + 밸브 1개만 사용:
+ *  - 펌프 DIR = GPIO27
+ *  - 펌프 EN  = GPIO14
+ *  - 밸브 IN1 = GPIO32
+ *
+ * 0번 인덱스만 실제 하드웨어에 연결됨.
+ * 나머지(1~3번)는 코드 구조 유지용으로만 사용.
+ */
+const int PIN_PUMP_DIR[4] = {
+  27,  // 0번 펌프 DIR  -> 실제 사용
+  4,   // 1번(미사용)
+  16,  // 2번(미사용)
+  17   // 3번(미사용)
+};
+
+const int PIN_PUMP_EN[4] = {
+  14,  // 0번 펌프 EN(PWM) -> 실제 사용
+  5,   // 1번(미사용)
+  18,  // 2번(미사용)
+  19   // 3번(미사용)
+};
+
+const int PIN_VALVE[4] = {
+  32,  // 0번 밸브 -> 실제 사용 (릴레이 IN1)
+  23,  // 1번(미사용)
+  33,  // 2번(미사용)
+  21   // 3번(미사용)
+};
+
+/* 릴레이 논리: LOW=ON (액티브 Low 릴레이) */
+const bool RELAY_ACTIVE_LOW = true;
+
+/* 타이밍/제어 파라미터 (HTTP 버전 + 실측 속도 반영) */
+const uint16_t DEAD_MS     = 30;        // 펌프↔밸브 전환 데드타임
+const int      PWM_FREQ    = 2000;
+const int      PWM_RES     = 8;
+const uint8_t  DUTY_MAX    = 255;
+
+/* ---------- 전역/RTOS ---------- */
+WebServer server(80);
+#define WIFI_CONNECTED_BIT (1 << 0)
+#define QUEUE_LEN 64
+
+static StaticEventGroup_t s_events_buf;
+static EventGroupHandle_t g_events = nullptr;
+
+static StaticQueue_t  s_mq_struct;
+static uint8_t        s_mq_storage[QUEUE_LEN * sizeof(int)];
+static QueueHandle_t  g_motor_queue = nullptr;
+
+bool  auto_mode       = false;   // motor_id==0 수신 시 true
+bool  kPlotterMode    = false;   // false → 로그 ON, PlotTask 조용 / true → 플로터 숫자만
+volatile float bpm    = 0.0f;    // 즉시 BPM
+volatile float beatAvg= 0.0f;    // 평균 BPM
+
+int pump_idx = 0, valve_idx = 0;   // 논리 인덱스 (실제 제어는 0번만 사용)
+uint32_t last_pulse_ms = 0;        // 현재 사용 X
+
+/* ---------- 자동 제어용 상태 (HTTP 버전과 동일 구조) ---------- */
+
+// 높이 가정 범위 (mm): 대략 7~11 cm
+const float H_MIN_MM = 70.0f;
+const float H_MAX_MM = 110.0f;
+
+// ★ 실측 반영: 펌프 0.5cm/s = 5mm/s
+const float INFLATE_RATE_MM_S = 5.0f;   // 공기 주입(펌프) 시 1초당 5mm 상승 (실측)
+const float DEFLATE_RATE_MM_S = 2.0f;   // 공기 배출(밸브) 시 1초당 2mm 하강 (임의, 나중에 실측 가능)
+
+// 1분(60초) 기준
+const uint32_t HR_WINDOW_MS   = 60000;  // HR_curr 계산용 윈도우
+const uint32_t BASELINE_MS    = 60000;  // baseline 기준 1분
+
+// 자동 제어 상태머신
+enum AutoState {
+  AUTO_IDLE = 0,      // auto_mode=false 이거나 아직 준비 안 됨
+  AUTO_BASELINE,      // 1분 baseline(HR_ref) 측정 중
+  AUTO_CONTROL        // HR_ref 기준으로 높이 제어 중
+};
+
+static AutoState auto_state = AUTO_IDLE;
+
+// baseline 및 HR 윈도우 버퍼
+const int HR_BUF_SIZE = 60;   // 1초 단위 60개 샘플
+static float baselineBuf[HR_BUF_SIZE];
+static int   baselineCount = 0;
+
+static float currHrBuf[HR_BUF_SIZE];
+static int   currHrCount = 0;
+
+// baseline/제어용 타임스탬프
+static uint32_t baselineStartMs = 0;
+static uint32_t hrWindowStartMs = 0;
+
+// HR baseline & 제어 변수
+static float HR_ref   = 0.0f;   // baseline 중앙값
+static float HR_prev  = 0.0f;   // 지난 1분 평균
+static float e_prev   = 0.0f;   // 지난 오차 (HR_prev - HR_ref)
+
+// 높이 추정 및 방향
+static float H_est_mm = 90.0f;  // 현재 추정 베개 높이 (임의 시작값)
+static int   dir      = -1;     // -1: 낮추기(밸브), +1: 올리기(펌프)
+
+// 첫 스텝인지 여부 (첫 스텝은 무조건 2mm 내려가기)
+static bool first_step_done = false;
+
+// 액션 종류 기록
+enum LastAction { ACT_NONE = 0, ACT_INFLATE, ACT_DEFLATE };
+static LastAction last_action = ACT_NONE;
+
+/* ---------- ★ 펌프 안전 credit ---------- */
+// - 초깃값 10
+// - 펌프 1초 동작 → credit 1 소모
+// - 밸브 1초 동작 → credit 7/3 회복 (3초 ≒ +7), 최대 10
+const  float PUMP_BUDGET_MAX       = 10.0f;
+const  float PUMP_CONSUME_PER_SEC  = 1.0f;
+const  float VALVE_RECOVER_PER_SEC = (7.0f / 3.0f);
+static float pump_budget           = PUMP_BUDGET_MAX;
+
+/* ---------- ★ 초기 각도 제어 관련 ---------- */
+// 기준 각도: 사람이 누웠을 때 "기본" 베개 각도
+const float BASE_ANGLE_DEG         = 34.0f;
+// 펌프 각도 상승 속도: 1.6도/초
+const float ANGLE_RATE_DEG_PER_SEC = 1.6f;
+// 목 각도 → 목표 목+베개 각도 변환식: 50 - 0.3 * neck_angle
+const float NECK_TO_PILLOW_A       = 50.0f;
+const float NECK_TO_PILLOW_B       = 0.3f;
+
+// MQTT 콜백에서 세팅 → ControlTask가 실제 펌프 동작
+volatile bool  angle_command_pending = false;
+volatile float angle_command_deg     = BASE_ANGLE_DEG;
+
+/* ---------- 로깅(플로터 모드면 묵음) ---------- */
+static inline void logf(const char* fmt, ...) {
+  if (kPlotterMode) return;
+  char buf[256]; va_list ap; va_start(ap, fmt);
+  vsnprintf(buf, sizeof(buf), fmt, ap); va_end(ap);
+  Serial.println(buf);
+}
+
+/* ---------- 유틸 (HTTP 버전과 동일) ---------- */
+// 릴레이: 액티브 LOW
+inline void valveWrite(int idx, bool on) {
+  digitalWrite(PIN_VALVE[idx], RELAY_ACTIVE_LOW ? !on : on);
+}
+inline void valveAllOff() {
+  for (int i = 0; i < 4; ++i) valveWrite(i, false);
+}
+
+inline void pumpDir(int idx, bool forward) {
+  digitalWrite(PIN_PUMP_DIR[idx], forward ? HIGH : LOW);
+}
+inline void pumpWrite(int idx, uint8_t duty) {
+  ledcWrite(PIN_PUMP_EN[idx], duty);
+}
+
+inline void pumpsAllOff() {
+  for (int i = 0; i < 4; ++i) {
+    pumpWrite(i, 0);
+    digitalWrite(PIN_PUMP_DIR[i], LOW);
+  }
+}
+inline void allStop() {
+  pumpsAllOff();
+  valveAllOff();
+}
+
+// === on/off 패턴 ===
+inline void pumpOn(int idx, uint8_t duty = DUTY_MAX) {
+  valveAllOff();
+  delay(DEAD_MS);           // 밸브 전부 닫고 데드타임
+  pumpDir(idx, true);       // 주입 방향
+  pumpWrite(idx, duty);
+}
+inline void pumpOff(int idx) {
+  pumpWrite(idx, 0);
+  digitalWrite(PIN_PUMP_DIR[idx], LOW);
+}
+
+inline void valveOnIdx(int idx) {
+  pumpsAllOff();
+  delay(DEAD_MS);           // 모든 펌프 정지 후 밸브 오픈
+  valveWrite(idx, true);    // 액티브 LOW → LOW 출력
+}
+inline void valveOffIdx(int idx) {
+  valveWrite(idx, false);
+}
+
+/* ---------- 시간 기반 펌프/밸브 동작 ---------- */
+static void run_inflate_pump_time(int i, float seconds, uint8_t duty = DUTY_MAX) {
+  if (seconds <= 0.0f) return;
+  uint32_t ms = (uint32_t)(seconds * 1000.0f);
+  logf("[ACT] inflate idx=%d, t=%.2fs", i, (double)seconds);
+  pumpOn(i, duty);
+  delay(ms);            // delay 동안 그대로 ON
+  pumpOff(i);
+}
+
+static void run_deflate_valve_time(int i, float seconds) {
+  if (seconds <= 0.0f) return;
+  uint32_t ms = (uint32_t)(seconds * 1000.0f);
+  logf("[ACT] deflate idx=%d, t=%.2fs", i, (double)seconds);
+  valveOnIdx(i);
+  delay(ms);            // delay 동안 그대로 ON
+  valveOffIdx(i);
+}
+
+/* ---------- Wi-Fi ---------- */
+void WiFiTask(void*) {
+  for (;;) {
+    if (WiFi.status() != WL_CONNECTED) {
+      WiFi.begin(WIFI_SSID, WIFI_PASS);
+      uint32_t t0 = millis();
+      while (WiFi.status() != WL_CONNECTED && millis() - t0 < 15000)
+        vTaskDelay(pdMS_TO_TICKS(500));
+      if (WiFi.status() == WL_CONNECTED) {
+        xEventGroupSetBits(g_events, WIFI_CONNECTED_BIT);
+        logf("[WIFI] connected: %s", WiFi.localIP().toString().c_str());
+      } else {
+        xEventGroupClearBits(g_events, WIFI_CONNECTED_BIT);
+        vTaskDelay(pdMS_TO_TICKS(5000));
+      }
+    } else {
+      vTaskDelay(pdMS_TO_TICKS(3000));
+    }
+  }
+}
+
+/* ---------- HTTP /health 핸들러 ---------- */
+void handle_root() { server.send(200, "text/plain", "SomniAI v3.3 /health (MQTT)"); }
+
+void handle_health() {
+  StaticJsonDocument<256> doc;
+  doc["wifi"]        = (WiFi.status() == WL_CONNECTED);
+  doc["ip"]          = WiFi.localIP().toString();
+  doc["auto_mode"]   = auto_mode;
+  doc["bpm_avg"]     = beatAvg;
+  doc["queue"]       = g_motor_queue ? uxQueueMessagesWaiting(g_motor_queue) : 0;
+  doc["pump_budget"] = pump_budget; // ★ 디버그용
+  String body; serializeJson(doc, body);
+  server.sendHeader("Access-Control-Allow-Origin", "*");
+  server.send(200, "application/json; charset=utf-8", body);
+}
+
+void handle_404() { server.send(404, "application/json", "{\"error\":\"not found\"}"); }
+
+/* ---------- 목 각도 명령 핸들러 (neck_angle → pillow_angle 계산) ---------- */
+static void handleNeckAngleCommand(int neckAngle) {
+  if (auto_mode) {
+    logf("[ANGLE] auto_mode 이미 ON → neck=%d 무시", neckAngle);
+    return;
+  }
+  // 목 각도 → 목표 목+베개 각도
+  float pillowAngle = NECK_TO_PILLOW_A - NECK_TO_PILLOW_B * (float)neckAngle;
+  angle_command_deg     = pillowAngle;
+  angle_command_pending = true;
+
+  logf("[ANGLE] neck=%d → pillow_angle=%.1f (queued)", neckAngle, (double)pillowAngle);
+}
+
+/* ---------- MQTT 콜백 ---------- */
+void mqttCallback(char* topic, byte* payload, unsigned int length) {
+  // somniai/neck/angle: 정수 neck angle
+  if (strcmp(topic, TOPIC_NECK_ANGLE) == 0) {
+    String msg; msg.reserve(length + 1);
+    for (unsigned int i = 0; i < length; i++) msg += (char)payload[i];
+    int neckAngle = msg.toInt();
+    logf("[MQTT] neck angle payload='%s' → %d", msg.c_str(), neckAngle);
+    handleNeckAngleCommand(neckAngle);
+  }
+  // somniai/pillow/motor: 정수 motor_id
+  else if (strcmp(topic, TOPIC_MOTOR) == 0) {
+    String msg; msg.reserve(length + 1);
+    for (unsigned int i = 0; i < length; i++) msg += (char)payload[i];
+    int motorId = msg.toInt();
+    logf("[MQTT] motor_id=%d", motorId);
+
+    if (motorId == 0) {
+      if (!auto_mode) {
+        auto_mode       = true;
+        auto_state      = AUTO_BASELINE;
+        baselineCount   = 0;
+        currHrCount     = 0;
+        baselineStartMs = millis();
+        hrWindowStartMs = millis();
+        first_step_done = false;
+        last_action     = ACT_NONE;
+        HR_ref  = 0.0f;
+        HR_prev = 0.0f;
+        e_prev  = 0.0f;
+        // ★ pump_budget 리셋하지 않음 → 초기 각도 보정에 쓴 것도 그대로 반영
+        logf("[AUTO][MQTT] motor_id=0 → auto_mode ON, baseline 시작 (budget=%.2f)",
+             (double)pump_budget);
+      } else {
+        logf("[AUTO][MQTT] motor_id=0 ignored (already auto_mode)");
+      }
+    } else if (motorId > 0) {
+      if (!auto_mode) {
+        auto_mode  = false;
+        auto_state = AUTO_IDLE;
+        if (g_motor_queue) {
+          xQueueSend(g_motor_queue, &motorId, 0);
+        }
+        logf("[AUTO][MQTT] motor_id>0 (수동), auto_mode OFF");
+      } else {
+        logf("[AUTO][MQTT] motor_id>0 ignored (auto_mode locked)");
+      }
+    }
+  }
+  else if (strcmp(topic, TOPIC_POSE) == 0) {
+    // pose 데이터는 일단 로그만
+    if (!kPlotterMode) {
+      String msg; msg.reserve(length + 1);
+      for (unsigned int i = 0; i < length; i++) msg += (char)payload[i];
+      logf("[POSE][MQTT] %s", msg.c_str());
+    }
+  }
+}
+
+/* ---------- MQTT 연결 태스크 ---------- */
+void ensureMQTT() {
+  mqtt.setServer(MQTT_HOST, MQTT_PORT);
+  mqtt.setCallback(mqttCallback);
+
+  while (!mqtt.connected()) {
+    if (!(xEventGroupGetBits(g_events) & WIFI_CONNECTED_BIT)) {
+      vTaskDelay(pdMS_TO_TICKS(1000));
+      continue;
+    }
+    String clientId = "somniai-esp32-";
+    clientId += String((uint32_t)ESP.getEfuseMac(), HEX);
+
+    logf("[MQTT] connecting... %s", clientId.c_str());
+    if (mqtt.connect(clientId.c_str())) {
+      logf("[MQTT] connected");
+      mqtt.subscribe(TOPIC_NECK_ANGLE);
+      mqtt.subscribe(TOPIC_MOTOR);
+      mqtt.subscribe(TOPIC_POSE);
+      mqtt.publish(TOPIC_STATUS, "ESP32 online");
+      logf("[MQTT] subscribed: neck/angle, pillow/motor, pose");
+    } else {
+      logf("[MQTT] failed rc=%d, retry 2s", mqtt.state());
+      vTaskDelay(pdMS_TO_TICKS(2000));
+    }
+  }
+}
+
+void MQTTTask(void*) {
+  // Wi-Fi 연결될 때까지 대기
+  xEventGroupWaitBits(g_events, WIFI_CONNECTED_BIT, pdFALSE, pdTRUE, portMAX_DELAY);
+  ensureMQTT();
+  for (;;) {
+    if (!mqtt.connected()) ensureMQTT();
+    mqtt.loop();
+    vTaskDelay(pdMS_TO_TICKS(10));
+  }
+}
+
+/* ---------- 수동 큐 워커(HTTP 버전과 동일) ---------- */
+void WorkerTask(void*) {
+  int id = 0;
+  for (;;) {
+    if (!g_motor_queue) {
+      vTaskDelay(pdMS_TO_TICKS(50));
+      continue;
+    }
+    if (xQueueReceive(g_motor_queue, &id, pdMS_TO_TICKS(50)) == pdPASS) {
+      // 필요 시 id별 수동 동작 작성
+      logf("[MANUAL] received motor_id=%d (TODO)", id);
+      vTaskDelay(pdMS_TO_TICKS(50));
+    }
+  }
+}
+
+/* ---------- MAX30102 ---------- */
+MAX30105 sensor;
+const byte RATE_SIZE = 8;
+byte rates[RATE_SIZE];
+byte rateSpot = 0;
+long lastBeat = 0;
+
+void BPMTask(void*) {
+  // I2C 초기화 (HTTP 버전과 동일: SDA=25, SCL=26)
+  Wire.begin(25, 26);
+  Wire.setClock(400000);
+
+  Serial.println("[MAX] BPMTask start, begin() 호출");
+
+  if (!sensor.begin(Wire)) {
+    Serial.println("[MAX] sensor.begin(Wire) FAIL! BPMTask 종료");
+    bpm = 0;
+    beatAvg = 0;
+    for (;;) {
+      vTaskDelay(pdMS_TO_TICKS(1000));
+    }
+  }
+
+  Serial.println("[MAX] sensor.begin OK, setup() 진행");
+
+  sensor.setup(0x24, 4, 2, 100, 411, 4096);
+  sensor.setPulseAmplitudeIR(0x24);
+  sensor.setPulseAmplitudeRed(0x10);
+  sensor.setPulseAmplitudeGreen(0x00);
+
+  uint32_t lastDebugPrint = 0;
+
+  for (;;) {
+    long ir = sensor.getIR();
+
+    if (!kPlotterMode) {
+      uint32_t now = millis();
+      if (now - lastDebugPrint >= 500) {
+        lastDebugPrint = now;
+        Serial.printf("[MAX] IR=%ld bpm=%.1f avg=%.1f\n",
+                      ir, (double)bpm, (double)beatAvg);
+      }
+    }
+
+    if (ir > 8000) {  // 접촉 감지 임계값
+      if (checkForBeat(ir)) {
+        long now = millis();
+        long dt  = now - lastBeat;
+        lastBeat = now;
+        if (dt > 260 && dt < 2000) {      // 30~230 bpm
+          float b = 60.0f / (dt / 1000.0f);
+          if (b >= 30 && b <= 220) {
+            rates[rateSpot++] = (byte)b;
+            rateSpot %= RATE_SIZE;
+            int s = 0;
+            for (byte i = 0; i < RATE_SIZE; i++) s += rates[i];
+            bpm     = b;
+            beatAvg = s / (float)RATE_SIZE;
+          }
+        }
+      }
+    } else {
+      bpm = 0;  // beatAvg는 이전 값 유지
+    }
+    vTaskDelay(pdMS_TO_TICKS(10));  // ~100Hz
+  }
+}
+
+/* ---------- 자동 제어(beatAvg 기반 HR_ref + P 제어 + 펌프 안전 + 초기 angle) ---------- */
+
+// 작은 배열 median 계산 (baseline용)
+static float median_of(float* arr, int n) {
+  if (n <= 0) return 0.0f;
+  float tmp[HR_BUF_SIZE];
+  int m = n;
+  if (m > HR_BUF_SIZE) m = HR_BUF_SIZE;
+  for (int i = 0; i < m; ++i) tmp[i] = arr[i];
+  // 삽입정렬
+  for (int i = 1; i < m; ++i) {
+    float key = tmp[i];
+    int j = i - 1;
+    while (j >= 0 && tmp[j] > key) {
+      tmp[j + 1] = tmp[j];
+      j--;
+    }
+    tmp[j + 1] = key;
+  }
+  if (m % 2 == 1) return tmp[m / 2];
+  else return 0.5f * (tmp[m / 2 - 1] + tmp[m / 2]);
+}
+
+void ControlTask(void*) {
+  // 펌프/밸브 핀 초기화
+  for (int i = 0; i < 4; ++i) {
+    pinMode(PIN_PUMP_DIR[i], OUTPUT);
+    digitalWrite(PIN_PUMP_DIR[i], LOW);
+  }
+  for (int i = 0; i < 4; ++i) {
+    pinMode(PIN_VALVE[i], OUTPUT);
+    valveWrite(i, false);
+  }
+  // PWM attach (핀 기반 API, 0번 펌프 EN=14가 실제 사용)
+  for (int i = 0; i < 4; ++i) {
+    ledcAttach(PIN_PUMP_EN[i], PWM_FREQ, PWM_RES);
+    ledcWrite(PIN_PUMP_EN[i], 0);
+  }
+
+  allStop();
+
+  last_pulse_ms = millis();
+  uint32_t lastSampleMs = millis();  // 1초에 한 번 HR 샘플링용
+
+  for (;;) {
+    uint32_t now = millis();
+
+    // ---------- auto_mode 가 false일 때: 초기 angle 명령 먼저 처리 ----------
+    if (!auto_mode) {
+      if (angle_command_pending) {
+        // MQTT에서 넘어온 "목 angle → pillow_angle" 결과 처리
+        float angleDeg = angle_command_deg;
+        angle_command_pending = false;   // 한 번만 처리
+
+        float deltaDeg = angleDeg - BASE_ANGLE_DEG;
+        if (deltaDeg <= 0.0f) {
+          logf("[ANGLE] pillow_angle=%.1f <= base=%.1f → inflate SKIP (budget=%.2f)",
+               (double)angleDeg, (double)BASE_ANGLE_DEG, (double)pump_budget);
+        } else {
+          float raw_sec    = deltaDeg / ANGLE_RATE_DEG_PER_SEC;     // 이론 펌프 시간
+          float max_sec    = pump_budget / PUMP_CONSUME_PER_SEC;    // budget으로 제한
+          float actual_sec = raw_sec;
+          if (actual_sec > max_sec) actual_sec = max_sec;
+
+          if (actual_sec <= 0.0f || pump_budget <= 0.0f) {
+            logf("[ANGLE][SAFE] pump_budget=%.2f → inflate SKIP", (double)pump_budget);
+          } else {
+            // 펌프 속도 5mm/s 기반으로 높이 변화 계산
+            float step_mm = actual_sec * INFLATE_RATE_MM_S;
+            logf("[ANGLE] pillow_angle=%.1f, delta=%.1fdeg, raw=%.2fs, actual=%.2fs, step=%.1fmm (budget=%.2f)",
+                 (double)angleDeg, (double)deltaDeg,
+                 (double)raw_sec, (double)actual_sec,
+                 (double)step_mm, (double)pump_budget);
+
+            int idx = 0; // 0번 펌프 사용
+            run_inflate_pump_time(idx, actual_sec, DUTY_MAX);
+            last_action = ACT_INFLATE;
+
+            // budget 소모
+            pump_budget -= actual_sec * PUMP_CONSUME_PER_SEC;
+            if (pump_budget < 0.0f) pump_budget = 0.0f;
+
+            // 높이 추정 업데이트
+            H_est_mm += step_mm;
+            if (H_est_mm > H_MAX_MM) H_est_mm = H_MAX_MM;
+          }
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(50));
+        continue;   // 다음 루프
+      }
+
+      // angle 명령도 없고 auto_mode=false 이면 idle
+      auto_state = AUTO_IDLE;
+      allStop();
+      vTaskDelay(pdMS_TO_TICKS(50));
+      continue;
+    }
+
+    // ---------- 여기부터는 auto_mode == true (기존 baseline + control 로직) ----------
+
+    // 1초마다 beatAvg를 버퍼에 기록
+    if (now - lastSampleMs >= 1000) {
+      lastSampleMs = now;
+
+      if (auto_state == AUTO_BASELINE) {
+        if (baselineCount < HR_BUF_SIZE) {
+          baselineBuf[baselineCount++] = beatAvg;
+        }
+        logf("[BASE] t=%lus, beatAvg=%.1f, samples=%d",
+             (unsigned long)((now - baselineStartMs) / 1000UL),
+             (double)beatAvg, baselineCount);
+      } else if (auto_state == AUTO_CONTROL) {
+        if (currHrCount < HR_BUF_SIZE) {
+          currHrBuf[currHrCount++] = beatAvg;
+        }
+      }
+    }
+
+    // -------- 상태별 처리 --------
+    if (auto_state == AUTO_BASELINE) {
+      if (now - baselineStartMs >= BASELINE_MS && baselineCount > 0) {
+        HR_ref = median_of(baselineBuf, baselineCount);
+        auto_state      = AUTO_CONTROL;
+        hrWindowStartMs = now;
+        currHrCount     = 0;
+        first_step_done = false;
+        last_action     = ACT_NONE;
+        HR_prev         = HR_ref;
+        e_prev          = 0.0f;
+        logf("[AUTO] baseline 완료, HR_ref=%.1f", (double)HR_ref);
+      }
+
+    } else if (auto_state == AUTO_CONTROL) {
+      if (now - hrWindowStartMs >= HR_WINDOW_MS) {
+        float HR_curr = 0.0f;
+        if (currHrCount > 0) {
+          float sum = 0.0f;
+          for (int i = 0; i < currHrCount; ++i) sum += currHrBuf[i];
+          HR_curr = sum / (float)currHrCount;
+        } else {
+          HR_curr = beatAvg;
+        }
+
+        float e_curr     = HR_curr - HR_ref;
+        float e_curr_abs = fabsf(e_curr);
+        float e_prev_abs = fabsf(e_prev);
+
+        logf("[CTRL] HR_ref=%.1f, HR_curr=%.1f, e=%.1f (|e_prev|=%.1f)",
+             (double)HR_ref, (double)HR_curr,
+             (double)e_curr, (double)e_prev_abs);
+
+        hrWindowStartMs = now;
+        currHrCount     = 0;
+
+        if (e_curr_abs <= 5.0f) {
+          // 허용 범위 내 → 움직이지 않음
+          HR_prev = HR_curr;
+          e_prev  = e_curr;
+          logf("[CTRL] |e|<=5 → no move, keep H=%.1fmm (budget=%.2f)",
+               (double)H_est_mm, (double)pump_budget);
+        } else {
+          float step_mm = 0.0f;
+
+          if (!first_step_done) {
+            // 첫 스텝: 무조건 2mm 내려가기 (밸브)
+            dir = -1;
+            step_mm = 2.0f;
+            first_step_done = true;
+            logf("[CTRL] first step: dir=-1 (down), step=%.2fmm", (double)step_mm);
+          } else {
+            bool flipped = false;
+            if (e_curr_abs > e_prev_abs + 0.5f) {
+              dir = -dir;
+              flipped = true;
+              logf("[CTRL] e worsened → flip dir → %d", dir);
+            } else if (e_curr_abs < e_prev_abs - 0.5f) {
+              logf("[CTRL] e improved → keep dir=%d", dir);
+            } else {
+              logf("[CTRL] e ~same → keep dir=%d", dir);
+            }
+
+            float Kp   = 0.5f;   // 1 bpm↑ 당 0.5mm
+            float e_th = 5.0f;
+            step_mm = Kp * (e_curr_abs - e_th);
+
+            if (step_mm < 0.5f) step_mm = 0.5f;
+            if (step_mm > 2.0f) step_mm = 2.0f;
+
+            if (flipped) {
+              step_mm *= 1.2f;
+              if (step_mm > 2.0f) step_mm = 2.0f;
+            }
+
+            logf("[CTRL] P-step: step_mm=%.2f (dir=%d)", (double)step_mm, dir);
+          }
+
+          // 목표 높이 계산 (HTTP 버전 로직과 동일하게 H_target으로 clamp)
+          float H_target = H_est_mm + (dir > 0 ? +step_mm : -step_mm);
+          if (H_target < H_MIN_MM) H_target = H_MIN_MM;
+          if (H_target > H_MAX_MM) H_target = H_MAX_MM;
+          float planned_step = fabsf(H_target - H_est_mm);
+
+          logf("[CTRL] H_est: %.1f → H_target=%.1f (planned_step=%.2f)",
+               (double)H_est_mm, (double)H_target, (double)planned_step);
+
+          if (planned_step > 0.0f) {
+            if (dir > 0) {
+              // ========= 펌프 방향 (inflate) → 펌프 budget 적용 =========
+              float max_pump_sec  = pump_budget / PUMP_CONSUME_PER_SEC;
+              float max_pump_step = max_pump_sec * INFLATE_RATE_MM_S;
+              float actual_step   = planned_step;
+
+              if (actual_step > max_pump_step) actual_step = max_pump_step;
+              if (actual_step <= 0.0f || pump_budget <= 0.0f) {
+                logf("[SAFE] pump_budget=%.2f → inflate SKIP", (double)pump_budget);
+              } else {
+                float actual_sec = actual_step / INFLATE_RATE_MM_S;
+                logf("[SAFE] budget=%.2f, planned=%.2fmm, actual=%.2fmm (%.2fs)",
+                     (double)pump_budget, (double)planned_step,
+                     (double)actual_step, (double)actual_sec);
+
+                int idx = 0;  // 항상 0번 펌프만 사용
+                run_inflate_pump_time(idx, actual_sec, DUTY_MAX);
+                last_action = ACT_INFLATE;
+
+                // budget 소모
+                pump_budget -= actual_sec * PUMP_CONSUME_PER_SEC;
+                if (pump_budget < 0.0f) pump_budget = 0.0f;
+
+                // 실제 올라간 만큼만 높이 반영
+                H_est_mm += actual_step;
+                if (H_est_mm > H_MAX_MM) H_est_mm = H_MAX_MM;
+              }
+            } else {
+              // ========= 밸브 방향 (deflate) → budget 회복 =========
+              float sec = planned_step / DEFLATE_RATE_MM_S;
+              int idx = 0;  // 항상 0번 밸브만 사용
+              run_deflate_valve_time(idx, sec);
+              last_action = ACT_DEFLATE;
+
+              // budget 회복
+              pump_budget += sec * VALVE_RECOVER_PER_SEC;
+              if (pump_budget > PUMP_BUDGET_MAX) pump_budget = PUMP_BUDGET_MAX;
+
+              H_est_mm -= planned_step;
+              if (H_est_mm < H_MIN_MM) H_est_mm = H_MIN_MM;
+
+              logf("[SAFE] valve recover → pump_budget=%.2f", (double)pump_budget);
+            }
+          }
+
+          HR_prev = HR_curr;
+          e_prev  = e_curr;
+        }
+      }
+    }
+
+    vTaskDelay(pdMS_TO_TICKS(50)); // 기본 20Hz 루프
+  }
+}
+
+/* ---------- 플로터(BPM,AvgBPM만 숫자 출력) ---------- */
+void PlotTask(void*) {
+  for (;;) {
+    if (kPlotterMode) {
+      Serial.printf("%.1f,%.1f\n", (double)bpm, (double)beatAvg);
+    }
+    vTaskDelay(pdMS_TO_TICKS(50));   // 20Hz
+  }
+}
+
+/* ---------- setup/loop ---------- */
+void setup() {
+  Serial.begin(115200);
+  delay(200);
+  WiFi.mode(WIFI_STA);
+  WiFi.setSleep(false);
+
+  g_events = xEventGroupCreateStatic(&s_events_buf);
+  g_motor_queue = xQueueCreateStatic(QUEUE_LEN, sizeof(int), s_mq_storage, &s_mq_struct);
+
+  server.on("/", HTTP_GET, handle_root);
+  server.on("/health", HTTP_GET, handle_health);
+  server.onNotFound(handle_404);
+  server.begin();
+
+  xTaskCreatePinnedToCore(WiFiTask,   "WiFiTask",   4096, nullptr, 2, nullptr, 0);
+  xTaskCreatePinnedToCore(MQTTTask,   "MQTTTask",   4096, nullptr, 1, nullptr, 1);
+  xTaskCreatePinnedToCore(WorkerTask, "WorkerTask", 4096, nullptr, 1, nullptr, 1);
+  xTaskCreatePinnedToCore(BPMTask,    "BPMTask",    4096, nullptr, 1, nullptr, 1);
+  xTaskCreatePinnedToCore(ControlTask,"ControlTask",4096, nullptr, 1, nullptr, 1);
+  xTaskCreatePinnedToCore(PlotTask,   "PlotTask",   2048, nullptr, 1, nullptr, 1);
+}
+
+void loop() {
+  server.handleClient();   // /health 유지
+}
