@@ -1,5 +1,4 @@
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
-import Cookies from 'js-cookie';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 const API_PREFIX = '/api/v1';
@@ -14,33 +13,6 @@ class ApiClient {
         'Content-Type': 'application/json',
       },
     });
-
-    // Request interceptor - 토큰 자동 추가
-    this.client.interceptors.request.use(
-      (config) => {
-        const token = Cookies.get('access_token');
-        if (token) {
-          config.headers.Authorization = `Bearer ${token}`;
-        }
-        return config;
-      },
-      (error) => Promise.reject(error)
-    );
-
-    // Response interceptor - 에러 처리
-    this.client.interceptors.response.use(
-      (response) => response,
-      (error) => {
-        if (error.response?.status === 401) {
-          // 인증 실패 시 토큰 제거 및 로그인 페이지로 리다이렉트
-          Cookies.remove('access_token');
-          if (typeof window !== 'undefined') {
-            window.location.href = '/login';
-          }
-        }
-        return Promise.reject(error);
-      }
-    );
   }
 
   async get<T = any>(url: string, config?: AxiosRequestConfig) {

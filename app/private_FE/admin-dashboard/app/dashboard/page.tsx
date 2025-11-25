@@ -1,12 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { healthApi, uploadApi } from '@/lib/api';
 
 export default function DashboardPage() {
-  const { user, logout, loading: authLoading } = useAuth();
   const router = useRouter();
   const [modelInfo, setModelInfo] = useState<any>(null);
   const [modelStats, setModelStats] = useState<any>(null);
@@ -18,16 +16,8 @@ export default function DashboardPage() {
   const [uploadResult, setUploadResult] = useState<string>('');
 
   useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/login');
-    }
-  }, [user, authLoading, router]);
-
-  useEffect(() => {
-    if (user) {
-      loadData();
-    }
-  }, [user]);
+    loadData();
+  }, []);
 
   const loadData = async () => {
     setLoading(true);
@@ -89,29 +79,12 @@ export default function DashboardPage() {
     }
   };
 
-  if (authLoading || !user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p>로딩 중...</p>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-gray-900">SomniAI Admin Dashboard</h1>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-600">안녕하세요, {user.name}님</span>
-            <button
-              onClick={logout}
-              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm"
-            >
-              로그아웃
-            </button>
-          </div>
         </div>
       </header>
 
@@ -252,14 +225,6 @@ export default function DashboardPage() {
         <div className="mt-6 bg-white rounded-lg shadow p-6">
           <h2 className="text-lg font-semibold mb-4">사용 가능한 API 엔드포인트</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="border rounded p-4">
-              <h3 className="font-medium text-indigo-600">인증</h3>
-              <ul className="mt-2 text-sm space-y-1 text-gray-600">
-                <li>POST /api/v1/auth/login - 로그인</li>
-                <li>POST /api/v1/auth/register - 회원가입</li>
-                <li>GET /api/v1/auth/me - 사용자 정보</li>
-              </ul>
-            </div>
             <div className="border rounded p-4">
               <h3 className="font-medium text-green-600">헬스체크</h3>
               <ul className="mt-2 text-sm space-y-1 text-gray-600">

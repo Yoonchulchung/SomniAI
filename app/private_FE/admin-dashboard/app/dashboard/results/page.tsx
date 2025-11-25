@@ -1,13 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useAuth } from '@/hooks';
 import { useRouter } from 'next/navigation';
 import { resultApi } from '@/lib/api';
 import type { SideResult, AirResult } from '@/types';
 
 export default function ResultsPage() {
-  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [sideResult, setSideResult] = useState<SideResult | null>(null);
   const [airResult, setAirResult] = useState<AirResult | null>(null);
@@ -15,16 +13,8 @@ export default function ResultsPage() {
   const [activeTab, setActiveTab] = useState<'side' | 'air'>('side');
 
   useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/login');
-    }
-  }, [user, authLoading, router]);
-
-  useEffect(() => {
-    if (user) {
-      loadResults();
-    }
-  }, [user]);
+    loadResults();
+  }, []);
 
   const loadResults = async () => {
     setLoading(true);
@@ -41,14 +31,6 @@ export default function ResultsPage() {
       setLoading(false);
     }
   };
-
-  if (authLoading || !user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p>로딩 중...</p>
-      </div>
-    );
-  }
 
   const currentResult = activeTab === 'side' ? sideResult : airResult;
 

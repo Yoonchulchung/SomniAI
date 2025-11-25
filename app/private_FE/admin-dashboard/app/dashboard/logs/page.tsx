@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useAuth } from '@/hooks';
 import { useRouter } from 'next/navigation';
 import { logsApi } from '@/lib/api';
 import type { ApiLog } from '@/types';
@@ -32,7 +31,6 @@ interface StatsResponse {
 }
 
 export default function LogsPage() {
-  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [logs, setLogs] = useState<ApiLog[]>([]);
   const [pagination, setPagination] = useState<PaginationInfo | null>(null);
@@ -46,16 +44,8 @@ export default function LogsPage() {
   });
 
   useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/login');
-    }
-  }, [user, authLoading, router]);
-
-  useEffect(() => {
-    if (user) {
-      loadData();
-    }
-  }, [user, page]);
+    loadData();
+  }, [page]);
 
   const loadData = async () => {
     setLoading(true);
@@ -115,14 +105,6 @@ export default function LogsPage() {
     setPage(1);
     setTimeout(loadData, 100);
   };
-
-  if (authLoading || !user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p>로딩 중...</p>
-      </div>
-    );
-  }
 
   const getStatusColor = (statusCode: number) => {
     if (statusCode >= 200 && statusCode < 300) return 'text-green-600 bg-green-50';
