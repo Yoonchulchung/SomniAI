@@ -32,10 +32,16 @@ class Server {
     // Security
     this.app.use(helmet());
 
-    // CORS
+    // // CORS
+    // this.app.use(
+    //   cors({
+    //     origin: config.CORS_ORIGIN,
+    //     credentials: true,
+    //   })
+    // );
     this.app.use(
       cors({
-        origin: config.CORS_ORIGIN,
+        origin: true,
         credentials: true,
       })
     );

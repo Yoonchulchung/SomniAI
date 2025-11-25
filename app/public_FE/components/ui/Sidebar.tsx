@@ -7,7 +7,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Video, BarChart3, Radio, FileText, Settings, Menu, X, TestTube } from 'lucide-react';
+import { Home, Video, BarChart3, Radio, FileText, Settings, Menu, X, TestTube, Theater } from 'lucide-react';
 import { useState } from 'react';
 
 const menuItems = [
@@ -57,6 +57,13 @@ const menuItems = [
     title: 'Settings',
     href: '/settings',
     icon: Settings,
+    color: 'text-gray-600',
+    bgColor: 'bg-gray-50',
+  },
+  {
+    title: 'SomniAI',
+    href: '/somniai',
+    icon: Theater,
     color: 'text-gray-600',
     bgColor: 'bg-gray-50',
   },

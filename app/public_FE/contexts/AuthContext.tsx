@@ -36,14 +36,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const checkAuth = async () => {
     try {
+      // 1. [수정] 토큰이 있는지 먼저 확인합니다.
+      const token = localStorage.getItem('token');
+
+      // 2. 토큰이 없으면 API 요청을 보내지 않고 바로 로딩 종료 (비로그인/게스트 상태)
+      if (!token) {
+        setUser(null);
+        setLoading(false);
+        return; 
+      }
+
+      // 3. 토큰이 있을 때만 서버에 "이 토큰 유효해?" 하고 물어봅니다.
       const response = await authAPI.me();
       if (response.data.success) {
         setUser(response.data.data);
+      } else {
+        // 성공 응답이 아니면(토큰 만료 등) 유저 초기화
+        setUser(null);
+        localStorage.removeItem('token'); // 잘못된 토큰 삭제
       }
     } catch (error) {
       console.error('Auth check failed:', error);
       setUser(null);
+      localStorage.removeItem('token'); // 에러 발생 시(401 등) 토큰 삭제 권장
     } finally {
+      // 4. 성공하든 실패하든 로딩은 반드시 끝냅니다.
       setLoading(false);
     }
   };
@@ -61,13 +78,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
-      await authAPI.logout();
+      // 로그아웃 API 호출 시도 (실패해도 클라이언트 로그아웃은 진행)
+      await authAPI.logout(); 
     } catch (error) {
-      console.error('Logout failed:', error);
+      console.error('Logout API failed:', error);
     } finally {
       localStorage.removeItem('token');
       setUser(null);
-      window.location.href = '/';
+      // SPA 방식 리다이렉트 권장 (window.location.href는 앱을 새로고침함)
+      // 만약 next/navigation을 쓸 수 있다면 router.push('/') 권장
+      window.location.href = '/'; 
     }
   };
 

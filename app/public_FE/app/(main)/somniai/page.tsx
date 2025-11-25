@@ -21,7 +21,7 @@ export default function QueueViewerPage() {
     const fetchImage = async () => {
       try {
         // 백엔드 주소 (프록시 설정이 안되어 있다면 http://localhost:8000 등 풀주소 필요)
-        const res = await fetch('http://localhost:3000/api/inference/view');
+        const res = await fetch('http://localhost:4000/api/inference/view');
 
         if (res.status === 200) {
           // 1. 이미지가 큐에 있음!

@@ -32,6 +32,12 @@ export default function LoginPage() {
     }
   };
 
+  // [추가] 로그인 없이 이동하는 함수
+  const handleGuestLogin = () => {
+    // 원하는 이동 경로로 설정하세요 (예: /dashboard, /somniai, /viewer 등)
+    router.push('/dashboard'); 
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50 p-4">
       <Card className="w-full max-w-md">
@@ -90,6 +96,26 @@ export default function LoginPage() {
             >
               {loading ? 'Logging in...' : 'Login'}
             </button>
+
+            {/* [추가] 구분선 */}
+            <div className="relative my-4">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-gray-300" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-slate-50 px-2 text-gray-500">Or continue as</span>
+              </div>
+            </div>
+
+            {/* [추가] 게스트 입장 버튼 */}
+            <button
+              type="button" // form submit 방지
+              onClick={handleGuestLogin}
+              className="w-full bg-white text-gray-700 border border-gray-300 py-2 px-4 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+            >
+              Guest (Skip Login)
+            </button>
+
           </form>
 
           <p className="mt-4 text-sm text-gray-600 text-center">
