@@ -82,6 +82,7 @@ class Server {
           mqtt: `${config.API_PREFIX}/mqtt`,
           auth: `${config.API_PREFIX}/auth`,
           descriptions: `${config.API_PREFIX}/descriptions`,
+          inference: `${config.API_PREFIX}/inference`,
         },
       });
     });
@@ -97,47 +98,35 @@ class Server {
 
   public async start() {
     try {
-      // Connect to Database
-      console.log('🔌 Connecting to Database...');
-      await connectDatabase();
+      // await connectDatabase();
+      // await connectRedis();
 
-      // Connect to Redis
-      console.log('🔌 Connecting to Redis...');
-      await connectRedis();
+      // let mqttConnected = false;
+      // try {
+      //   console.log('🔌 Connecting to MQTT broker...');
+      //   await Promise.race([
+      //     mqttService.connect(),
+      //     new Promise((_, reject) => setTimeout(() => reject(new Error('MQTT connection timeout')), 10000))
+      //   ]);
 
-      // Connect to MQTT (optional - don't fail if MQTT is unavailable)
-      let mqttConnected = false;
-      try {
-        console.log('🔌 Connecting to MQTT broker...');
-        await Promise.race([
-          mqttService.connect(),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('MQTT connection timeout')), 10000))
-        ]);
-
-        // Subscribe to default topics
-        await mqttService.subscribe('somniai/#');
-        await mqttService.subscribe('test/topic');
-        mqttConnected = true;
-        console.log('✓ MQTT connected successfully');
-      } catch (mqttError) {
-        console.warn('⚠ MQTT connection failed, continuing without MQTT:', mqttError);
-      }
+      //   // Subscribe to default topics
+      //   await mqttService.subscribe('somniai/#');
+      //   await mqttService.subscribe('test/topic');
+      //   mqttConnected = true;
+      //   console.log('✓ MQTT connected successfully');
+      // } catch (mqttError) {
+      //   console.warn('⚠ MQTT connection failed, continuing without MQTT:', mqttError);
+      // }
 
       // Start server
       const PORT = config.PORT;
       this.app.listen(PORT, () => {
         console.log(`
-╔═══════════════════════════════════════╗
-║     🧠 SomniAI API Server Ready      ║
-╠═══════════════════════════════════════╣
-║  Environment: ${config.NODE_ENV.padEnd(23)} ║
-║  Port: ${PORT.toString().padEnd(30)} ║
-║  API Prefix: ${config.API_PREFIX.padEnd(24)} ║
-║  Database: Connected ✓               ║
-║  Redis: Connected ✓                  ║
-║  MQTT: ${mqttConnected ? 'Connected ✓' : 'Unavailable ⚠'}             ║
-╚═══════════════════════════════════════╝
-        `);
+          SomniAI API Server Ready
+          ========================
+          Environment: ${config.NODE_ENV.padEnd(23)}
+          Port: ${PORT.toString().padEnd(30)}
+          `)
       });
     } catch (error) {
       console.error('Failed to start server:', error);
@@ -146,7 +135,7 @@ class Server {
   }
 
   public async stop() {
-    console.log('\n🛑 Shutting down server...');
+    console.log('\nShutting down server...');
 
     try {
       await mqttService.disconnect();
