@@ -16,7 +16,7 @@ import { MQTTProvider } from './context/MQTTContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ToastContainer } from './components/Toast';
 import { HomeScreen } from './screens/HomeScreen';
-import { MonitorScreen } from './screens/MonitorScreen';
+import { CaptureScreen } from './screens/CaptureScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { MQTTScreen } from './screens/MQTTScreen';
 import { theme } from './theme';
@@ -71,11 +71,11 @@ const TabNavigator: React.FC = () => {
         }}
       />
       <Tab.Screen
-        name="Monitor"
-        component={MonitorScreen}
+        name="Capture"
+        component={CaptureScreen}
         options={{
-          tabBarLabel: 'Monitor',
-          tabBarAccessibilityLabel: 'Monitor Tab',
+          tabBarLabel: 'Capture',
+          tabBarAccessibilityLabel: 'Capture Tab',
         }}
       />
       <Tab.Screen

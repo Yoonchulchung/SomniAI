@@ -95,7 +95,6 @@ export const HomeScreen: React.FC = () => {
     () => (
       <>
         <Header />
-
         {data && (
           <>
             <ConnectionStatus
@@ -107,6 +106,11 @@ export const HomeScreen: React.FC = () => {
               isConnected={data.status.isConnected}
               serverUrl={data.status.serverUrl}
               title="Public server status"
+            />
+            <ConnectionStatus
+              isConnected={data.status.isConnected}
+              serverUrl={data.status.serverUrl}
+              title="MQTT server status"
             />
 
             <View style={styles.card}>
