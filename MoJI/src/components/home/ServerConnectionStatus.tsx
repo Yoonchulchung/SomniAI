@@ -1,6 +1,6 @@
-import React, { memo, useCallback } from 'react';
+import React, { memo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { theme } from '../theme';
+import { theme } from '../../theme';
 
 interface ConnectionStatusProps {
     isConnected: boolean;
@@ -8,7 +8,7 @@ interface ConnectionStatusProps {
     title: string;
 }
 
-export const ConnectionStatus = memo<ConnectionStatusProps>(
+export const ServerConnectionStatus = memo<ConnectionStatusProps>(
   ({ isConnected, serverUrl, title }) => {
 
     return (
@@ -37,7 +37,7 @@ export const ConnectionStatus = memo<ConnectionStatusProps>(
     prev.isConnected === next.isConnected &&
     prev.serverUrl === next.serverUrl
 );
-ConnectionStatus.displayName = 'ConnectionStatus';
+ServerConnectionStatus.displayName = 'ConnectionStatus';
 
 const styles = StyleSheet.create({
   card: {
@@ -69,10 +69,11 @@ const styles = StyleSheet.create({
       color: theme.colors.text.inverse,
       fontSize: theme.typography.fontSize.sm,
       fontWeight: theme.typography.fontWeight.bold,
+      marginBottom : 4,
     },
     serverUrl: {
       fontSize: theme.typography.fontSize.md,
       color: theme.colors.text.secondary,
       marginBottom: theme.spacing.xs,
     },
-})
+});

@@ -49,7 +49,23 @@ export enum ErrorSeverity {
 // Data Transfer Objects (DTOs)
 // ============================================================================
 
-export interface ServerStatus {
+export interface AiServerStatus {
+  readonly isConnected: boolean;
+  readonly serverUrl: string;
+  readonly uptime: number;
+  readonly lastSync: string;
+  readonly latency?: number;
+}
+
+export interface PublicServerStatus {
+  readonly isConnected: boolean;
+  readonly serverUrl: string;
+  readonly uptime: number;
+  readonly lastSync: string;
+  readonly latency?: number;
+}
+
+export interface MqttServerStatus {
   readonly isConnected: boolean;
   readonly serverUrl: string;
   readonly uptime: number;
@@ -92,7 +108,9 @@ export interface ActivityItem {
 }
 
 export interface DashboardData {
-  readonly status: ServerStatus;
+  readonly aiServerStatus: AiServerStatus;
+  readonly publicServerStatus: PublicServerStatus;
+  readonly mqttServerStatus: MqttServerStatus;
   readonly quickStats: QuickStats;
   readonly recentActivity: ReadonlyArray<ActivityItem>;
   readonly systemHealth: SystemHealth;
@@ -148,7 +166,9 @@ export interface AnalyticsData {
 // ============================================================================
 
 export interface AppConfig {
-  readonly serverUrl: string;
+  readonly aiServerUrl: string;
+  readonly publicServerUrl: string;
+  readonly mqttServerUrl: string;
   readonly fps: number;
   readonly batterySaver: boolean;
   readonly autoPauseBackground: boolean;
@@ -207,8 +227,9 @@ export interface AppState {
 
 export interface ConnectionState {
   readonly status: ConnectionStatus;
-  readonly serverUrl: string;
-  readonly uptime: number;
+  readonly aiServerUrl: string;
+  readonly publicServerUrl: string;
+  readonly mqttServerUrl: string;
   readonly lastConnected?: number;
   readonly error?: string;
 }

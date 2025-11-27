@@ -109,6 +109,7 @@ export const colors = {
     primary: '#212121',
     secondary: '#757575',
     disabled: '#BDBDBD',
+    tertiary: '#7e7b7bff',
     inverse: '#FFFFFF',
   },
 
@@ -116,6 +117,7 @@ export const colors = {
     light: '#E0E0E0',
     main: '#BDBDBD',
     dark: '#757575',
+    default: '#000000ff',
   },
 
   overlay: {

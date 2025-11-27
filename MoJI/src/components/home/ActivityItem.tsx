@@ -1,6 +1,6 @@
 import React, { memo, useCallback } from 'react';
-import type { ActivityItem } from '../types';
-import { theme } from '../theme';
+import type { ActivityItem } from '../../types';
+import { theme } from '../../theme';
 import {
   View,
   Text,

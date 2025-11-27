@@ -1,9 +1,15 @@
 {
-  "status": {
+  "aiServerStatus": {
     "isConnected": true,
-    "serverUrl": "http://192.168.0.100:8000",
-    "uptime": 3600,
-    "lastSync": "2025-11-14T14:15:00Z"
+    "serverUrl": "http://192.168.0.100:8000"
+  },
+  "publicServerStatus": {
+    "isConnected": true,
+    "serverUrl": "http://192.168.0.100:2000"
+  },
+  "mqttServerStatus": {
+    "isConnected": false,
+    "serverUrl": "http://192.168.0.100:3000"
   },
   "quickStats": {
     "totalFramesSent": 15420,

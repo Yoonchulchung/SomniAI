@@ -31,6 +31,9 @@ const storage = new MMKV();
 // ============================================================================
 
 const STORAGE_KEYS = {
+  AI_SERVER_URL: 'ai_server_url',
+  PUBLIC_SERVER_URL: 'public_server_url',
+  MQTT_SERVER_URL: 'mqtt_server_url',
   SERVER_URL: 'server_url',
   FPS: 'fps',
   BATTERY_SAVER: 'battery_saver',
@@ -42,7 +45,9 @@ const STORAGE_KEYS = {
 };
 
 const initialConfig: AppConfig = {
-  serverUrl: storage.getString(STORAGE_KEYS.SERVER_URL) || 'http://192.168.0.100:8000',
+  aiServerUrl: storage.getString(STORAGE_KEYS.AI_SERVER_URL) || 'http://192.168.0.100:8000',
+  publicServerUrl: storage.getString(STORAGE_KEYS.PUBLIC_SERVER_URL) || 'http://192.168.0.200:8000',
+  mqttServerUrl: storage.getString(STORAGE_KEYS.MQTT_SERVER_URL) || 'http://192.168.0.300:8000',
   fps: storage.getNumber(STORAGE_KEYS.FPS) || 10,
   batterySaver: storage.getBoolean(STORAGE_KEYS.BATTERY_SAVER) || false,
   autoPauseBackground: storage.getBoolean(STORAGE_KEYS.AUTO_PAUSE) ?? true,
@@ -57,8 +62,9 @@ const initialConfig: AppConfig = {
 const initialState: AppState = {
   connection: {
     status: 'disconnected' as ConnectionStatus,
-    serverUrl: initialConfig.serverUrl,
-    uptime: 0,
+    aiServerUrl: initialConfig.aiServerUrl,
+    publicServerUrl: initialConfig.publicServerUrl,
+    mqttServerUrl: initialConfig.mqttServerUrl,
   },
   transmission: {
     state: 'idle' as TransmissionState,

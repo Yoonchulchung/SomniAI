@@ -1,8 +1,3 @@
-/**
- * Settings Screen - Improved UI
- * Modern settings interface with card-based layout
- */
-
 import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
@@ -20,11 +15,15 @@ import { useTheme } from '../context/ThemeContext';
 import { Card, CardHeader, CardSection } from '../components/Card';
 import { Button } from '../components/Button';
 import { Badge } from '../components/Badge';
-
+import { UrlSetting } from '../components/setting/UrlSetting';
+import mqtt from 'mqtt';
+import { useAppContext, useSettings } from '../context/AppContext';
 const storage = new MMKV();
 
 const STORAGE_KEYS = {
-  SERVER_URL: 'server_url',
+  AI_SERVER_URL: 'server_url',
+  PUBLIC_SERVER_URL: 'server_url',
+  MQTT_SERVER_URL: 'server_url',
   FPS: 'fps',
   BATTERY_SAVER: 'battery_saver',
   AUTO_PAUSE: 'auto_pause_background',
@@ -37,10 +36,19 @@ const STORAGE_KEYS = {
 export function SettingsScreen() {
   const { theme } = useTheme();
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const { config, isDirty } = useSettings();
+  const { actions } = useAppContext();
 
-  const [serverUrl, setServerUrl] = useState(
-    storage.getString(STORAGE_KEYS.SERVER_URL) || 'http://192.168.0.100:8000'
-  );
+  const [aiServerUrlTmp, setAiServerUrlTmp] = useState(config.aiServerUrl);
+  const [publicServerUrlTmp, setPublicServerUrlTmp] = useState(config.publicServerUrl);
+  const [mqttServerUrlTmp, setMqttServerUrlTmp] = useState(config.mqttServerUrl);
+
+  useEffect(() => {
+      setAiServerUrlTmp(config.aiServerUrl);
+      setPublicServerUrlTmp(config.publicServerUrl);
+      setMqttServerUrlTmp(config.mqttServerUrl);
+  }, [config.aiServerUrl, config.publicServerUrl, config.mqttServerUrl]);
+    
   const [fps, setFps] = useState(storage.getNumber(STORAGE_KEYS.FPS) || 10);
   const [batterySaver, setBatterySaver] = useState(
     storage.getBoolean(STORAGE_KEYS.BATTERY_SAVER) || false
@@ -69,9 +77,17 @@ export function SettingsScreen() {
     }).start();
   }, []);
 
-  const handleSaveServerUrl = () => {
-    storage.set(STORAGE_KEYS.SERVER_URL, serverUrl);
-    Alert.alert('저장 완료', '서버 URL이 저장되었습니다.');
+  const handleSaveAiServerUrl = () => {
+    actions.updateConfig({ aiServerUrl: aiServerUrlTmp });
+    Alert.alert('저장 완료', 'AI 서버 URL이 저장되었습니다.');
+  };
+  const handleSavePublicServerUrl = () => {
+    actions.updateConfig({ publicServerUrl: publicServerUrlTmp });
+    Alert.alert('저장 완료', 'Public 서버 URL이 저장되었습니다.');
+  };
+  const handleSaveMqttServerUrl = () => {
+    actions.updateConfig({ mqttServerUrl: mqttServerUrlTmp });
+    Alert.alert('저장 완료', 'MQTT 서버 URL이 저장되었습니다.');
   };
 
   const handleFpsChange = (newFps: number) => {
@@ -95,7 +111,9 @@ export function SettingsScreen() {
           style: 'destructive',
           onPress: () => {
             storage.clearAll();
-            setServerUrl('http://192.168.0.100:8000');
+            actions.updateConfig({ aiServerUrl: 'http://192.168.0.100:8000'});
+            actions.updateConfig({ publicServerUrl: 'http://192.168.0.100:8000'})
+            actions.updateConfig({ mqttServerUrl: 'http://192.168.0.100:8000'})
             setFps(10);
             setBatterySaver(false);
             setAutoPause(true);
@@ -161,36 +179,27 @@ export function SettingsScreen() {
             연결 설정
           </Text>
 
-          <Card style={{ marginBottom: theme.spacing.md }}>
-            <CardHeader title="서버 URL" icon="🌐" />
-            <CardSection>
-              <TextInput
-                style={[
-                  styles.input,
-                  {
-                    borderColor: theme.colors.border.default,
-                    color: theme.colors.text.primary,
-                    backgroundColor: theme.colors.background.secondary,
-                  },
-                ]}
-                value={serverUrl}
-                onChangeText={setServerUrl}
-                placeholder="http://192.168.0.100:8000"
-                placeholderTextColor={theme.colors.text.tertiary}
-                autoCapitalize="none"
-                autoCorrect={false}
-                keyboardType="url"
-              />
-              <Button
-                title="저장"
-                onPress={handleSaveServerUrl}
-                variant="primary"
-                size="md"
-                fullWidth
-                icon="💾"
-              />
-            </CardSection>
-          </Card>
+          <UrlSetting
+            serverUrl = {aiServerUrlTmp}
+            title = "AI Server URL"
+            setServerUrl = {setAiServerUrlTmp}
+            onSave = {handleSaveAiServerUrl}
+          />
+
+          <UrlSetting
+            serverUrl = {publicServerUrlTmp}
+            title = "Public Server URL"
+            setServerUrl = {setPublicServerUrlTmp}
+            onSave = {handleSavePublicServerUrl}
+          />
+
+          <UrlSetting
+            serverUrl = {mqttServerUrlTmp}
+            title = "MQTT Server URL"
+            setServerUrl = {setMqttServerUrlTmp}
+            onSave = {handleSaveMqttServerUrl}
+          />
+          
 
           <Card>
             <SettingItem

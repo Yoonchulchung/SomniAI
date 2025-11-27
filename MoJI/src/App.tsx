@@ -1,8 +1,3 @@
-/**
- * Main Application Component
- * Enterprise-grade app with providers, error boundaries, and optimizations
- */
-
 import 'react-native-gesture-handler';
 import React, { useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
@@ -25,9 +20,6 @@ import { performanceMonitor } from './utils/performance';
 
 const Tab = createBottomTabNavigator();
 
-/**
- * Tab Navigator Component
- */
 const TabNavigator: React.FC = () => {
   const cameraPermission = Camera.getCameraPermissionStatus();
   const microphonePermission = Camera.getMicrophonePermissionStatus();
@@ -98,9 +90,6 @@ const TabNavigator: React.FC = () => {
   );
 };
 
-/**
- * Main App Component with Providers
- */
 export function App(): React.ReactElement {
   useEffect(() => {
     // Performance monitoring

@@ -7,10 +7,10 @@ import {
   FlatList,
   ListRenderItem,
 } from 'react-native';
-import { useAppContext, useDashboard } from '../context/AppContext';
+import { useAppContext, useDashboard, useSettings } from '../context/AppContext';
 import { useData } from '../hooks/useData';
-import { ConnectionStatus } from '../components/ServerConnectionStatus';
-import { ActivityItemComponent } from '../components/ActivityItem';
+import { ServerConnectionStatus } from '../components/home/ServerConnectionStatus';
+import { ActivityItemComponent } from '../components/home/ActivityItem';
 import { theme } from '../theme';
 import type { ActivityItem, DashboardData } from '../types';
 import dashboardDataMock from '../data/mockDashboard.json';
@@ -26,6 +26,7 @@ Header.displayName = 'Header';
 export const HomeScreen: React.FC = () => {
   const { actions } = useAppContext();
   const dashboard = useDashboard();
+  const { config, isDirty } = useSettings();
 
   // Fetch dashboard data with caching
   const {
@@ -95,21 +96,21 @@ export const HomeScreen: React.FC = () => {
     () => (
       <>
         <Header />
-        {data && (
+        {dashboard.data && (
           <>
-            <ConnectionStatus
-              isConnected={data.status.isConnected}
-              serverUrl={data.status.serverUrl}
+            <ServerConnectionStatus
+              isConnected={dashboard.data.aiServerStatus.isConnected}
+              serverUrl={config.aiServerUrl}
               title="AI server status"
             />
-            <ConnectionStatus
-              isConnected={data.status.isConnected}
-              serverUrl={data.status.serverUrl}
+            <ServerConnectionStatus
+              isConnected={dashboard.data.publicServerStatus.isConnected} 
+              serverUrl={config.publicServerUrl}
               title="Public server status"
             />
-            <ConnectionStatus
-              isConnected={data.status.isConnected}
-              serverUrl={data.status.serverUrl}
+            <ServerConnectionStatus
+              isConnected={dashboard.data.mqttServerStatus.isConnected}
+              serverUrl={config.mqttServerUrl}
               title="MQTT server status"
             />
 
@@ -120,10 +121,14 @@ export const HomeScreen: React.FC = () => {
         )}
       </>
     ),
-    [data]
+    [dashboard.data,
+      config.aiServerUrl,
+      config.publicServerUrl,
+      config.mqttServerUrl,
+    ]
   );
 
-  if (!data && isLoading) {
+  if (!dashboard.data && isLoading) {
     return (
       <View style={styles.loadingContainer}>
         <Text style={styles.loadingText}>로딩 중...</Text>
@@ -134,7 +139,7 @@ export const HomeScreen: React.FC = () => {
   return (
     <FlatList
       style={styles.container}
-      data={data?.recentActivity || []}
+      data={dashboard.data?.recentActivity || []}
       renderItem={renderActivity}
       keyExtractor={keyExtractor}
       ListHeaderComponent={ListHeaderComponent}
