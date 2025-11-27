@@ -48,15 +48,15 @@ const TabNavigator: React.FC = () => {
         tabBarStyle: {
           backgroundColor: theme.colors.background.primary,
           borderTopWidth: 0,
-          height: 50,
-          paddingBottom: 15,
+          height: 70,
+          paddingBottom: 25,
           paddingTop: 12,
           paddingHorizontal: 8,
           ...theme.shadows.lg,
           elevation: 8,
         },
         tabBarLabelStyle: {
-          fontSize: 15,
+          fontSize: 18,
           fontWeight: '700',
           marginTop: 0,
         },
