@@ -1,11 +1,11 @@
-import React, { memo, useCallback, useMemo, useEffect } from 'react';
+import React, { memo, useCallback, useMemo, useEffect, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   RefreshControl,
   FlatList,
-  ListRenderItem,
+  ListRenderItem
 } from 'react-native';
 import { useAppContext, useDashboard, useSettings } from '../context/AppContext';
 import { useData } from '../hooks/useData';
@@ -27,6 +27,59 @@ export const HomeScreen: React.FC = () => {
   const { actions } = useAppContext();
   const dashboard = useDashboard();
   const { config, isDirty } = useSettings();
+
+  const [liveStatus, setLiveStatus] = useState({
+    aiServerStatus: { isConnected: false },
+    publicServerStatus: { isConnected: false },
+    mqttServerStatus: { isConnected: false },
+  });
+
+  const pingServer = useCallback(async (url: string): Promise<boolean> => {
+    if (!url || !url.startsWith('http')) return false;
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 1500); //1.5 sec
+
+    try {
+      const response = await fetch(url, { method: 'GET', signal: controller.signal });
+      clearTimeout(timeoutId);
+
+      return response.ok; 
+    } catch (error) {
+      clearTimeout(timeoutId);
+      return false;
+    }
+  }, []);
+
+  useEffect(() => {
+    const pollServers = async () => {
+      const [isAiConnected, isPublicConnected, isMqttConnected] = await Promise.all([
+        pingServer(config.aiServerUrl),
+        pingServer(config.publicServerUrl),
+        pingServer(config.mqttServerUrl),
+      ]);
+
+      setLiveStatus({
+          aiServerStatus: { isConnected: isAiConnected },
+          publicServerStatus: { isConnected: isPublicConnected },
+          mqttServerStatus: { isConnected: isMqttConnected },
+      });
+    };
+
+    pollServers(); 
+
+    const intervalId = setInterval(pollServers, 2000);
+
+    return () => {
+      clearInterval(intervalId);
+    };
+
+  }, [
+      pingServer, 
+      config.aiServerUrl, 
+      config.publicServerUrl, 
+      config.mqttServerUrl
+  ]);
 
   // Fetch dashboard data with caching
   const {
@@ -91,7 +144,6 @@ export const HomeScreen: React.FC = () => {
     []
   );
 
-  // Render list header with memoization
   const ListHeaderComponent = useMemo(
     () => (
       <>
@@ -99,17 +151,17 @@ export const HomeScreen: React.FC = () => {
         {dashboard.data && (
           <>
             <ServerConnectionStatus
-              isConnected={dashboard.data.aiServerStatus.isConnected}
+              isConnected={liveStatus.aiServerStatus.isConnected}
               serverUrl={config.aiServerUrl}
               title="AI server status"
             />
             <ServerConnectionStatus
-              isConnected={dashboard.data.publicServerStatus.isConnected} 
+              isConnected={liveStatus.publicServerStatus.isConnected} 
               serverUrl={config.publicServerUrl}
               title="Public server status"
             />
             <ServerConnectionStatus
-              isConnected={dashboard.data.mqttServerStatus.isConnected}
+              isConnected={liveStatus.mqttServerStatus.isConnected}
               serverUrl={config.mqttServerUrl}
               title="MQTT server status"
             />
@@ -125,6 +177,7 @@ export const HomeScreen: React.FC = () => {
       config.aiServerUrl,
       config.publicServerUrl,
       config.mqttServerUrl,
+      liveStatus
     ]
   );
 
