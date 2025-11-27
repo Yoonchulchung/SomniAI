@@ -110,10 +110,7 @@ export function SettingsScreen() {
           text: '초기화',
           style: 'destructive',
           onPress: () => {
-            storage.clearAll();
-            actions.updateConfig({ aiServerUrl: 'http://192.168.0.100:8000'});
-            actions.updateConfig({ publicServerUrl: 'http://192.168.0.100:8000'})
-            actions.updateConfig({ mqttServerUrl: 'http://192.168.0.100:8000'})
+            actions.resetState();
             setFps(10);
             setBatterySaver(false);
             setAutoPause(true);
