@@ -40,3 +40,10 @@ dependency-injector
 pytest
 pytest-asyncio
 httpx
+
+
+paho-mqtt
+mmengine
+mmcv>=2.0.0rc4, <2.2.0
+numpy<2.0
+mmdet
