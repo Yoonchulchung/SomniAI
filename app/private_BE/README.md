@@ -6,6 +6,7 @@ FastAPI 기반의 AI 추론 서비스 - Clean Architecture 패턴 적용
 
 ## 아키텍처 구조
 
+[MoJI APP] -> [AI Server]/api/v1/upload-side/
 ```
 app/private/
 ├── core/                          # 핵심 공유 레이어
@@ -21,18 +22,28 @@ app/private/
 │
 ├── modules/                       # 비즈니스 모듈
 │   ├── auth/                      # 인증 모듈
-│   │   ├── domain/               # 도메인 엔티티
-│   │   ├── application/          # 유즈케이스
-│   │   ├── infrastructure/       # DB, 외부 서비스
-│   │   └── interface/            # API 컨트롤러
-│   ├── api_log/                  # API 로그 모듈
+│   ├── api_log/                   # API 로그 모듈
 │   ├── user/                      # 사용자 모듈
 │   └── inference/                 # AI 추론 모듈
+│   │   ├── domain/                # 도메인 엔티티
+│   │   ├── application/           # SomniAI 로직
+│   │   ├── infrastructure/ 
+│   │   │           ├── ai/       
+│   │   │           │   ├── inferece.py  # AI 추론
+│   │   │           │   ├──registry .py  # AI 모델 관리
+│   │   │           │   └──models/       # AI 모델
+│   │   └── interface/            # API 컨트롤러
 │
-├── containers.py                  # Dependency Injection 컨테이너
+├── containers.py                 # Dependency Injection 컨테이너
 ├── main.py                       # FastAPI 엔트리포인트
 └── boot_loader.py                # 애플리케이션 부트스트랩
 ```
+
+외부에서 이미지를 전송하면 아래와 같이 동작합니다.  
+[Controller] -> [Queue]  
+
+[Queue] -> [Inference] -> [Other API]  
+
 
 
 ## 필수 요구사항
@@ -67,13 +78,10 @@ python main.py config/develop.yaml
 ## 주요 엔드포인트
 
 ### AI 추론
-- `POST /api/v1/upload` - 이미지 업로드 및 추론
+- `POST /api/v1/upload-side/` - Pose Estimation을 이용한 측면 추론
+- `POST /api/v1/upload-side/` - Pose Estimation을 이용한 측면 추론
 - `GET /api/v1/health` - 헬스 체크
 
 ## 라이선스
 
 MIT License
-
-## 기여
-
-이슈 및 PR 환영합니다!

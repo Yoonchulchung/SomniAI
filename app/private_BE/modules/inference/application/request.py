@@ -24,7 +24,6 @@ async def request_to_server(dataset, cfg, url : str, pil_img : Image.Image, resu
             
             input_for_drawing = SimpleNamespace(keypoints=keypoints_obj)
 
-
     if False:
         drawn_img = dataset.draw_yolo_keypoints(
             raw_result,

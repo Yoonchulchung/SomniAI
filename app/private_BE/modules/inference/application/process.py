@@ -128,16 +128,15 @@ class BaseGPUProcess(IProcess):
                     break
             
             if batch:
-                print("Running")
                 task = asyncio.create_task(self.inference._run_inference(batch))
                 results, infer_batch = await task
-                await _save_to_queue(self.logger, self.result_queue, infer_batch, results)
 
-                # if self.channel_type == ChannelType.SIDE:
-                #     await _send_to_mqtt(self.mqtt, "/somniai/neck/angle", self.logger, results)
+                await _save_to_queue(self.logger, self.result_queue, infer_batch, results)
                 
-                url = "http://220.149.231.121:4000/api/inference/upload"
-                await request_to_server(self.dataset, self.cfg, url, infer_batch, results)
+                if self.channel_type == ChannelType.SIDE:
+                    await _send_to_mqtt(self.mqtt, self.cfg.MQTT.TOPIC, self.logger, results)
+                
+                await request_to_server(self.dataset, self.cfg, self.cfg.HTTP.PUBLIC_IP, infer_batch, results)
                 
 
 async def _save_to_queue(logger, queue, batch, results):
@@ -145,13 +144,16 @@ async def _save_to_queue(logger, queue, batch, results):
     
 
 async def _send_to_mqtt(mqtt, topic, logger, results):
+    
+    neck_data = results["pose_analysis"]["neck_angles"]
+    print(neck_data)
+    if neck_data:
+        try:
+            async with mqtt as mqtt_broker:
+                await mqtt_broker.send_to_message_broker(topic, str(neck_data[0]))
 
-    try:
-        async with mqtt as mqtt_broker:
-            await mqtt_broker.send_to_message_broker(topic, results["pose_analysis"])
-
-    except Exception as e:
-        logger.error(f"MQTT Error: {e}")
+        except Exception as e:
+            logger.error(f"MQTT Error: {e}")
 
 
 class AirProcess(BaseGPUProcess):

@@ -38,8 +38,9 @@ FASTAPI:
   LOG_LEVEL: warning
 
 HTTP:
-  BATCH_THRESHOLD: 1
+  BATCH_THRESHOLD: 100
   BATCH_TIMEOUT: 0.5
+  PUBLIC_IP : http://localhost:3000/upload
 
 AI:
   FREE_MEM_THRESHOLD: 4
@@ -68,6 +69,6 @@ AI:
     IOU_THRES: 0.45
 
 MQTT:
-  ADDRESS: 220.149.231.121
-  PORT: 1883
-  TOPIC: somniai/pillow/esp32
+  ADDRESS : ...
+  PORT : 1883
+  TOPIC : ...

@@ -27,7 +27,8 @@ class SomniAIMQTT:
         loop = asyncio.get_running_loop()
         await loop.run_in_executor(None, self.client.disconnect)
         
-    async def send_to_message_broker(self, topic, result, max_retries : int = 3):
+    async def send_to_message_broker(self, topic, result : str, max_retries : int = 3):
+
         loop = asyncio.get_running_loop()
         
         def _publish_sync():

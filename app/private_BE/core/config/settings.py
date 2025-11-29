@@ -46,7 +46,7 @@ class MQTTConfig(BaseModel):
     """MQTT 설정"""
     ADDRESS: str = "localhost"
     PORT: int = 1883
-    TOPIC: str = "somniai/pillow/esp32"
+    TOPIC: str = "somniai/neck/angle"
 
 
 class FastAPIConfig(BaseModel):
@@ -64,6 +64,7 @@ class HTTPConfig(BaseModel):
     """HTTP/Batch 설정"""
     BATCH_THRESHOLD: int = 256
     BATCH_TIMEOUT: float = 1.0
+    PUBLIC_IP: str = "http://192.168.0.1/"
 
 
 class VLMConfig(BaseModel):

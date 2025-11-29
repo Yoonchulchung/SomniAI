@@ -40,13 +40,10 @@ async def bootstrap() -> None:
         "vlm_register": vlm_register,
     }
 
-    # AI Model Loader 초기화
     model_loader = GPUModelLoader(SomniAI_cfg, registry, SomniAI_log)
 
-    # MQTT 초기화
     mqtt = SomniAIMQTT(SomniAI_cfg)
 
-    # Side Inference 초기화
     side_inference = SideInference(model_loader, SomniAI_cfg)
     side_process = SideProcess(
         SomniAI_cfg,
@@ -56,7 +53,6 @@ async def bootstrap() -> None:
         logger=SomniAI_log
     )
 
-    # Air Inference 초기화
     air_inference = AirInference(model_loader, SomniAI_cfg)
     air_process = AirProcess(
         SomniAI_cfg,
@@ -88,7 +84,6 @@ async def bootstrap() -> None:
 
     _print_info(SomniAI_cfg, model_loader)
 
-    # 비동기 스케줄러 시작
     asyncio.create_task(side_process.micro_scheduler())
     asyncio.create_task(air_process.micro_scheduler())
 
@@ -116,6 +111,8 @@ def _print_info(SomniAI_cfg, model_loader):
         s.close()
 
     console = Console()
+    console.print("\n\n")
+    console.print("="*50)
 
     port = getattr(SomniAI_cfg.FASTAPI, "PORT", settings.FASTAPI.PORT)
 
@@ -125,10 +122,8 @@ def _print_info(SomniAI_cfg, model_loader):
         "",
         f"Available Inference Models: {model_loader.get_model_list()}",
     ]
-    console.print("\n")
-    # console.print(Panel.fit(
-    #     "\n".join(lines),
-    #     title=f"FastAPI CLI - {SomniAI_cfg.type} mode",
-    #     border_style="cyan",
-    # ))
-    console.print("\n")
+    console.print(f"Public IP: {SomniAI_cfg.HTTP.PUBLIC_IP}")
+    console.print(f"MQTT Topic: {SomniAI_cfg.MQTT.TOPIC}")
+    console.print(f"MQTT IP: {SomniAI_cfg.MQTT.ADDRESS}")
+
+    console.print("="*50, "\n\n")
