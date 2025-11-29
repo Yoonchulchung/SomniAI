@@ -23,6 +23,7 @@ cd ../public_be_nest
 
 sudo npm install -g @nestjs/cli
 
+pnpm i
 pnpm run build
 
 pm2 start dist/main.js --name backend-api
