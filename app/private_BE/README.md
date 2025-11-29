@@ -79,7 +79,7 @@ python main.py config/develop.yaml
 
 ### AI 추론
 - `POST /api/v1/upload-side/` - Pose Estimation을 이용한 측면 추론
-- `POST /api/v1/upload-side/` - Pose Estimation을 이용한 측면 추론
+- `POST /api/v1/upload-air/`  - VLM을 이용한 사용자 위치 추론
 - `GET /api/v1/health` - 헬스 체크
 
 ## 라이선스
