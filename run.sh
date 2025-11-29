@@ -13,7 +13,7 @@ sudo apt install npm -y
 
 sudo npm install -g pm2
 
-cd app/public_fe
+cd app/public_FE
 
 npm i
 
