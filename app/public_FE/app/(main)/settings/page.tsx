@@ -1,101 +1,181 @@
+/**
+ * Settings Page
+ * Application settings and configuration
+ */
+
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
+import Link from 'next/link';
+import { Card, CardContent, CardHeader } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
+import { ArrowLeft, Settings as SettingsIcon, Globe, Video, Radio } from 'lucide-react';
 
-export default function QueueViewerPage() {
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [status, setStatus] = useState<'waiting' | 'loading' | 'success'>('waiting');
-  const [intervalMs, setIntervalMs] = useState(1000); // 1초마다 확인
+export default function SettingsPage() {
+  const [serverUrl, setServerUrl] = useState('http://192.168.0.100:8000');
+  const [mqttHost, setMqttHost] = useState('localhost');
+  const [mqttPort, setMqttPort] = useState(9001);
+  const [fps, setFps] = useState(10);
+  const [autoReconnect, setAutoReconnect] = useState(true);
 
-  // 컴포넌트가 언마운트될 때 메모리 누수 방지
-  useEffect(() => {
-    return () => {
-      if (imageUrl) URL.revokeObjectURL(imageUrl);
-    };
-  }, [imageUrl]);
-
-  // 폴링 로직
-  useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
-
-    const fetchImage = async () => {
-      try {
-        // 백엔드 주소 (프록시 설정이 안되어 있다면 http://localhost:8000 등 풀주소 필요)
-        const res = await fetch('http://localhost:3000/api/inference/view');
-
-        if (res.status === 200) {
-          // 1. 이미지가 큐에 있음!
-          const blob = await res.blob();
-          const objectUrl = URL.createObjectURL(blob);
-          
-          setImageUrl((prev) => {
-            if (prev) URL.revokeObjectURL(prev); // 이전 이미지 메모리 해제
-            return objectUrl;
-          });
-          setStatus('success');
-          
-          // 이미지를 찾았으면 다음 요청을 조금 천천히 할지 결정 (여기선 3초 뒤에 다시 찾음)
-          timeoutId = setTimeout(fetchImage, 3000); 
-
-        } else if (res.status === 404) {
-          // 2. 큐가 비어있음
-          setStatus('waiting');
-          // 1초 뒤 다시 확인
-          timeoutId = setTimeout(fetchImage, 1000);
-        } else {
-          // 에러 발생 시
-          console.error('Server Error');
-          timeoutId = setTimeout(fetchImage, 2000);
-        }
-
-      } catch (error) {
-        console.error('Fetch Error:', error);
-        timeoutId = setTimeout(fetchImage, 2000);
-      }
-    };
-
-    // 시작
-    fetchImage();
-
-    // 클린업: 컴포넌트가 사라지면 폴링 중단
-    return () => clearTimeout(timeoutId);
-  }, []);
+  const handleSave = () => {
+    localStorage.setItem('settings', JSON.stringify({
+      serverUrl,
+      mqttHost,
+      mqttPort,
+      fps,
+      autoReconnect,
+    }));
+    alert('설정이 저장되었습니다');
+  };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 text-white p-4">
-      <h1 className="text-2xl font-bold mb-4">Inference Queue Viewer</h1>
-      
-      {/* 상태 표시 */}
-      <div className="mb-4">
-        {status === 'waiting' && (
-          <span className="px-4 py-2 bg-yellow-600 rounded-full animate-pulse">
-            대기 중 (Queue Empty)...
-          </span>
-        )}
-        {status === 'success' && (
-          <span className="px-4 py-2 bg-green-600 rounded-full">
-            이미지 수신 완료!
-          </span>
-        )}
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-50">
+      <header className="bg-white border-b border-gray-200 shadow-sm">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex items-center gap-4">
+            <Link href="/">
+              <Button variant="outline" size="sm">
+                <ArrowLeft className="w-4 h-4" />
+                Back
+              </Button>
+            </Link>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
+              <p className="text-sm text-gray-600">앱 설정 및 환경 구성</p>
+            </div>
+          </div>
+        </div>
+      </header>
 
-      {/* 이미지 표시 영역 */}
-      <div className="w-full max-w-2xl h-[500px] border-2 border-gray-700 rounded-lg flex items-center justify-center bg-black overflow-hidden relative">
-        {imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img 
-            src={imageUrl} 
-            alt="Inference Result" 
-            className="w-full h-full object-contain"
-          />
-        ) : (
-          <p className="text-gray-500">데이터가 들어오면 여기에 표시됩니다.</p>
-        )}
-      </div>
+      <main className="max-w-4xl mx-auto px-6 py-8">
+        <div className="space-y-6">
+          {/* Server Settings */}
+          <Card elevated>
+            <CardHeader
+              title="서버 설정"
+              subtitle="프레임 전송 서버 구성"
+              icon={<Globe className="w-6 h-6 text-blue-600" />}
+            />
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">서버 URL</label>
+                  <input
+                    type="text"
+                    value={serverUrl}
+                    onChange={(e) => setServerUrl(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="http://192.168.0.100:8000"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-      <p className="mt-4 text-sm text-gray-400">
-        * 1초마다 큐를 확인하여 이미지를 가져옵니다.
-      </p>
+          {/* MQTT Settings */}
+          <Card elevated>
+            <CardHeader
+              title="MQTT 설정"
+              subtitle="브로커 연결 구성"
+              icon={<Radio className="w-6 h-6 text-orange-600" />}
+            />
+            <CardContent>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">호스트</label>
+                    <input
+                      type="text"
+                      value={mqttHost}
+                      onChange={(e) => setMqttHost(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">포트</label>
+                    <input
+                      type="number"
+                      value={mqttPort}
+                      onChange={(e) => setMqttPort(Number(e.target.value))}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+                <label className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={autoReconnect}
+                    onChange={(e) => setAutoReconnect(e.target.checked)}
+                    className="w-4 h-4"
+                  />
+                  <span className="text-sm font-medium text-gray-700">자동 재연결</span>
+                </label>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Video Settings */}
+          <Card elevated>
+            <CardHeader
+              title="비디오 설정"
+              subtitle="스트리밍 품질 구성"
+              icon={<Video className="w-6 h-6 text-purple-600" />}
+            />
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    FPS: {fps}
+                  </label>
+                  <input
+                    type="range"
+                    min="1"
+                    max="30"
+                    value={fps}
+                    onChange={(e) => setFps(Number(e.target.value))}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-xs text-gray-500 mt-1">
+                    <span>1 FPS</span>
+                    <span>30 FPS</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* App Info */}
+          <Card elevated>
+            <CardHeader
+              title="앱 정보"
+              icon={<SettingsIcon className="w-6 h-6 text-gray-600" />}
+            />
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                  <span className="text-sm text-gray-600">버전</span>
+                  <Badge label="1.0.0" variant="info" size="sm" />
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                  <span className="text-sm text-gray-600">빌드</span>
+                  <Badge label="2025.11.14" variant="default" size="sm" />
+                </div>
+                <div className="flex justify-between items-center py-2">
+                  <span className="text-sm text-gray-600">개발</span>
+                  <span className="text-sm font-semibold text-gray-900">SomniAI Team</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Save Button */}
+          <Button onClick={handleSave} variant="primary" size="lg" fullWidth>
+            💾 설정 저장
+          </Button>
+        </div>
+      </main>
     </div>
   );
 }

@@ -1,101 +1,92 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function QueueViewerPage() {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [status, setStatus] = useState<'waiting' | 'loading' | 'success'>('waiting');
-  const [intervalMs, setIntervalMs] = useState(1000); // 1초마다 확인
+  const [status, setStatus] = useState<'connecting' | 'connected' | 'success' | 'error'>('connecting');
+  const [logs, setLogs] = useState<string[]>([]); // 로그 확인용
 
-  // 컴포넌트가 언마운트될 때 메모리 누수 방지
   useEffect(() => {
-    return () => {
-      if (imageUrl) URL.revokeObjectURL(imageUrl);
+    const sseUrl = 'http://localhost:3000/notifications/sse';
+    
+    console.log(`SSE 연결 시도: ${sseUrl}`);
+    const eventSource = new EventSource(sseUrl);
+
+    eventSource.onopen = () => {
+      console.log('SSE 연결 성공!');
+      setStatus('connected');
+      setLogs((prev) => [...prev, '서버와 연결되었습니다. 데이터를 기다리는 중...']);
     };
-  }, [imageUrl]);
 
-  // 폴링 로직
-  useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
-
-    const fetchImage = async () => {
+    eventSource.onmessage = (event) => {
       try {
-        // 백엔드 주소 (프록시 설정이 안되어 있다면 http://localhost:8000 등 풀주소 필요)
-        const res = await fetch('http://localhost:4000/api/inference/view');
+        const parsedData = JSON.parse(event.data);
+        console.log('데이터 수신:', parsedData);
 
-        if (res.status === 200) {
-          // 1. 이미지가 큐에 있음!
-          const blob = await res.blob();
-          const objectUrl = URL.createObjectURL(blob);
-          
-          setImageUrl((prev) => {
-            if (prev) URL.revokeObjectURL(prev); // 이전 이미지 메모리 해제
-            return objectUrl;
-          });
+        if (parsedData.url) {
+          setImageUrl(parsedData.url);
           setStatus('success');
-          
-          // 이미지를 찾았으면 다음 요청을 조금 천천히 할지 결정 (여기선 3초 뒤에 다시 찾음)
-          timeoutId = setTimeout(fetchImage, 3000); 
-
-        } else if (res.status === 404) {
-          // 2. 큐가 비어있음
-          setStatus('waiting');
-          // 1초 뒤 다시 확인
-          timeoutId = setTimeout(fetchImage, 1000);
-        } else {
-          // 에러 발생 시
-          console.error('Server Error');
-          timeoutId = setTimeout(fetchImage, 2000);
+          setLogs((prev) => [`[${new Date().toLocaleTimeString()}] 이미지 수신 완료!`, ...prev]);
         }
-
       } catch (error) {
-        console.error('Fetch Error:', error);
-        timeoutId = setTimeout(fetchImage, 2000);
+        console.error('JSON 파싱 에러:', error);
       }
     };
 
-    // 시작
-    fetchImage();
+    eventSource.onerror = (error) => {
+      console.error('SSE 에러:', error);
+      setStatus('error');
+      eventSource.close();
+    };
 
-    // 클린업: 컴포넌트가 사라지면 폴링 중단
-    return () => clearTimeout(timeoutId);
+    return () => {
+      console.log('SSE 연결 종료');
+      eventSource.close();
+    };
   }, []);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 text-white p-4">
-      <h1 className="text-2xl font-bold mb-4">Inference Queue Viewer</h1>
+      <h1 className="text-2xl font-bold mb-4">Real-time Inference Viewer (SSE)</h1>
       
-      {/* 상태 표시 */}
-      <div className="mb-4">
-        {status === 'waiting' && (
-          <span className="px-4 py-2 bg-yellow-600 rounded-full animate-pulse">
-            대기 중 (Queue Empty)...
-          </span>
+      <div className="mb-6 flex gap-2">
+        {status === 'connecting' && (
+          <span className="px-4 py-2 bg-gray-600 rounded-full animate-pulse">Running Connection...</span>
+        )}
+        {status === 'connected' && (
+          <span className="px-4 py-2 bg-blue-600 rounded-full animate-pulse">Waiting for Data...</span>
         )}
         {status === 'success' && (
-          <span className="px-4 py-2 bg-green-600 rounded-full">
-            이미지 수신 완료!
-          </span>
+          <span className="px-4 py-2 bg-green-600 rounded-full">New Image Received!</span>
+        )}
+        {status === 'error' && (
+          <span className="px-4 py-2 bg-red-600 rounded-full">Connection Error</span>
         )}
       </div>
 
-      {/* 이미지 표시 영역 */}
-      <div className="w-full max-w-2xl h-[500px] border-2 border-gray-700 rounded-lg flex items-center justify-center bg-black overflow-hidden relative">
+      <div className="w-full max-w-2xl h-[500px] border-2 border-gray-700 rounded-lg flex items-center justify-center bg-black overflow-hidden relative shadow-2xl">
         {imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img 
             src={imageUrl} 
             alt="Inference Result" 
-            className="w-full h-full object-contain"
+            className="w-full h-full object-contain fade-in"
           />
         ) : (
-          <p className="text-gray-500">데이터가 들어오면 여기에 표시됩니다.</p>
+          <div className="text-center text-gray-500">
+            <p>실시간 데이터를 대기 중입니다.</p>
+            <p className="text-xs mt-2">(NestJS Queue → SSE → Next.js)</p>
+          </div>
         )}
       </div>
 
-      <p className="mt-4 text-sm text-gray-400">
-        * 1초마다 큐를 확인하여 이미지를 가져옵니다.
-      </p>
+      <div className="mt-8 w-full max-w-2xl bg-gray-800 p-4 rounded-lg h-32 overflow-y-auto text-xs text-gray-300 font-mono">
+        <h3 className="font-bold mb-2 text-gray-400">Event Logs:</h3>
+        {logs.map((log, i) => (
+          <div key={i}>{log}</div>
+        ))}
+      </div>
     </div>
   );
 }
