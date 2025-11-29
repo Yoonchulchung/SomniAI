@@ -5,6 +5,13 @@ echo "시스템 패키지 업데이트 및 Mosquitto 설치..."
 sudo apt update
 sudo apt install -y mosquitto mosquitto-clients curl git
 
+sudo bash -c 'cat <<EOF >> /etc/mosquitto/mosquitto.conf
+
+# --- External Access Config ---
+listener 1883
+allow_anonymous true
+EOF'
+
 # Mosquitto 서비스 시작
 sudo systemctl enable mosquitto
 sudo systemctl start mosquitto
