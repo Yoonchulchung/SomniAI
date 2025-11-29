@@ -11,7 +11,7 @@ source ~/.bashrc
 
 sudo apt install npm -y
 
-npm install -g pm2
+sudo npm install -g pm2
 
 cd app/public_fe
 
@@ -19,7 +19,7 @@ npm i
 
 pm2 start npm --name "next-frontend" -- run start:prod
 
-cd app/public_be_nest
+cd ../public_be_nest
 
 pnpm run build
 
