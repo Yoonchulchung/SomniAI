@@ -20,6 +20,11 @@ npm i
 pm2 start npm --name "next-frontend" -- run start:prod
 
 cd ../public_be_nest
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+source ~/.bashrc
+nvm install 20
+nvm use 20
+nvm alias default 20
 
 sudo npm install -g @nestjs/cli
 
