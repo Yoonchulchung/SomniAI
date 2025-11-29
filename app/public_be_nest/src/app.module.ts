@@ -1,10 +1,21 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { EventEmitterModule } from '@nestjs/event-emitter'; // 1. import 추가
+import { join } from 'path';
+
+import { InferController } from './controllers/infer.controller';
+import { NotificationController } from './controllers/notification.controller';
 
 @Module({
-  imports: [],
-  controllers: [AppController],
-  providers: [AppService],
+  imports: [
+    EventEmitterModule.forRoot(), 
+
+    ServeStaticModule.forRoot({
+      rootPath: join(process.cwd(), 'uploads'),
+      serveRoot: '/uploads',
+    }),
+  ],
+  controllers: [InferController, NotificationController], 
+  providers: [],
 })
 export class AppModule {}
