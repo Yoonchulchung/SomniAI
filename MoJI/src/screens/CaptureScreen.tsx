@@ -71,13 +71,6 @@ export function CaptureScreen(): React.ReactElement {
   );
   const [statsExpanded, setStatsExpanded] = useState(true)
 
-  const [recentUrls, setRecentUrls] = useState<string[]>(
-      JSON.parse(storage.getString(STORAGE_KEYS.RECENT_URLS) || '[]')
-  )
-  const [favoriteUrls, setFavoriteUrls] = useState<string[]>(
-      JSON.parse(storage.getString(STORAGE_KEYS.FAVORITE_URLS) || '[]')
-  )
-
   const [stats, setStats] = useState<TransmissionStats>({
       totalSent: 0,
       successCount: 0,
@@ -222,13 +215,8 @@ export function CaptureScreen(): React.ReactElement {
       url = url + '/'
     }
 
-    setServerUrl(url)
     setTempUrl(url)
     storage.set(STORAGE_KEYS.SERVER_URL, url)
-
-    const updated = [url, ...recentUrls.filter(u => u !== url)].slice(0, 5)
-    setRecentUrls(updated)
-    storage.set(STORAGE_KEYS.RECENT_URLS, JSON.stringify(updated))
 
     setFps(tempFps)
     storage.set(STORAGE_KEYS.FPS, tempFps)
@@ -238,20 +226,6 @@ export function CaptureScreen(): React.ReactElement {
     setTotalDataSent(0)
 
     console.log('Settings saved:', { url, fps: tempFps })
-  }
-
-  const toggleFavorite = (url: string) => {
-    const isFavorite = favoriteUrls.includes(url)
-    const updated = isFavorite
-      ? favoriteUrls.filter(u => u !== url)
-      : [...favoriteUrls, url]
-
-    setFavoriteUrls(updated)
-    storage.set(STORAGE_KEYS.FAVORITE_URLS, JSON.stringify(updated))
-  }
-
-  const selectUrl = (url: string) => {
-    setTempUrl(url)
   }
 
   const toggleBatterySaver = () => {
@@ -417,48 +391,6 @@ export function CaptureScreen(): React.ReactElement {
                       keyboardType="url"
                   />
 
-                  {/* Favorite URLs */}
-                  {favoriteUrls.length > 0 && (
-                      <View style={styles.urlSection}>
-                          <Text style={styles.inputLabel}>Favorites</Text>
-                          {favoriteUrls.map((url, idx) => (
-                              <View key={idx} style={styles.urlItem}>
-                                  <TouchableOpacity
-                                      style={styles.urlButton}
-                                      onPress={() => selectUrl(url)}
-                                  >
-                                      <Text style={styles.urlText} numberOfLines={1}>{url}</Text>
-                                  </TouchableOpacity>
-                                  <TouchableOpacity onPress={() => toggleFavorite(url)}>
-                                      <Text style={styles.starButton}>⭐</Text>
-                                  </TouchableOpacity>
-                              </View>
-                          ))}
-                      </View>
-                  )}
-
-                  {/* Recent URLs */}
-                  {recentUrls.length > 0 && (
-                      <View style={styles.urlSection}>
-                          <Text style={styles.inputLabel}>Recent</Text>
-                          {recentUrls.map((url, idx) => (
-                              <View key={idx} style={styles.urlItem}>
-                                  <TouchableOpacity
-                                      style={styles.urlButton}
-                                      onPress={() => selectUrl(url)}
-                                  >
-                                      <Text style={styles.urlText} numberOfLines={1}>{url}</Text>
-                                  </TouchableOpacity>
-                                  <TouchableOpacity onPress={() => toggleFavorite(url)}>
-                                      <Text style={styles.starButton}>
-                                          {favoriteUrls.includes(url) ? '⭐' : '☆'}
-                                      </Text>
-                                  </TouchableOpacity>
-                              </View>
-                          ))}
-                      </View>
-                  )}
-
                   {/* FPS Setting */}
                   <Text style={styles.sectionTitle}>Frame Rate: {formatFps(tempFps)} FPS</Text>
                   <View style={styles.sliderContainer}>
@@ -598,6 +530,7 @@ const styles = StyleSheet.create({
       backgroundColor: '#1a1a1a',
       borderTopWidth: 1,
       borderTopColor: '#333',
+      paddingLeft: 10,
   },
 
   statusIndicator: {

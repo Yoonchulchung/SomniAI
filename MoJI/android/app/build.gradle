@@ -213,6 +213,13 @@ android {
     packagingOptions {
         pickFirst '**/*.so'
     }
+
+    applicationVariants.all { variant ->
+        variant.outputs.all {
+            def date = new Date().format("yyyyMMdd")
+            outputFileName = "MoJI-${variant.name}-${date}.apk"
+        }
+    }
 }
 
 dependencies {

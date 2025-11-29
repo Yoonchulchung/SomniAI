@@ -1,3 +1,52 @@
 {
-  "extends": "@react-native/typescript-config/tsconfig.json"
+  // React Native CLI가 생성한 기본 설정 파일을 상속합니다.
+  "extends": "@react-native/typescript-config/tsconfig.json",
+  
+  "compilerOptions": {
+    // 💡 프로젝트의 JSX 코드를 React Native 환경에 맞게 처리하도록 명시합니다. (필수)
+    "jsx": "react-native", 
+    
+    // 💡 엄격한 타입 검사를 활성화합니다. (권장)
+    "strict": true,
+    
+    // 💡 null 또는 undefined를 엄격하게 처리합니다.
+    "strictNullChecks": true,
+    
+    // 💡 모든 코드 경로가 값을 반환하는지 확인합니다.
+    "noImplicitReturns": true,
+    
+    // 💡 모듈 해석 방식을 Node.js 표준으로 설정합니다.
+    "moduleResolution": "node",
+    
+    // 💡 JavaScript 코드(`*.js`, `*.jsx`)도 TypeScript 컴파일러가 처리하도록 합니다.
+    "allowJs": true,
+    
+    // 💡 CommonJS/ES Modules 간의 상호 운용성을 확보합니다.
+    "esModuleInterop": true,
+    
+    // 💡 컴파일러가 .tsx 파일 외의 파일도 찾아보도록 합니다.
+    "resolveJsonModule": true,
+    
+    // 💡 Node.js의 require() 구문 대신 ES Modules 스타일의 import를 허용합니다.
+    "allowSyntheticDefaultImports": true,
+    
+    // 💡 React Native 환경에서 React의 타입 정의를 자동으로 포함합니다.
+    "skipLibCheck": true 
+  },
+  
+  "include": [
+    // 💡 컴파일러가 처리해야 할 파일 및 폴더를 명시합니다.
+    "src/**/*",
+    "index.js",
+    "App.tsx",
+    "__tests__/**/*"
+  ],
+  
+  "exclude": [
+    // 💡 컴파일러가 무시해야 할 파일 및 폴더를 명시합니다.
+    "node_modules",
+    "babel.config.js",
+    "metro.config.js",
+    "jest.config.js"
+  ]
 }

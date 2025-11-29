@@ -1,8 +1,3 @@
-/**
- * MQTT Control Components
- * UI components for MQTT connection, publish, and subscribe
- */
-
 import React, { useState } from 'react';
 import {
   View,

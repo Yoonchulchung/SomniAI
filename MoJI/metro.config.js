@@ -1,20 +1,18 @@
 const {getDefaultConfig, mergeConfig} = require('@react-native/metro-config');
 
-/**
- * Metro configuration
- * https://facebook.github.io/metro/docs/configuration
- *
- * @type {import('metro-config').MetroConfig}
- */
+const defaultConfig = getDefaultConfig(__dirname);
+
 const config = {
   resolver: {
     extraNodeModules: {
-      url: require.resolve('react-native-url-polyfill'),
+      ...require('node-libs-react-native'),
+      fs: require.resolve('node-libs-react-native/mock/empty'),
+      net: require.resolve('node-libs-react-native/mock/net'),
+      tls: require.resolve('node-libs-react-native/mock/tls'),
+      dns: require.resolve('node-libs-react-native/mock/dns'),
       stream: require.resolve('stream-browserify'),
-      buffer: require.resolve('buffer'),
-      events: require.resolve('events'),
     },
   },
 };
 
-module.exports = mergeConfig(getDefaultConfig(__dirname), config);
+module.exports = mergeConfig(defaultConfig, config);

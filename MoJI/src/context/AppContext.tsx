@@ -45,7 +45,7 @@ const STORAGE_KEYS = {
 };
 
 const initialConfig: AppConfig = {
-  aiServerUrl: storage.getString(STORAGE_KEYS.AI_SERVER_URL) || 'http://192.168.0.100:8000',
+  aiServerUrl: storage.getString(STORAGE_KEYS.AI_SERVER_URL) || 'http://10.243.102.25:8000/api/v1/upload-side/',
   publicServerUrl: storage.getString(STORAGE_KEYS.PUBLIC_SERVER_URL) || 'http://192.168.0.200:8000',
   mqttServerUrl: storage.getString(STORAGE_KEYS.MQTT_SERVER_URL) || 'http://192.168.0.300:8000',
   fps: storage.getNumber(STORAGE_KEYS.FPS) || 10,

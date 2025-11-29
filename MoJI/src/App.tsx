@@ -14,6 +14,7 @@ import { HomeScreen } from './screens/HomeScreen';
 import { CaptureScreen } from './screens/CaptureScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { MQTTScreen } from './screens/MQTTScreen';
+import { CameraScreenFast } from './screens/CameraScreenFast';
 import { theme } from './theme';
 import { appLogger } from './utils/logger';
 import { performanceMonitor } from './utils/performance';
@@ -68,6 +69,14 @@ const TabNavigator: React.FC = () => {
         options={{
           tabBarLabel: 'Capture',
           tabBarAccessibilityLabel: 'Capture Tab',
+        }}
+      />
+      <Tab.Screen
+        name="Fast"
+        component={CameraScreenFast}
+        options={{
+          tabBarLabel: 'Fast',
+          tabBarAccessibilityLabel: 'Capture Fast Tab',
         }}
       />
       <Tab.Screen
