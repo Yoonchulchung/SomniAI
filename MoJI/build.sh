@@ -264,6 +264,6 @@ if [ ! -d "${MOJI_ROOT}/android" ] ; then
     exit 1
 fi
 
-cd "${MOJI_ROOT}"/android && ./gradlew clean && ./gradlew build
+cd "${MOJI_ROOT}"/android && ./gradlew clean && ./gradlew assemble
 
 echo "**********************************************************************"

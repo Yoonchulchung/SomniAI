@@ -10,20 +10,14 @@ FastAPI 기반의 AI 추론 서비스 - Clean Architecture 패턴 적용
 ```
 app/private/
 ├── core/                          # 핵심 공유 레이어
-│   ├── config/                    # 설정 관리 (Pydantic Settings)
-│   ├── exceptions/                # 공통 예외 클래스
+│   ├── config/                    # 설정 관리 (yaml 기반 처리)
 │   └── domain/                    # 공통 도메인 엔티티
 │
 ├── infrastructure/                # 공유 인프라스트럭처
 │   ├── database/                  # 데이터베이스 세션 관리
-│   ├── security/                  # JWT, 비밀번호 해싱
-│   ├── logging/                   # 로깅 설정
-│   └── middleware/                # 미들웨어
+│   └── middleware/                # 미들웨어 (MQTT)
 │
 ├── modules/                       # 비즈니스 모듈
-│   ├── auth/                      # 인증 모듈
-│   ├── api_log/                   # API 로그 모듈
-│   ├── user/                      # 사용자 모듈
 │   └── inference/                 # AI 추론 모듈
 │   │   ├── domain/                # 도메인 엔티티
 │   │   ├── application/           # SomniAI 로직
@@ -66,7 +60,7 @@ alembic upgrade head
 
 ### 3. **애플리케이션 실행**
 ```bash
-python main.py config/develop.yaml
+python main.py config/deploy.yaml
 ```
 
 ## API 문서

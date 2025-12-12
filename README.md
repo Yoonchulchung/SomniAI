@@ -12,7 +12,7 @@ For deeper description how we made MoJI app, please read [MoJI Documents](./MoJI
 ## System Architecture
 [Mobile App (MoJI)] ---> [AI Server] ---> [Sleep Feedback (HW)]
 
-We made AI Server using FastAPI and Go. Please check out [here](./app/)
+We made AI Server using FastAPI. Please check out [here](./app/README.md)
 
 ## Installation
 In order to use SomniAI, Please follow below instruction to install.    
@@ -27,16 +27,14 @@ Or use our Python script:
 python data/download_data.py --path /path/to/dataset
 ```
 
-__2. Install Dependency__   
-please install dependency using below command:
+__2. Run FastAPI Server__   
 ``` bash
-pip install -r requirements
+./deploy_private.sh
 ```
 
-__3. Run FastAPI Server__   
-We support __HTTP/1.1, HTTP/2, HTTP/3__. 
+__3. Run Nest.js and Next.js Web Server__
 ``` bash
-hypercorn main:app --reload
+./deploy_public.sh
 ```
 
 ## Usage
@@ -45,15 +43,11 @@ You can test the server with sample data using:
 python tests/test.py 
 ```
 
-## Training
+## Train
 You can train ViTPose with IEEE 2021 VIP CUP Dataset using:
 ```bash
 ./mmpose/run_train.sh
 ```
-## Contribution
-**Hardware Software** : 고민준, 이찬희  
-**Hardware Design** : 김도훈, 조형진  
-**Software**  :  예성호, 정윤철
 
 ## License
 MIT License

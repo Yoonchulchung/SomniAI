@@ -14,3 +14,5 @@ MQTT를 이용하여 AI 서버에서 ESP32로 데이터를 전송할 수 있는 
 
 Private BE를 이용해 MoJI에서 전달받은 이미지를 이용해 Pose Estimation으로 사용자의 자세를 추정합니다. 추정된 자세 결과를 Public FE에서 확인할 수 있습니다.  
 Public BE와 Public FE는 생성형 AI를 이용해 제작되었습니다.
+
+AI 서버는 [여기](./private_BE/README.md) 에서 세부 정보를 확인하실 수 있습니다.
